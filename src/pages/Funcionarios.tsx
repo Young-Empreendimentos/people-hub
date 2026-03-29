@@ -164,7 +164,7 @@ export default function Funcionarios() {
   const getStatusBadge = (funcId: string) => {
     const st = (statusMap as Record<string, string>)[funcId];
     if (st === "desligamento") return <Badge variant="destructive">Desligado</Badge>;
-    if (st === "admissao") return <Badge className="bg-emerald-600 hover:bg-emerald-700">Ativo</Badge>;
+    if (st === "admissao") return <Badge className="bg-primary hover:bg-primary/90">Ativo</Badge>;
     return <Badge variant="secondary">Sem registro</Badge>;
   };
 

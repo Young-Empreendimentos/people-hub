@@ -19,7 +19,8 @@ export default function Login() {
     const { error } = await signIn(email, password);
     setLoading(false);
     if (error) {
-      toast.error("Credenciais inválidas. Verifique seu email e senha.");
+      console.error("Login error:", error);
+      toast.error(error.message || "Credenciais inválidas. Verifique seu email e senha.");
     } else {
       navigate("/");
     }

@@ -16,27 +16,47 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
+import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
 
 export default function Admissoes() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filterFunc, setFilterFunc] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const [funcId, setFuncId] = useState("");
+  // Filters
+  const [filterFunc, setFilterFunc] = useState("");
+  const [filterEmpresa, setFilterEmpresa] = useState("");
+  const [filterEquipe, setFilterEquipe] = useState("");
+  const [filterDataDe, setFilterDataDe] = useState("");
+  const [filterDataAte, setFilterDataAte] = useState("");
+
+  // Form - admission fields
   const [tipo, setTipo] = useState("admissao");
   const [data, setData] = useState("");
   const [obs, setObs] = useState("");
   const [file, setFile] = useState<File | null>(null);
+
+  // Form - employee fields (for new admission)
+  const [funcId, setFuncId] = useState("");
+  const [nomeCompleto, setNomeCompleto] = useState("");
+  const [rg, setRg] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [aniversario, setAniversario] = useState("");
+  const [empresaId, setEmpresaId] = useState("");
+  const [equipeId, setEquipeId] = useState("");
+  const [cargoId, setCargoId] = useState("");
+  const [dataContratoVigente, setDataContratoVigente] = useState("");
+  const [cpfError, setCpfError] = useState("");
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["rh_admissoes_desligamentos"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_admissoes_desligamentos")
-        .select("*, rh_funcionarios(nome_completo)")
+        .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id)")
         .order("data", { ascending: false });
       if (error) throw error;
       return data;
@@ -47,19 +67,62 @@ export default function Admissoes() {
     queryKey: ["rh_funcionarios"],
     queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
   });
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["rh_empresas"],
+    queryFn: async () => { const { data } = await supabase.from("rh_empresas").select("*").order("nome"); return data || []; },
+  });
+  const { data: equipes = [] } = useQuery({
+    queryKey: ["rh_equipes"],
+    queryFn: async () => { const { data } = await supabase.from("rh_equipes").select("*").order("nome"); return data || []; },
+  });
+  const { data: cargos = [] } = useQuery({
+    queryKey: ["rh_cargos"],
+    queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome"); return data || []; },
+  });
+
+  const isNewAdmission = tipo === "admissao" && !editingId;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      let targetFuncId = funcId;
+
+      // If new admission, create employee first
+      if (isNewAdmission && !funcId) {
+        if (!nomeCompleto.trim()) throw new Error("Nome é obrigatório.");
+        if (cpf && !isValidCPF(cpf)) throw new Error("CPF inválido.");
+
+        const employeePayload = {
+          nome_completo: nomeCompleto.trim(),
+          rg: rg || null,
+          cpf: cpf || null,
+          endereco: endereco || null,
+          aniversario: aniversario || null,
+          empresa_id: empresaId || null,
+          equipe_id: equipeId || null,
+          cargo_id: cargoId || null,
+          data_contrato_vigente: dataContratoVigente || data || null,
+        };
+        const { data: newFunc, error: funcError } = await supabase
+          .from("rh_funcionarios")
+          .insert(employeePayload)
+          .select("id")
+          .single();
+        if (funcError) throw funcError;
+        targetFuncId = newFunc.id;
+      }
+
+      if (!targetFuncId) throw new Error("Funcionário é obrigatório.");
+
       let anexo_path: string | null = null;
       let anexo_name: string | null = null;
       if (file) {
-        const path = `admissoes/${funcId}/${Date.now()}_${file.name}`;
+        const path = `admissoes/${targetFuncId}/${Date.now()}_${file.name}`;
         const { error } = await supabase.storage.from("rh-anexos").upload(path, file);
         if (error) throw error;
         anexo_path = path; anexo_name = file.name;
       }
       const payload: any = {
-        funcionario_id: funcId,
+        funcionario_id: targetFuncId,
         tipo,
         data,
         observacoes: obs || null,
@@ -79,10 +142,11 @@ export default function Admissoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_admissoes_desligamentos"] });
       queryClient.invalidateQueries({ queryKey: ["rh_status_funcionarios"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_funcionarios"] });
       toast.success(editingId ? "Registro atualizado." : "Registro salvo.");
       closeDialog();
     },
-    onError: () => toast.error("Erro ao salvar registro."),
+    onError: (err: any) => toast.error(err?.message || "Erro ao salvar registro."),
   });
 
   const deleteMutation = useMutation({
@@ -100,6 +164,8 @@ export default function Admissoes() {
 
   const openNew = () => {
     setEditingId(null); setFuncId(""); setTipo("admissao"); setData(""); setObs(""); setFile(null);
+    setNomeCompleto(""); setRg(""); setCpf(""); setEndereco(""); setAniversario("");
+    setEmpresaId(""); setEquipeId(""); setCargoId(""); setDataContratoVigente(""); setCpfError("");
     setDialogOpen(true);
   };
 
@@ -111,7 +177,14 @@ export default function Admissoes() {
 
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
 
-  const filtered = filterFunc ? registros.filter((r: any) => r.funcionario_id === filterFunc) : registros;
+  const filtered = registros.filter((r: any) => {
+    if (filterFunc && r.funcionario_id !== filterFunc) return false;
+    if (filterEmpresa && r.rh_funcionarios?.empresa_id !== filterEmpresa) return false;
+    if (filterEquipe && r.rh_funcionarios?.equipe_id !== filterEquipe) return false;
+    if (filterDataDe && r.data < filterDataDe) return false;
+    if (filterDataAte && r.data > filterDataAte) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-4">
@@ -123,8 +196,12 @@ export default function Admissoes() {
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Registro</Button>
       </div>
 
-      <div className="max-w-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <Combobox options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
+        <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={filterEmpresa} onValueChange={setFilterEmpresa} placeholder="Filtrar por empresa" />
+        <Combobox options={equipes.map((e: any) => ({ value: e.id, label: e.nome }))} value={filterEquipe} onValueChange={setFilterEquipe} placeholder="Filtrar por equipe" />
+        <Input type="date" value={filterDataDe} onChange={(e) => setFilterDataDe(e.target.value)} placeholder="Data de" />
+        <Input type="date" value={filterDataAte} onChange={(e) => setFilterDataAte(e.target.value)} placeholder="Data até" />
       </div>
 
       <Card><CardContent className="p-0">
@@ -165,18 +242,75 @@ export default function Admissoes() {
       </CardContent></Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar Registro" : "Novo Registro"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
-              <Combobox options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione o funcionário" />
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Tipo *</label>
                 <Combobox options={[{ value: "admissao", label: "Admissão" }, { value: "desligamento", label: "Desligamento" }]} value={tipo} onValueChange={setTipo} />
               </div>
               <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
             </div>
+
+            {/* For editing or desligamento, select existing employee */}
+            {(editingId || tipo === "desligamento") && (
+              <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
+                <Combobox options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione o funcionário" />
+              </div>
+            )}
+
+            {/* For new admission, show employee creation fields */}
+            {isNewAdmission && (
+              <>
+                <div className="border-t pt-4">
+                  <p className="text-sm font-semibold text-muted-foreground mb-3">Dados do novo funcionário</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nome Completo *</label>
+                  <Input value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} placeholder="Nome completo do colaborador" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">RG</label>
+                    <Input value={rg} onChange={(e) => setRg(maskRG(e.target.value))} placeholder="00.000.000-0" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">CPF</label>
+                    <Input value={cpf} onChange={(e) => { setCpf(maskCPF(e.target.value)); setCpfError(""); }} placeholder="000.000.000-00" className={cpfError ? "border-destructive" : ""} />
+                    {cpfError && <p className="text-xs text-destructive">{cpfError}</p>}
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Endereço</label>
+                  <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Aniversário</label>
+                    <Input type="date" value={aniversario} onChange={(e) => setAniversario(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Data Contrato Vigente</label>
+                    <Input type="date" value={dataContratoVigente} onChange={(e) => setDataContratoVigente(e.target.value)} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Empresa Contratante</label>
+                  <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={empresaId} onValueChange={setEmpresaId} placeholder="Selecione a empresa" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Equipe</label>
+                    <Combobox options={equipes.map((e: any) => ({ value: e.id, label: e.nome }))} value={equipeId} onValueChange={setEquipeId} placeholder="Selecione a equipe" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Cargo</label>
+                    <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nome }))} value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo" />
+                  </div>
+                </div>
+              </>
+            )}
+
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
             <div className="space-y-2"><label className="text-sm font-medium">Anexo</label>
               <div className="flex items-center gap-2">
@@ -188,7 +322,10 @@ export default function Admissoes() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!funcId || !data || saveMutation.isPending}>
+            <Button
+              onClick={() => saveMutation.mutate()}
+              disabled={!data || saveMutation.isPending || (editingId && !funcId) || (tipo === "desligamento" && !funcId) || (isNewAdmission && !nomeCompleto.trim())}
+            >
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>

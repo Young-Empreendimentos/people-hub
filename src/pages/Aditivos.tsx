@@ -21,8 +21,14 @@ export default function Aditivos() {
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [filterFunc, setFilterFunc] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Filters
+  const [filterFunc, setFilterFunc] = useState("");
+  const [filterEmpresa, setFilterEmpresa] = useState("");
+  const [filterEquipe, setFilterEquipe] = useState("");
+  const [filterDataDe, setFilterDataDe] = useState("");
+  const [filterDataAte, setFilterDataAte] = useState("");
 
   const [funcId, setFuncId] = useState("");
   const [tipoAditivoId, setTipoAditivoId] = useState("");
@@ -38,7 +44,7 @@ export default function Aditivos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_aditivos")
-        .select("*, rh_funcionarios(nome_completo), rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
+        .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id), rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
         .order("data", { ascending: false });
       if (error) throw error;
       return data;
@@ -113,7 +119,15 @@ export default function Aditivos() {
   };
 
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
-  const filtered = filterFunc ? aditivos.filter((a: any) => a.funcionario_id === filterFunc) : aditivos;
+
+  const filtered = aditivos.filter((a: any) => {
+    if (filterFunc && a.funcionario_id !== filterFunc) return false;
+    if (filterEmpresa && a.rh_funcionarios?.empresa_id !== filterEmpresa) return false;
+    if (filterEquipe && a.rh_funcionarios?.equipe_id !== filterEquipe) return false;
+    if (filterDataDe && a.data < filterDataDe) return false;
+    if (filterDataAte && a.data > filterDataAte) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-4">
@@ -125,8 +139,12 @@ export default function Aditivos() {
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Aditivo</Button>
       </div>
 
-      <div className="max-w-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
+        <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={filterEmpresa} onValueChange={setFilterEmpresa} placeholder="Filtrar por empresa" />
+        <Combobox options={equipes.map((e: any) => ({ value: e.id, label: e.nome }))} value={filterEquipe} onValueChange={setFilterEquipe} placeholder="Filtrar por equipe" />
+        <Input type="date" value={filterDataDe} onChange={(e) => setFilterDataDe(e.target.value)} placeholder="Data de" />
+        <Input type="date" value={filterDataAte} onChange={(e) => setFilterDataAte(e.target.value)} placeholder="Data até" />
       </div>
 
       <Card><CardContent className="p-0">

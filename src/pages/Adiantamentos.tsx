@@ -14,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, X } from "lucide-react";
 
 export default function Adiantamentos() {
   const queryClient = useQueryClient();
@@ -26,7 +26,7 @@ export default function Adiantamentos() {
   const [funcId, setFuncId] = useState("");
   const [data, setData] = useState("");
   const [valor, setValor] = useState("");
-  const [datasPagamento, setDatasPagamento] = useState("");
+  const [datasPagamento, setDatasPagamento] = useState<string[]>([]);
   const [obs, setObs] = useState("");
 
   const { data: adiantamentos = [], isLoading } = useQuery({
@@ -48,12 +48,12 @@ export default function Adiantamentos() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const datas = datasPagamento.split(",").map((d) => d.trim()).filter(Boolean);
+      const datasFiltered = datasPagamento.filter(Boolean);
       const payload = {
         funcionario_id: funcId,
         data,
         valor: parseFloat(valor) || 0,
-        datas_pagamento_pretendidas: datas.length > 0 ? datas : null,
+        datas_pagamento_pretendidas: datasFiltered.length > 0 ? datasFiltered : null,
         observacoes: obs || null,
       };
       if (editingId) {
@@ -81,19 +81,29 @@ export default function Adiantamentos() {
     onError: () => toast.error("Erro ao excluir."),
   });
 
-  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setDatasPagamento(""); setObs(""); setDialogOpen(true); };
-  
+  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setDatasPagamento([]); setObs(""); setDialogOpen(true); };
+
   const openEdit = (a: any) => {
     setEditingId(a.id);
     setFuncId(a.funcionario_id);
     setData(a.data);
     setValor(String(a.valor));
-    setDatasPagamento(a.datas_pagamento_pretendidas?.join(", ") || "");
+    setDatasPagamento(a.datas_pagamento_pretendidas || []);
     setObs(a.observacoes || "");
     setDialogOpen(true);
   };
 
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
+
+  const addDataPagamento = () => setDatasPagamento([...datasPagamento, ""]);
+  const updateDataPagamento = (index: number, value: string) => {
+    const updated = [...datasPagamento];
+    updated[index] = value;
+    setDatasPagamento(updated);
+  };
+  const removeDataPagamento = (index: number) => {
+    setDatasPagamento(datasPagamento.filter((_, i) => i !== index));
+  };
 
   const filtered = filterFunc ? adiantamentos.filter((a: any) => a.funcionario_id === filterFunc) : adiantamentos;
   const formatCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
@@ -152,7 +162,22 @@ export default function Adiantamentos() {
               <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">Valor (R$) *</label><Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0.00" /></div>
             </div>
-            <div className="space-y-2"><label className="text-sm font-medium">Datas de Pagamento Pretendidas</label><Input value={datasPagamento} onChange={(e) => setDatasPagamento(e.target.value)} placeholder="Ex: 15/01/2026, 15/02/2026" /></div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Datas de Pagamento Pretendidas</label>
+                <Button type="button" variant="outline" size="sm" onClick={addDataPagamento}>
+                  <Plus className="mr-1 h-3 w-3" /> Adicionar data
+                </Button>
+              </div>
+              {datasPagamento.map((dp, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <Input type="date" value={dp} onChange={(e) => updateDataPagamento(i, e.target.value)} />
+                  <Button type="button" variant="ghost" size="icon" onClick={() => removeDataPagamento(i)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
           </div>
           <DialogFooter>

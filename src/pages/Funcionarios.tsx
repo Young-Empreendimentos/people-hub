@@ -14,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, Eye } from "lucide-react";
+import { Pencil, Trash2, Search, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
 
@@ -104,7 +104,7 @@ export default function Funcionarios() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_funcionarios"] });
-      toast.success(editingId ? "Funcionário atualizado." : "Funcionário cadastrado.");
+      toast.success("Funcionário atualizado.");
       closeDialog();
     },
     onError: () => toast.error("Erro ao salvar funcionário."),
@@ -121,14 +121,6 @@ export default function Funcionarios() {
     },
     onError: () => toast.error("Erro ao excluir funcionário."),
   });
-
-  const openNew = () => {
-    setEditingId(null);
-    setNomeCompleto(""); setRg(""); setCpf(""); setEndereco("");
-    setAniversario(""); setEmpresaId(""); setEquipeId(""); setCargoId("");
-    setDataContratoVigente(""); setCpfError("");
-    setDialogOpen(true);
-  };
 
   const openEdit = (f: any) => {
     setEditingId(f.id);
@@ -165,7 +157,6 @@ export default function Funcionarios() {
           <h1 className="text-2xl font-bold tracking-tight">Funcionários</h1>
           <p className="text-muted-foreground">Gerencie o cadastro de colaboradores.</p>
         </div>
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Funcionário</Button>
       </div>
 
       <div className="relative max-w-sm">
@@ -224,7 +215,7 @@ export default function Funcionarios() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editingId ? "Editar Funcionário" : "Novo Funcionário"}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Editar Funcionário</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome Completo *</label>

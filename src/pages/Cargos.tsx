@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -17,20 +17,20 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
+const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
+
 export default function Cargos() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
 
-  // Trilha dialog
   const [trilhaDialogOpen, setTrilhaDialogOpen] = useState(false);
   const [editingTrilhaId, setEditingTrilhaId] = useState<string | null>(null);
   const [trilhaNome, setTrilhaNome] = useState("");
 
-  // Cargo dialog
   const [cargoDialogOpen, setCargoDialogOpen] = useState(false);
   const [editingCargoId, setEditingCargoId] = useState<string | null>(null);
   const [cargoTrilhaId, setCargoTrilhaId] = useState("");
-  const [cargoNome, setCargoNome] = useState("");
+  const [cargoTrilhaNome, setCargoTrilhaNome] = useState("");
   const [cargoNivel, setCargoNivel] = useState(1);
   const [cargoRemuneracao, setCargoRemuneracao] = useState("");
 
@@ -52,12 +52,22 @@ export default function Cargos() {
     },
   });
 
-  // Trilha mutations
+  const buildCargoName = (trilhaNome: string, nivel: number) => {
+    const numeral = nivel <= ROMAN.length ? ROMAN[nivel - 1] : String(nivel);
+    return `${trilhaNome} ${numeral}`;
+  };
+
   const saveTrilha = useMutation({
     mutationFn: async () => {
       if (editingTrilhaId) {
         const { error } = await supabase.from("rh_trilhas_cargo").update({ nome: trilhaNome }).eq("id", editingTrilhaId);
         if (error) throw error;
+        // Update all cargo names under this trilha
+        const trilhaCargos = cargos.filter((c) => c.trilha_id === editingTrilhaId);
+        for (const cargo of trilhaCargos) {
+          const newName = buildCargoName(trilhaNome, cargo.nivel);
+          await supabase.from("rh_cargos").update({ nome: newName }).eq("id", cargo.id);
+        }
       } else {
         const { error } = await supabase.from("rh_trilhas_cargo").insert({ nome: trilhaNome });
         if (error) throw error;
@@ -65,6 +75,7 @@ export default function Cargos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_trilhas_cargo"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_cargos"] });
       toast.success(editingTrilhaId ? "Trilha atualizada." : "Trilha criada.");
       setTrilhaDialogOpen(false);
     },
@@ -84,12 +95,12 @@ export default function Cargos() {
     onError: () => toast.error("Erro ao excluir trilha. Verifique se não há cargos vinculados."),
   });
 
-  // Cargo mutations
   const saveCargo = useMutation({
     mutationFn: async () => {
+      const nome = buildCargoName(cargoTrilhaNome, cargoNivel);
       const payload = {
         trilha_id: cargoTrilhaId,
-        nome: cargoNome,
+        nome,
         nivel: cargoNivel,
         remuneracao: parseFloat(cargoRemuneracao) || 0,
       };
@@ -124,19 +135,21 @@ export default function Cargos() {
   const openNewTrilha = () => { setEditingTrilhaId(null); setTrilhaNome(""); setTrilhaDialogOpen(true); };
   const openEditTrilha = (t: { id: string; nome: string }) => { setEditingTrilhaId(t.id); setTrilhaNome(t.nome); setTrilhaDialogOpen(true); };
 
-  const openNewCargo = (trilhaId: string) => {
+  const openNewCargo = (trilha: { id: string; nome: string }) => {
+    const trilhaCargos = cargos.filter((c) => c.trilha_id === trilha.id);
+    const nextLevel = trilhaCargos.length > 0 ? Math.max(...trilhaCargos.map((c) => c.nivel)) + 1 : 1;
     setEditingCargoId(null);
-    setCargoTrilhaId(trilhaId);
-    setCargoNome("");
-    setCargoNivel(1);
+    setCargoTrilhaId(trilha.id);
+    setCargoTrilhaNome(trilha.nome);
+    setCargoNivel(nextLevel);
     setCargoRemuneracao("");
     setCargoDialogOpen(true);
   };
 
-  const openEditCargo = (c: { id: string; trilha_id: string; nome: string; nivel: number; remuneracao: number }) => {
+  const openEditCargo = (c: any, trilhaNome: string) => {
     setEditingCargoId(c.id);
     setCargoTrilhaId(c.trilha_id);
-    setCargoNome(c.nome);
+    setCargoTrilhaNome(trilhaNome);
     setCargoNivel(c.nivel);
     setCargoRemuneracao(String(c.remuneracao));
     setCargoDialogOpen(true);
@@ -182,7 +195,7 @@ export default function Cargos() {
                           <Trash2 className="mr-1 h-3 w-3" /> Excluir Trilha
                         </Button>
                       )}
-                      <Button size="sm" onClick={() => openNewCargo(trilha.id)}>
+                      <Button size="sm" onClick={() => openNewCargo(trilha)}>
                         <Plus className="mr-1 h-3 w-3" /> Novo Cargo
                       </Button>
                     </div>
@@ -204,7 +217,7 @@ export default function Cargos() {
                               <TableCell>{formatCurrency(Number(cargo.remuneracao))}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" onClick={() => openEditCargo(cargo)}>
+                                  <Button variant="ghost" size="icon" onClick={() => openEditCargo(cargo, trilha.nome)}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                   {canDelete && (
@@ -234,7 +247,7 @@ export default function Cargos() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome da Trilha</label>
-              <Input value={trilhaNome} onChange={(e) => setTrilhaNome(e.target.value)} placeholder="Ex: Administrativa" />
+              <Input value={trilhaNome} onChange={(e) => setTrilhaNome(e.target.value)} placeholder="Ex: Analista de Engenharia" />
             </div>
           </div>
           <DialogFooter>
@@ -252,8 +265,8 @@ export default function Cargos() {
           <DialogHeader><DialogTitle>{editingCargoId ? "Editar Cargo" : "Novo Cargo"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Nome do Cargo</label>
-              <Input value={cargoNome} onChange={(e) => setCargoNome(e.target.value)} placeholder="Ex: Analista Financeiro" />
+              <label className="text-sm font-medium">Nome gerado</label>
+              <Input value={buildCargoName(cargoTrilhaNome, cargoNivel)} disabled className="bg-muted" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -268,7 +281,7 @@ export default function Cargos() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCargoDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={() => saveCargo.mutate()} disabled={!cargoNome.trim() || saveCargo.isPending}>
+            <Button onClick={() => saveCargo.mutate()} disabled={cargoNivel < 1 || saveCargo.isPending}>
               {saveCargo.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>

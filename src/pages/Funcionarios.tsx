@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
 
 export default function Funcionarios() {
   const queryClient = useQueryClient();
@@ -25,7 +26,6 @@ export default function Funcionarios() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  // Form fields
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [rg, setRg] = useState("");
   const [cpf, setCpf] = useState("");
@@ -35,6 +35,7 @@ export default function Funcionarios() {
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
   const [dataContratoVigente, setDataContratoVigente] = useState("");
+  const [cpfError, setCpfError] = useState("");
 
   const { data: funcionarios = [], isLoading } = useQuery({
     queryKey: ["rh_funcionarios"],
@@ -50,54 +51,40 @@ export default function Funcionarios() {
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rh_empresas").select("*").order("nome");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => { const { data } = await supabase.from("rh_empresas").select("*").order("nome"); return data || []; },
   });
-
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rh_equipes").select("*").order("nome");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => { const { data } = await supabase.from("rh_equipes").select("*").order("nome"); return data || []; },
   });
-
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome"); return data || []; },
   });
 
-  // Get status from last admissão/desligamento
   const { data: statusMap = {} } = useQuery({
     queryKey: ["rh_status_funcionarios"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rh_admissoes_desligamentos")
-        .select("*")
-        .order("data", { ascending: false });
-      if (error) throw error;
+      const { data } = await supabase.from("rh_admissoes_desligamentos").select("*").order("data", { ascending: false });
       const map: Record<string, string> = {};
       for (const row of data || []) {
-        if (!map[row.funcionario_id]) {
-          map[row.funcionario_id] = row.tipo;
-        }
+        if (!map[row.funcionario_id]) map[row.funcionario_id] = row.tipo;
       }
       return map;
     },
   });
 
+  const validateForm = () => {
+    if (!nomeCompleto.trim()) { toast.error("Nome completo é obrigatório."); return false; }
+    if (cpf && !isValidCPF(cpf)) { setCpfError("CPF inválido"); return false; }
+    setCpfError("");
+    return true;
+  };
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
-        nome_completo: nomeCompleto,
+        nome_completo: nomeCompleto.trim(),
         rg: rg || null,
         cpf: cpf || null,
         endereco: endereco || null,
@@ -139,7 +126,7 @@ export default function Funcionarios() {
     setEditingId(null);
     setNomeCompleto(""); setRg(""); setCpf(""); setEndereco("");
     setAniversario(""); setEmpresaId(""); setEquipeId(""); setCargoId("");
-    setDataContratoVigente("");
+    setDataContratoVigente(""); setCpfError("");
     setDialogOpen(true);
   };
 
@@ -150,11 +137,14 @@ export default function Funcionarios() {
     setAniversario(f.aniversario || "");
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
     setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
+    setCpfError("");
     setDialogOpen(true);
   };
 
-  const closeDialog = () => {
-    setDialogOpen(false); setEditingId(null);
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
+
+  const handleSubmit = () => {
+    if (validateForm()) saveMutation.mutate();
   };
 
   const filtered = funcionarios.filter((f) =>
@@ -180,12 +170,7 @@ export default function Funcionarios() {
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome..."
-          className="pl-9"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+        <Input placeholder="Buscar por nome..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
       </div>
 
       <Card>
@@ -243,16 +228,22 @@ export default function Funcionarios() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome Completo *</label>
-              <Input value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} />
+              <Input value={nomeCompleto} onChange={(e) => setNomeCompleto(e.target.value)} placeholder="Nome completo do colaborador" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">RG</label>
-                <Input value={rg} onChange={(e) => setRg(e.target.value)} />
+                <Input value={rg} onChange={(e) => setRg(maskRG(e.target.value))} placeholder="00.000.000-0" />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <label className="text-sm font-medium">CPF</label>
-                <Input value={cpf} onChange={(e) => setCpf(e.target.value)} />
+                <Input
+                  value={cpf}
+                  onChange={(e) => { setCpf(maskCPF(e.target.value)); setCpfError(""); }}
+                  placeholder="000.000.000-00"
+                  className={cpfError ? "border-destructive" : ""}
+                />
+                {cpfError && <p className="text-xs text-destructive">{cpfError}</p>}
               </div>
             </div>
             <div className="space-y-2">
@@ -271,23 +262,11 @@ export default function Funcionarios() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Empresa Contratante</label>
-              <Combobox
-                options={empresas.map((e) => ({ value: e.id, label: e.nome }))}
-                value={empresaId}
-                onValueChange={setEmpresaId}
-                placeholder="Selecione a empresa"
-                searchPlaceholder="Buscar empresa..."
-              />
+              <Combobox options={empresas.map((e) => ({ value: e.id, label: e.nome }))} value={empresaId} onValueChange={setEmpresaId} placeholder="Selecione a empresa" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Equipe</label>
-              <Combobox
-                options={equipes.map((e) => ({ value: e.id, label: e.nome }))}
-                value={equipeId}
-                onValueChange={setEquipeId}
-                placeholder="Selecione a equipe"
-                searchPlaceholder="Buscar equipe..."
-              />
+              <Combobox options={equipes.map((e) => ({ value: e.id, label: e.nome }))} value={equipeId} onValueChange={setEquipeId} placeholder="Selecione a equipe" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Cargo</label>
@@ -296,16 +275,13 @@ export default function Funcionarios() {
                   value: c.id,
                   label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome} (Nível ${c.nivel})`,
                 }))}
-                value={cargoId}
-                onValueChange={setCargoId}
-                placeholder="Selecione o cargo"
-                searchPlaceholder="Buscar cargo..."
+                value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo"
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
-            <Button onClick={() => saveMutation.mutate()} disabled={!nomeCompleto.trim() || saveMutation.isPending}>
+            <Button onClick={handleSubmit} disabled={!nomeCompleto.trim() || saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>

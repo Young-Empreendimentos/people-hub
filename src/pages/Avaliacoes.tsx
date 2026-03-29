@@ -14,12 +14,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 export default function Avaliacoes() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -60,7 +61,7 @@ export default function Avaliacoes() {
         if (error) throw error;
         anexo_path = path; anexo_name = file.name;
       }
-      const { error } = await supabase.from("rh_avaliacoes").insert({
+      const payload: any = {
         funcionario_id: funcId,
         avaliador_id: avaliadorId || null,
         data_avaliacao: dataAvaliacao,
@@ -68,15 +69,24 @@ export default function Avaliacoes() {
         pontuacao_valores: valores,
         pontuacao_metas: parseFloat(metas) || 0,
         pontuacao_auditorias: parseFloat(auditorias) || 0,
-        anexo_path, anexo_name,
         observacoes: obs || null,
-      });
-      if (error) throw error;
+      };
+      if (file) { payload.anexo_path = anexo_path; payload.anexo_name = anexo_name; }
+
+      if (editingId) {
+        const { error } = await supabase.from("rh_avaliacoes").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        payload.anexo_path = anexo_path;
+        payload.anexo_name = anexo_name;
+        const { error } = await supabase.from("rh_avaliacoes").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_avaliacoes"] });
-      toast.success("Avaliação registrada.");
-      setDialogOpen(false);
+      toast.success(editingId ? "Avaliação atualizada." : "Avaliação registrada.");
+      closeDialog();
     },
     onError: () => toast.error("Erro ao salvar avaliação."),
   });
@@ -92,11 +102,20 @@ export default function Avaliacoes() {
   });
 
   const openNew = () => {
-    setFuncId(""); setAvaliadorId(""); setDataAvaliacao(""); setResultados(3);
+    setEditingId(null); setFuncId(""); setAvaliadorId(""); setDataAvaliacao(""); setResultados(3);
     setValores(3); setMetas(""); setAuditorias(""); setObs(""); setFile(null);
     setDialogOpen(true);
   };
 
+  const openEdit = (a: any) => {
+    setEditingId(a.id); setFuncId(a.funcionario_id); setAvaliadorId(a.avaliador_id || "");
+    setDataAvaliacao(a.data_avaliacao); setResultados(a.pontuacao_resultados);
+    setValores(a.pontuacao_valores); setMetas(String(a.pontuacao_metas));
+    setAuditorias(String(a.pontuacao_auditorias)); setObs(a.observacoes || ""); setFile(null);
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
   const filtered = filterFunc ? avaliacoes.filter((a: any) => a.funcionario_id === filterFunc) : avaliacoes;
 
   return (
@@ -118,7 +137,7 @@ export default function Avaliacoes() {
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Avaliado</TableHead><TableHead>Avaliador</TableHead>
             <TableHead>Result.</TableHead><TableHead>Valores</TableHead><TableHead>Metas</TableHead><TableHead>Audit.</TableHead>
-            <TableHead className="w-16 text-right">Ações</TableHead>
+            <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {isLoading ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
@@ -133,7 +152,10 @@ export default function Avaliacoes() {
                 <TableCell>{Number(a.pontuacao_metas).toFixed(0)}%</TableCell>
                 <TableCell>{Number(a.pontuacao_auditorias).toFixed(0)}%</TableCell>
                 <TableCell className="text-right">
-                  {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(a)}><Trash2 className="h-4 w-4" /></Button>}
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)}><Pencil className="h-4 w-4" /></Button>
+                    {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(a)}><Trash2 className="h-4 w-4" /></Button>}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -143,7 +165,7 @@ export default function Avaliacoes() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova Avaliação</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Avaliação" : "Nova Avaliação"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Avaliado *</label>
@@ -163,7 +185,7 @@ export default function Avaliacoes() {
               <div className="space-y-2"><label className="text-sm font-medium">Auditorias (0-100%)</label><Input type="number" min={0} max={100} step="0.01" value={auditorias} onChange={(e) => setAuditorias(e.target.value)} placeholder="0" /></div>
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
-            <div className="space-y-2"><label className="text-sm font-medium">Anexo (documento físico)</label>
+            <div className="space-y-2"><label className="text-sm font-medium">Anexo</label>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Upload className="mr-1 h-3 w-3" /> Selecionar</Button>
                 <span className="text-sm text-muted-foreground">{file?.name || "Nenhum arquivo"}</span>
@@ -172,7 +194,7 @@ export default function Avaliacoes() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} disabled={!funcId || !dataAvaliacao || saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>

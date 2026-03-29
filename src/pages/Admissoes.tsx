@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
-import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -15,6 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
 
@@ -24,6 +24,9 @@ export default function Admissoes() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Tabs
+  const [activeTab, setActiveTab] = useState<"admissao" | "desligamento">("admissao");
 
   // Filters
   const [filterFunc, setFilterFunc] = useState("");
@@ -178,6 +181,7 @@ export default function Admissoes() {
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
 
   const filtered = registros.filter((r: any) => {
+    if (r.tipo !== activeTab) return false;
     if (filterFunc && r.funcionario_id !== filterFunc) return false;
     if (filterEmpresa && r.rh_funcionarios?.empresa_id !== filterEmpresa) return false;
     if (filterEquipe && r.rh_funcionarios?.equipe_id !== filterEquipe) return false;
@@ -188,11 +192,13 @@ export default function Admissoes() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Admissões e Desligamentos</h1>
-          <p className="text-muted-foreground">Registre admissões e desligamentos de colaboradores.</p>
-        </div>
+      <div className="flex items-center gap-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <TabsList>
+            <TabsTrigger value="admissao">Admissões</TabsTrigger>
+            <TabsTrigger value="desligamento">Desligamentos</TabsTrigger>
+          </TabsList>
+        </Tabs>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Registro</Button>
       </div>
 
@@ -207,22 +213,17 @@ export default function Admissoes() {
       <Card><CardContent className="p-0">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Tipo</TableHead>
+            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead>
             <TableHead>Observações</TableHead><TableHead>Anexo</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+            {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
             : filtered.map((r: any) => (
               <TableRow key={r.id}>
                 <TableCell>{r.data}</TableCell>
                 <TableCell className="font-medium">{r.rh_funcionarios?.nome_completo || "—"}</TableCell>
-                <TableCell>
-                  <Badge variant={r.tipo === "admissao" ? "default" : "destructive"}>
-                    {r.tipo === "admissao" ? "Admissão" : "Desligamento"}
-                  </Badge>
-                </TableCell>
                 <TableCell className="max-w-[200px] truncate">{r.observacoes || "—"}</TableCell>
                 <TableCell>{r.anexo_name || "—"}</TableCell>
                 <TableCell className="text-right">

@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -31,7 +33,7 @@ export default function Aditivos() {
   const [filterDataAte, setFilterDataAte] = useState("");
 
   const [funcId, setFuncId] = useState("");
-  const [tipoAditivoId, setTipoAditivoId] = useState("");
+  const [tipoAditivoIds, setTipoAditivoIds] = useState<string[]>([]);
   const [empresaFinalId, setEmpresaFinalId] = useState("");
   const [cargoFinalId, setCargoFinalId] = useState("");
   const [equipeFinalId, setEquipeFinalId] = useState("");
@@ -44,7 +46,7 @@ export default function Aditivos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_aditivos")
-        .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id), rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
+        .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id), rh_aditivo_tipo_aditivo(tipo_aditivo_id, rh_tipos_aditivo(id, nome)), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
         .order("data", { ascending: false });
       if (error) throw error;
       return data;
@@ -69,7 +71,6 @@ export default function Aditivos() {
       }
       const payload: any = {
         funcionario_id: funcId,
-        tipo_aditivo_id: tipoAditivoId || null,
         empresa_final_id: empresaFinalId || null,
         cargo_final_id: cargoFinalId || null,
         equipe_final_id: equipeFinalId || null,
@@ -77,14 +78,36 @@ export default function Aditivos() {
       };
       if (file) { payload.anexo_path = anexo_path; payload.anexo_name = anexo_name; }
 
+      let aditivoId: string;
+
       if (editingId) {
         const { error } = await supabase.from("rh_aditivos").update(payload).eq("id", editingId);
         if (error) throw error;
+        aditivoId = editingId;
       } else {
         payload.anexo_path = anexo_path;
         payload.anexo_name = anexo_name;
-        const { error } = await supabase.from("rh_aditivos").insert(payload);
+        const { data: inserted, error } = await supabase.from("rh_aditivos").insert(payload).select("id").single();
         if (error) throw error;
+        aditivoId = inserted.id;
+      }
+
+      // Update junction table: delete existing entries, then insert new ones
+      const { error: deleteError } = await supabase
+        .from("rh_aditivo_tipo_aditivo")
+        .delete()
+        .eq("aditivo_id", aditivoId);
+      if (deleteError) throw deleteError;
+
+      if (tipoAditivoIds.length > 0) {
+        const junctionRows = tipoAditivoIds.map((tipoId) => ({
+          aditivo_id: aditivoId,
+          tipo_aditivo_id: tipoId,
+        }));
+        const { error: insertError } = await supabase
+          .from("rh_aditivo_tipo_aditivo")
+          .insert(junctionRows);
+        if (insertError) throw insertError;
       }
     },
     onSuccess: () => {
@@ -106,19 +129,27 @@ export default function Aditivos() {
   });
 
   const openNew = () => {
-    setEditingId(null); setFuncId(""); setTipoAditivoId(""); setEmpresaFinalId(""); setCargoFinalId("");
+    setEditingId(null); setFuncId(""); setTipoAditivoIds([]); setEmpresaFinalId(""); setCargoFinalId("");
     setEquipeFinalId(""); setData(""); setObs(""); setFile(null);
     setDialogOpen(true);
   };
 
   const openEdit = (a: any) => {
-    setEditingId(a.id); setFuncId(a.funcionario_id); setTipoAditivoId(a.tipo_aditivo_id || "");
+    setEditingId(a.id); setFuncId(a.funcionario_id);
+    const tipos = (a.rh_aditivo_tipo_aditivo || []).map((j: any) => j.tipo_aditivo_id);
+    setTipoAditivoIds(tipos);
     setEmpresaFinalId(a.empresa_final_id || ""); setCargoFinalId(a.cargo_final_id || "");
     setEquipeFinalId(a.equipe_final_id || ""); setData(a.data); setObs(a.observacoes || ""); setFile(null);
     setDialogOpen(true);
   };
 
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
+
+  const toggleTipoAditivo = (id: string) => {
+    setTipoAditivoIds((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    );
+  };
 
   const filtered = aditivos.filter((a: any) => {
     if (filterFunc && a.funcionario_id !== filterFunc) return false;
@@ -132,10 +163,6 @@ export default function Aditivos() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Aditivos Contratuais</h1>
-          <p className="text-muted-foreground">Gerencie aditivos contratuais dos colaboradores.</p>
-        </div>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Aditivo</Button>
       </div>
 
@@ -150,7 +177,7 @@ export default function Aditivos() {
       <Card><CardContent className="p-0">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Tipo</TableHead>
+            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Tipo(s)</TableHead>
             <TableHead>Empresa Final</TableHead><TableHead>Cargo Final</TableHead><TableHead>Equipe Final</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
@@ -161,7 +188,17 @@ export default function Aditivos() {
               <TableRow key={a.id}>
                 <TableCell>{a.data}</TableCell>
                 <TableCell className="font-medium">{a.rh_funcionarios?.nome_completo || "—"}</TableCell>
-                <TableCell>{a.rh_tipos_aditivo?.nome || "—"}</TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {(a.rh_aditivo_tipo_aditivo || []).length > 0
+                      ? (a.rh_aditivo_tipo_aditivo as any[]).map((j: any) => (
+                          <Badge key={j.tipo_aditivo_id} variant="secondary">
+                            {j.rh_tipos_aditivo?.nome || "—"}
+                          </Badge>
+                        ))
+                      : "—"}
+                  </div>
+                </TableCell>
                 <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
                 <TableCell>{a.rh_cargos?.nome || "—"}</TableCell>
                 <TableCell>{a.rh_equipes?.nome || "—"}</TableCell>
@@ -185,8 +222,24 @@ export default function Aditivos() {
               <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><label className="text-sm font-medium">Tipo de Aditivo</label>
-                <Combobox options={tiposAditivo.map((t: any) => ({ value: t.id, label: t.nome }))} value={tipoAditivoId} onValueChange={setTipoAditivoId} placeholder="Selecione" />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipo(s) de Aditivo</label>
+                <div className="border rounded-md p-3 space-y-2 max-h-40 overflow-y-auto">
+                  {tiposAditivo.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">Nenhum tipo cadastrado.</span>
+                  ) : (
+                    tiposAditivo.map((t: any) => (
+                      <div key={t.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`tipo-${t.id}`}
+                          checked={tipoAditivoIds.includes(t.id)}
+                          onCheckedChange={() => toggleTipoAditivo(t.id)}
+                        />
+                        <label htmlFor={`tipo-${t.id}`} className="text-sm cursor-pointer">{t.nome}</label>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
               <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
             </div>

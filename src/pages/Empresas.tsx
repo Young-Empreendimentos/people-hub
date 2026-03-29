@@ -2,8 +2,10 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -17,9 +19,11 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 export default function Empresas() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
+  const { getActiveByField } = useActiveEmployees();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nome, setNome] = useState("");
+  const [detailEmpresaId, setDetailEmpresaId] = useState<string | null>(null);
 
   const { data: empresas = [], isLoading } = useQuery({
     queryKey: ["rh_empresas"],
@@ -64,13 +68,12 @@ export default function Empresas() {
   const openEdit = (e: { id: string; nome: string }) => { setEditingId(e.id); setNome(e.nome); setDialogOpen(true); };
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); setNome(""); };
 
+  const detailEmpresa = empresas.find((e) => e.id === detailEmpresaId);
+  const detailEmployees = detailEmpresaId ? getActiveByField("empresa_id", detailEmpresaId) : [];
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Empresas</h1>
-          <p className="text-muted-foreground">Gerencie as empresas contratantes.</p>
-        </div>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Nova Empresa</Button>
       </div>
 
@@ -80,34 +83,44 @@ export default function Empresas() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
+                <TableHead className="w-40">Funcionários Ativos</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
               ) : empresas.length === 0 ? (
-                <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-8">Nenhuma empresa cadastrada.</TableCell></TableRow>
-              ) : empresas.map((emp) => (
-                <TableRow key={emp.id}>
-                  <TableCell className="font-medium">{emp.nome}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
-                      {canDelete && (
-                        <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(emp.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">Nenhuma empresa cadastrada.</TableCell></TableRow>
+              ) : empresas.map((emp) => {
+                const count = getActiveByField("empresa_id", emp.id).length;
+                return (
+                  <TableRow key={emp.id}>
+                    <TableCell className="font-medium">{emp.nome}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setDetailEmpresaId(emp.id)}>
+                        <Badge variant="secondary" className="cursor-pointer">{count}</Badge>
+                      </Button>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
+                        {canDelete && (
+                          <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteMutation.mutate(emp.id)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
+      {/* Edit dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingId ? "Editar Empresa" : "Nova Empresa"}</DialogTitle></DialogHeader>
@@ -123,6 +136,31 @@ export default function Empresas() {
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Employee detail modal */}
+      <Dialog open={!!detailEmpresaId} onOpenChange={(open) => { if (!open) setDetailEmpresaId(null); }}>
+        <DialogContent className="max-w-lg max-h-[70vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Funcionários — {detailEmpresa?.nome}</DialogTitle></DialogHeader>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Cargo</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {detailEmployees.length === 0 ? (
+                <TableRow><TableCell colSpan={2} className="text-center text-muted-foreground py-4">Nenhum funcionário ativo.</TableCell></TableRow>
+              ) : detailEmployees.map((f: any) => (
+                <TableRow key={f.id}>
+                  <TableCell className="font-medium">{f.nome_completo}</TableCell>
+                  <TableCell>{f.rh_cargos?.nome || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </DialogContent>
       </Dialog>
     </div>

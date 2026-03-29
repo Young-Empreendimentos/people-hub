@@ -130,10 +130,6 @@ export default function FolhaMensal() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Fechamento de Folha Mensal</h1>
-          <p className="text-muted-foreground">Gerencie o fechamento mensal da folha de pagamento.</p>
-        </div>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Nova Folha</Button>
       </div>
 

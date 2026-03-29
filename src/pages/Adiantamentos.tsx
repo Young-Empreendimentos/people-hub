@@ -111,10 +111,6 @@ export default function Adiantamentos() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Adiantamentos</h1>
-          <p className="text-muted-foreground">Controle de adiantamentos a funcionários.</p>
-        </div>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Adiantamento</Button>
       </div>
 

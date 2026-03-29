@@ -7,7 +7,7 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,7 @@ const mainItems = [
   { title: "Equipes", url: "/equipes", icon: Building2 },
   { title: "Empresas", url: "/empresas", icon: Factory },
   { title: "Cargos", url: "/cargos", icon: Briefcase },
-  { title: "Admissões", url: "/admissoes", icon: UserPlus },
+  { title: "Admissões e Deslig.", url: "/admissoes", icon: UserPlus },
   { title: "Aditivos", url: "/aditivos", icon: FileText },
   { title: "Adiantamentos", url: "/adiantamentos", icon: DollarSign },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
@@ -41,11 +41,6 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          {!collapsed && (
-            <SidebarGroupLabel className="text-xs uppercase tracking-wider opacity-60 mb-2">
-              Pilares
-            </SidebarGroupLabel>
-          )}
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (

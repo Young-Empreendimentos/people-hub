@@ -125,10 +125,6 @@ export default function Atividades() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Grupos de Atividades</h1>
-          <p className="text-muted-foreground">Gerencie grupos de atividades e suas atividades associadas.</p>
-        </div>
         <Button onClick={openNewGrupo}><Plus className="mr-2 h-4 w-4" /> Novo Grupo</Button>
       </div>
 

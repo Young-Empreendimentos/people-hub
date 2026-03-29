@@ -33,6 +33,7 @@ export default function Cargos() {
   const [cargoTrilhaNome, setCargoTrilhaNome] = useState("");
   const [cargoNivel, setCargoNivel] = useState(1);
   const [cargoRemuneracao, setCargoRemuneracao] = useState("");
+  const [cargoAdicionais, setCargoAdicionais] = useState("");
 
   const { data: trilhas = [], isLoading: loadingTrilhas } = useQuery({
     queryKey: ["rh_trilhas_cargo"],
@@ -103,6 +104,7 @@ export default function Cargos() {
         nome,
         nivel: cargoNivel,
         remuneracao: parseFloat(cargoRemuneracao) || 0,
+        adicionais: cargoAdicionais || null,
       };
       if (editingCargoId) {
         const { error } = await supabase.from("rh_cargos").update(payload).eq("id", editingCargoId);
@@ -143,6 +145,7 @@ export default function Cargos() {
     setCargoTrilhaNome(trilha.nome);
     setCargoNivel(nextLevel);
     setCargoRemuneracao("");
+    setCargoAdicionais("");
     setCargoDialogOpen(true);
   };
 
@@ -152,6 +155,7 @@ export default function Cargos() {
     setCargoTrilhaNome(trilhaNome);
     setCargoNivel(c.nivel);
     setCargoRemuneracao(String(c.remuneracao));
+    setCargoAdicionais(c.adicionais || "");
     setCargoDialogOpen(true);
   };
 
@@ -161,10 +165,6 @@ export default function Cargos() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Trilhas e Cargos</h1>
-          <p className="text-muted-foreground">Gerencie trilhas de carreira e níveis de cargo.</p>
-        </div>
         <Button onClick={openNewTrilha}><Plus className="mr-2 h-4 w-4" /> Nova Trilha</Button>
       </div>
 
@@ -206,6 +206,7 @@ export default function Cargos() {
                             <TableHead>Cargo</TableHead>
                             <TableHead className="w-20">Nível</TableHead>
                             <TableHead className="w-40">Remuneração</TableHead>
+                            <TableHead>Adicionais</TableHead>
                             <TableHead className="w-24 text-right">Ações</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -215,6 +216,7 @@ export default function Cargos() {
                               <TableCell>{cargo.nome}</TableCell>
                               <TableCell>{cargo.nivel}</TableCell>
                               <TableCell>{formatCurrency(Number(cargo.remuneracao))}</TableCell>
+                              <TableCell className="text-muted-foreground text-sm">{cargo.adicionais || "—"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1">
                                   <Button variant="ghost" size="icon" onClick={() => openEditCargo(cargo, trilha.nome)}>
@@ -277,6 +279,10 @@ export default function Cargos() {
                 <label className="text-sm font-medium">Remuneração (R$)</label>
                 <Input type="number" step="0.01" min={0} value={cargoRemuneracao} onChange={(e) => setCargoRemuneracao(e.target.value)} placeholder="0.00" />
               </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Adicionais</label>
+              <Input value={cargoAdicionais} onChange={(e) => setCargoAdicionais(e.target.value)} placeholder="Ex: Vale transporte, plano de saúde" />
             </div>
           </div>
           <DialogFooter>

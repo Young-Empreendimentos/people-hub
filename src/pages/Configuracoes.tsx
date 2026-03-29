@@ -255,7 +255,6 @@ export default function Configuracoes() {
   if (!canConfig) {
     return (
       <div className="space-y-4">
-        <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
         <p className="text-muted-foreground">Acesso restrito a administradores.</p>
       </div>
     );
@@ -263,9 +262,6 @@ export default function Configuracoes() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Configurações</h1>
-      <p className="text-muted-foreground">Configurações do sistema (apenas administradores).</p>
-
       <Tabs defaultValue="usuarios">
         <TabsList>
           <TabsTrigger value="usuarios">Usuários</TabsTrigger>

@@ -2,11 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -14,7 +19,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pencil, Trash2, Search, Eye } from "lucide-react";
+import { Pencil, Trash2, Search, Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
 
@@ -25,6 +30,9 @@ export default function Funcionarios() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
+  const [filterEmpresaId, setFilterEmpresaId] = useState("");
+  const [filterEquipeId, setFilterEquipeId] = useState("");
 
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [rg, setRg] = useState("");
@@ -37,17 +45,7 @@ export default function Funcionarios() {
   const [dataContratoVigente, setDataContratoVigente] = useState("");
   const [cpfError, setCpfError] = useState("");
 
-  const { data: funcionarios = [], isLoading } = useQuery({
-    queryKey: ["rh_funcionarios"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rh_funcionarios")
-        .select("*, rh_empresas(nome), rh_equipes(nome), rh_cargos(nome)")
-        .order("nome_completo");
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { funcionarios, statusMap, isActive, activeCount, isLoading } = useActiveEmployees();
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
@@ -60,18 +58,6 @@ export default function Funcionarios() {
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos"],
     queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome"); return data || []; },
-  });
-
-  const { data: statusMap = {} } = useQuery({
-    queryKey: ["rh_status_funcionarios"],
-    queryFn: async () => {
-      const { data } = await supabase.from("rh_admissoes_desligamentos").select("*").order("data", { ascending: false });
-      const map: Record<string, string> = {};
-      for (const row of data || []) {
-        if (!map[row.funcionario_id]) map[row.funcionario_id] = row.tipo;
-      }
-      return map;
-    },
   });
 
   const validateForm = () => {
@@ -139,9 +125,13 @@ export default function Funcionarios() {
     if (validateForm()) saveMutation.mutate();
   };
 
-  const filtered = funcionarios.filter((f) =>
-    f.nome_completo.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = funcionarios.filter((f: any) => {
+    if (statusFilter === "ativos" && !isActive(f.id)) return false;
+    if (statusFilter === "inativos" && isActive(f.id)) return false;
+    if (filterEmpresaId && f.empresa_id !== filterEmpresaId) return false;
+    if (filterEquipeId && f.equipe_id !== filterEquipeId) return false;
+    return f.nome_completo.toLowerCase().includes(search.toLowerCase());
+  });
 
   const getStatusBadge = (funcId: string) => {
     const st = (statusMap as Record<string, string>)[funcId];
@@ -152,16 +142,39 @@ export default function Funcionarios() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Funcionários</h1>
-          <p className="text-muted-foreground">Gerencie o cadastro de colaboradores.</p>
-        </div>
+      <div className="flex items-center gap-3">
+        <Badge variant="secondary" className="text-sm px-3 py-1">
+          <Users className="h-3.5 w-3.5 mr-1.5" />
+          {activeCount} ativos
+        </Badge>
+        <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as any)}>
+          <TabsList className="h-8">
+            <TabsTrigger value="ativos" className="text-xs px-3 h-7">Ativos</TabsTrigger>
+            <TabsTrigger value="inativos" className="text-xs px-3 h-7">Inativos</TabsTrigger>
+            <TabsTrigger value="todos" className="text-xs px-3 h-7">Todos</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative max-w-sm flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome..." className="pl-9" value={search} onChange={(e) => setSearch(e.target.value)} />
+        </div>
+        <Select value={filterEmpresaId} onValueChange={(v) => setFilterEmpresaId(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[220px]"><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as empresas</SelectItem>
+            {empresas.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterEquipeId} onValueChange={(v) => setFilterEquipeId(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Todas as equipes" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as equipes</SelectItem>
+            {equipes.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>

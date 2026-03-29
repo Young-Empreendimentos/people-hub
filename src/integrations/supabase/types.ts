@@ -3130,6 +3130,604 @@ export type Database = {
         }
         Relationships: []
       }
+      rh_adiantamentos: {
+        Row: {
+          created_at: string
+          data: string
+          datas_pagamento_pretendidas: string[] | null
+          funcionario_id: string
+          id: string
+          observacoes: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          datas_pagamento_pretendidas?: string[] | null
+          funcionario_id: string
+          id?: string
+          observacoes?: string | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          datas_pagamento_pretendidas?: string[] | null
+          funcionario_id?: string
+          id?: string
+          observacoes?: string | null
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_adiantamentos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_aditivos: {
+        Row: {
+          anexo_name: string | null
+          anexo_path: string | null
+          cargo_final_id: string | null
+          created_at: string
+          data: string
+          empresa_final_id: string | null
+          equipe_final_id: string | null
+          funcionario_id: string
+          id: string
+          observacoes: string | null
+          tipo_aditivo_id: string | null
+        }
+        Insert: {
+          anexo_name?: string | null
+          anexo_path?: string | null
+          cargo_final_id?: string | null
+          created_at?: string
+          data?: string
+          empresa_final_id?: string | null
+          equipe_final_id?: string | null
+          funcionario_id: string
+          id?: string
+          observacoes?: string | null
+          tipo_aditivo_id?: string | null
+        }
+        Update: {
+          anexo_name?: string | null
+          anexo_path?: string | null
+          cargo_final_id?: string | null
+          created_at?: string
+          data?: string
+          empresa_final_id?: string | null
+          equipe_final_id?: string | null
+          funcionario_id?: string
+          id?: string
+          observacoes?: string | null
+          tipo_aditivo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_aditivos_cargo_final_id_fkey"
+            columns: ["cargo_final_id"]
+            isOneToOne: false
+            referencedRelation: "rh_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_aditivos_empresa_final_id_fkey"
+            columns: ["empresa_final_id"]
+            isOneToOne: false
+            referencedRelation: "rh_empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_aditivos_equipe_final_id_fkey"
+            columns: ["equipe_final_id"]
+            isOneToOne: false
+            referencedRelation: "rh_equipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_aditivos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_aditivos_tipo_aditivo_id_fkey"
+            columns: ["tipo_aditivo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_tipos_aditivo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_admissoes_desligamentos: {
+        Row: {
+          anexo_name: string | null
+          anexo_path: string | null
+          created_at: string
+          data: string
+          funcionario_id: string
+          id: string
+          observacoes: string | null
+          tipo: string
+        }
+        Insert: {
+          anexo_name?: string | null
+          anexo_path?: string | null
+          created_at?: string
+          data?: string
+          funcionario_id: string
+          id?: string
+          observacoes?: string | null
+          tipo: string
+        }
+        Update: {
+          anexo_name?: string | null
+          anexo_path?: string | null
+          created_at?: string
+          data?: string
+          funcionario_id?: string
+          id?: string
+          observacoes?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_admissoes_desligamentos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_atividades: {
+        Row: {
+          created_at: string
+          descricao: string
+          grupo_id: string
+          id: string
+          manual_link: string | null
+          metodos_auditoria: string | null
+          responsavel_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          grupo_id: string
+          id?: string
+          manual_link?: string | null
+          metodos_auditoria?: string | null
+          responsavel_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          grupo_id?: string
+          id?: string
+          manual_link?: string | null
+          metodos_auditoria?: string | null
+          responsavel_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_atividades_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_grupos_atividades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_avaliacoes: {
+        Row: {
+          anexo_name: string | null
+          anexo_path: string | null
+          avaliador_id: string | null
+          created_at: string
+          data_avaliacao: string
+          funcionario_id: string
+          id: string
+          observacoes: string | null
+          pontuacao_auditorias: number
+          pontuacao_metas: number
+          pontuacao_resultados: number
+          pontuacao_valores: number
+        }
+        Insert: {
+          anexo_name?: string | null
+          anexo_path?: string | null
+          avaliador_id?: string | null
+          created_at?: string
+          data_avaliacao?: string
+          funcionario_id: string
+          id?: string
+          observacoes?: string | null
+          pontuacao_auditorias?: number
+          pontuacao_metas?: number
+          pontuacao_resultados?: number
+          pontuacao_valores?: number
+        }
+        Update: {
+          anexo_name?: string | null
+          anexo_path?: string | null
+          avaliador_id?: string | null
+          created_at?: string
+          data_avaliacao?: string
+          funcionario_id?: string
+          id?: string
+          observacoes?: string | null
+          pontuacao_auditorias?: number
+          pontuacao_metas?: number
+          pontuacao_resultados?: number
+          pontuacao_valores?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_avaliacoes_avaliador_id_fkey"
+            columns: ["avaliador_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_avaliacoes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_cargos: {
+        Row: {
+          created_at: string
+          id: string
+          nivel: number
+          nome: string
+          remuneracao: number
+          trilha_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nivel?: number
+          nome: string
+          remuneracao?: number
+          trilha_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nivel?: number
+          nome?: string
+          remuneracao?: number
+          trilha_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_cargos_trilha_id_fkey"
+            columns: ["trilha_id"]
+            isOneToOne: false
+            referencedRelation: "rh_trilhas_cargo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_empresas: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      rh_equipes: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      rh_folha_mensal: {
+        Row: {
+          anexo_holerite_path: string | null
+          auxilio_educacional: boolean
+          created_at: string
+          desconto_titulo_parque: boolean
+          descontos_adiantamentos: number
+          funcionario_id: string
+          horas_atraso_faltas: number
+          horas_extra: number
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          plano_saude: boolean
+          valor_comissoes: number
+          valor_plr: number
+        }
+        Insert: {
+          anexo_holerite_path?: string | null
+          auxilio_educacional?: boolean
+          created_at?: string
+          desconto_titulo_parque?: boolean
+          descontos_adiantamentos?: number
+          funcionario_id: string
+          horas_atraso_faltas?: number
+          horas_extra?: number
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          plano_saude?: boolean
+          valor_comissoes?: number
+          valor_plr?: number
+        }
+        Update: {
+          anexo_holerite_path?: string | null
+          auxilio_educacional?: boolean
+          created_at?: string
+          desconto_titulo_parque?: boolean
+          descontos_adiantamentos?: number
+          funcionario_id?: string
+          horas_atraso_faltas?: number
+          horas_extra?: number
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          plano_saude?: boolean
+          valor_comissoes?: number
+          valor_plr?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_folha_mensal_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_funcionario_anexos: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          funcionario_id: string
+          id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          funcionario_id: string
+          id?: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          funcionario_id?: string
+          id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_funcionario_anexos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_funcionarios: {
+        Row: {
+          aniversario: string | null
+          cargo_id: string | null
+          cpf: string | null
+          created_at: string
+          data_contrato_vigente: string | null
+          empresa_id: string | null
+          endereco: string | null
+          equipe_id: string | null
+          id: string
+          nome_completo: string
+          rg: string | null
+          updated_at: string
+        }
+        Insert: {
+          aniversario?: string | null
+          cargo_id?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_contrato_vigente?: string | null
+          empresa_id?: string | null
+          endereco?: string | null
+          equipe_id?: string | null
+          id?: string
+          nome_completo: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aniversario?: string | null
+          cargo_id?: string | null
+          cpf?: string | null
+          created_at?: string
+          data_contrato_vigente?: string | null
+          empresa_id?: string | null
+          endereco?: string | null
+          equipe_id?: string | null
+          id?: string
+          nome_completo?: string
+          rg?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_funcionarios_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_cargos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_funcionarios_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "rh_empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_funcionarios_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "rh_equipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_grupos_atividades: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          responsavel_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          responsavel_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          responsavel_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_grupos_atividades_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_tipos_aditivo: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      rh_trilhas_cargo: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      rh_user_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      rh_user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["rh_app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role?: Database["public"]["Enums"]["rh_app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["rh_app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       sienge_clientes: {
         Row: {
           address_number: string | null
@@ -3985,6 +4583,13 @@ export type Database = {
         Args: { _role: string; _user_id: string }
         Returns: boolean
       }
+      rh_has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["rh_app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       talents_has_privileged_role: {
@@ -4021,6 +4626,7 @@ export type Database = {
         | "standby"
       paver_app_role: "admin" | "engenharia"
       permuta_status: "incerto" | "nao" | "sim"
+      rh_app_role: "admin" | "coordenador" | "usuario"
       tipo_anexo_gleba:
         | "pesquisa_mercado"
         | "planilha_viabilidade"
@@ -4179,6 +4785,7 @@ export const Constants = {
       ],
       paver_app_role: ["admin", "engenharia"],
       permuta_status: ["incerto", "nao", "sim"],
+      rh_app_role: ["admin", "coordenador", "usuario"],
       tipo_anexo_gleba: [
         "pesquisa_mercado",
         "planilha_viabilidade",

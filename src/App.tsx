@@ -3,8 +3,21 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
-import NotFound from "./pages/NotFound.tsx";
+import { AuthProvider } from "@/hooks/useAuth";
+import { AppLayout } from "@/components/AppLayout";
+import Login from "./pages/Login";
+import Index from "./pages/Index";
+import Funcionarios from "./pages/Funcionarios";
+import Equipes from "./pages/Equipes";
+import Cargos from "./pages/Cargos";
+import Admissoes from "./pages/Admissoes";
+import Aditivos from "./pages/Aditivos";
+import Adiantamentos from "./pages/Adiantamentos";
+import Avaliacoes from "./pages/Avaliacoes";
+import FolhaMensal from "./pages/FolhaMensal";
+import Atividades from "./pages/Atividades";
+import Configuracoes from "./pages/Configuracoes";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -13,13 +26,27 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Index />} />
+              <Route path="/funcionarios" element={<Funcionarios />} />
+              <Route path="/equipes" element={<Equipes />} />
+              <Route path="/cargos" element={<Cargos />} />
+              <Route path="/admissoes" element={<Admissoes />} />
+              <Route path="/aditivos" element={<Aditivos />} />
+              <Route path="/adiantamentos" element={<Adiantamentos />} />
+              <Route path="/avaliacoes" element={<Avaliacoes />} />
+              <Route path="/folha" element={<FolhaMensal />} />
+              <Route path="/atividades" element={<Atividades />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
+            </Route>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

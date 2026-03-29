@@ -29,7 +29,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl tracking-tight">Young RH</CardTitle>
+          <CardTitle className="text-2xl tracking-tight">Pilares</CardTitle>
           <p className="text-sm text-muted-foreground">
             Sistema de Gestão de Recursos Humanos
           </p>

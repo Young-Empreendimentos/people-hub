@@ -8,7 +8,9 @@ import { AppLayout } from "@/components/AppLayout";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
 import Funcionarios from "./pages/Funcionarios";
+import FuncionarioDetalhes from "./pages/FuncionarioDetalhes";
 import Equipes from "./pages/Equipes";
+import Empresas from "./pages/Empresas";
 import Cargos from "./pages/Cargos";
 import Admissoes from "./pages/Admissoes";
 import Aditivos from "./pages/Aditivos";
@@ -33,7 +35,9 @@ const App = () => (
             <Route element={<AppLayout />}>
               <Route path="/" element={<Index />} />
               <Route path="/funcionarios" element={<Funcionarios />} />
+              <Route path="/funcionarios/:id" element={<FuncionarioDetalhes />} />
               <Route path="/equipes" element={<Equipes />} />
+              <Route path="/empresas" element={<Empresas />} />
               <Route path="/cargos" element={<Cargos />} />
               <Route path="/admissoes" element={<Admissoes />} />
               <Route path="/aditivos" element={<Aditivos />} />

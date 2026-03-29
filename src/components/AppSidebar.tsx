@@ -43,7 +43,7 @@ export function AppSidebar() {
         <SidebarGroup>
           {!collapsed && (
             <SidebarGroupLabel className="text-xs uppercase tracking-wider opacity-60 mb-2">
-              Young RH
+              Pilares
             </SidebarGroupLabel>
           )}
           <SidebarGroupContent>

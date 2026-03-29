@@ -15,12 +15,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -63,7 +64,7 @@ export default function FolhaMensal() {
         if (error) throw error;
         anexo_holerite_path = path;
       }
-      const { error } = await supabase.from("rh_folha_mensal").insert({
+      const payload: any = {
         funcionario_id: funcId,
         mes_referencia: mesRef + "-01",
         horas_atraso_faltas: parseFloat(horasAtraso) || 0,
@@ -74,15 +75,23 @@ export default function FolhaMensal() {
         descontos_adiantamentos: parseFloat(descontos) || 0,
         valor_comissoes: parseFloat(comissoes) || 0,
         valor_plr: parseFloat(plr) || 0,
-        anexo_holerite_path,
         observacoes: obs || null,
-      });
-      if (error) throw error;
+      };
+      if (file) payload.anexo_holerite_path = anexo_holerite_path;
+
+      if (editingId) {
+        const { error } = await supabase.from("rh_folha_mensal").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        payload.anexo_holerite_path = anexo_holerite_path;
+        const { error } = await supabase.from("rh_folha_mensal").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_folha_mensal"] });
-      toast.success("Folha registrada.");
-      setDialogOpen(false);
+      toast.success(editingId ? "Folha atualizada." : "Folha registrada.");
+      closeDialog();
     },
     onError: () => toast.error("Erro ao salvar folha."),
   });
@@ -98,12 +107,23 @@ export default function FolhaMensal() {
   });
 
   const openNew = () => {
-    setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
+    setEditingId(null); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
     setPlanoSaude(false); setDescontoParque(false); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
     setDialogOpen(true);
   };
 
+  const openEdit = (f: any) => {
+    setEditingId(f.id); setFuncId(f.funcionario_id); setMesRef(f.mes_referencia?.slice(0, 7) || "");
+    setHorasAtraso(String(f.horas_atraso_faltas)); setHorasExtra(String(f.horas_extra));
+    setPlanoSaude(f.plano_saude); setDescontoParque(f.desconto_titulo_parque);
+    setAuxilioEdu(f.auxilio_educacional); setDescontos(String(f.descontos_adiantamentos));
+    setComissoes(String(f.valor_comissoes)); setPlr(String(f.valor_plr));
+    setObs(f.observacoes || ""); setFile(null);
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
   const filtered = filterFunc ? folhas.filter((f: any) => f.funcionario_id === filterFunc) : folhas;
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
@@ -127,7 +147,7 @@ export default function FolhaMensal() {
             <TableHead>Mês</TableHead><TableHead>Funcionário</TableHead>
             <TableHead>H. Atraso</TableHead><TableHead>H. Extra</TableHead>
             <TableHead>Comissões</TableHead><TableHead>PLR</TableHead>
-            <TableHead className="w-16 text-right">Ações</TableHead>
+            <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {isLoading ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
@@ -141,7 +161,10 @@ export default function FolhaMensal() {
                 <TableCell>{fmt(Number(f.valor_comissoes))}</TableCell>
                 <TableCell>{fmt(Number(f.valor_plr))}</TableCell>
                 <TableCell className="text-right">
-                  {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(f)}><Trash2 className="h-4 w-4" /></Button>}
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(f)}><Pencil className="h-4 w-4" /></Button>
+                    {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(f)}><Trash2 className="h-4 w-4" /></Button>}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -151,7 +174,7 @@ export default function FolhaMensal() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Nova Folha</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Folha" : "Nova Folha"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
@@ -185,7 +208,7 @@ export default function FolhaMensal() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} disabled={!funcId || !mesRef || saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>

@@ -14,12 +14,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
 export default function Adiantamentos() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
 
   const [funcId, setFuncId] = useState("");
@@ -48,19 +49,25 @@ export default function Adiantamentos() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       const datas = datasPagamento.split(",").map((d) => d.trim()).filter(Boolean);
-      const { error } = await supabase.from("rh_adiantamentos").insert({
+      const payload = {
         funcionario_id: funcId,
         data,
         valor: parseFloat(valor) || 0,
         datas_pagamento_pretendidas: datas.length > 0 ? datas : null,
         observacoes: obs || null,
-      });
-      if (error) throw error;
+      };
+      if (editingId) {
+        const { error } = await supabase.from("rh_adiantamentos").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("rh_adiantamentos").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_adiantamentos"] });
-      toast.success("Adiantamento registrado.");
-      setDialogOpen(false);
+      toast.success(editingId ? "Adiantamento atualizado." : "Adiantamento registrado.");
+      closeDialog();
     },
     onError: () => toast.error("Erro ao salvar adiantamento."),
   });
@@ -74,9 +81,21 @@ export default function Adiantamentos() {
     onError: () => toast.error("Erro ao excluir."),
   });
 
-  const openNew = () => { setFuncId(""); setData(""); setValor(""); setDatasPagamento(""); setObs(""); setDialogOpen(true); };
-  const filtered = filterFunc ? adiantamentos.filter((a: any) => a.funcionario_id === filterFunc) : adiantamentos;
+  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setDatasPagamento(""); setObs(""); setDialogOpen(true); };
+  
+  const openEdit = (a: any) => {
+    setEditingId(a.id);
+    setFuncId(a.funcionario_id);
+    setData(a.data);
+    setValor(String(a.valor));
+    setDatasPagamento(a.datas_pagamento_pretendidas?.join(", ") || "");
+    setObs(a.observacoes || "");
+    setDialogOpen(true);
+  };
 
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
+
+  const filtered = filterFunc ? adiantamentos.filter((a: any) => a.funcionario_id === filterFunc) : adiantamentos;
   const formatCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   return (
@@ -98,7 +117,7 @@ export default function Adiantamentos() {
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Valor</TableHead>
             <TableHead>Datas Pagamento</TableHead><TableHead>Observações</TableHead>
-            <TableHead className="w-16 text-right">Ações</TableHead>
+            <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
@@ -111,7 +130,10 @@ export default function Adiantamentos() {
                 <TableCell>{a.datas_pagamento_pretendidas?.join(", ") || "—"}</TableCell>
                 <TableCell className="max-w-[150px] truncate">{a.observacoes || "—"}</TableCell>
                 <TableCell className="text-right">
-                  {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(a.id)}><Trash2 className="h-4 w-4" /></Button>}
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)}><Pencil className="h-4 w-4" /></Button>
+                    {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(a.id)}><Trash2 className="h-4 w-4" /></Button>}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -121,7 +143,7 @@ export default function Adiantamentos() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo Adiantamento</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Adiantamento" : "Novo Adiantamento"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
               <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
@@ -134,7 +156,7 @@ export default function Adiantamentos() {
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} disabled={!funcId || !data || !valor || saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>

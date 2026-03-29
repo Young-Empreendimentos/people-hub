@@ -14,12 +14,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 export default function Aditivos() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -60,20 +61,30 @@ export default function Aditivos() {
         if (error) throw error;
         anexo_path = path; anexo_name = file.name;
       }
-      const { error } = await supabase.from("rh_aditivos").insert({
+      const payload: any = {
         funcionario_id: funcId,
         tipo_aditivo_id: tipoAditivoId || null,
         empresa_final_id: empresaFinalId || null,
         cargo_final_id: cargoFinalId || null,
         equipe_final_id: equipeFinalId || null,
-        data, observacoes: obs || null, anexo_path, anexo_name,
-      });
-      if (error) throw error;
+        data, observacoes: obs || null,
+      };
+      if (file) { payload.anexo_path = anexo_path; payload.anexo_name = anexo_name; }
+
+      if (editingId) {
+        const { error } = await supabase.from("rh_aditivos").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        payload.anexo_path = anexo_path;
+        payload.anexo_name = anexo_name;
+        const { error } = await supabase.from("rh_aditivos").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_aditivos"] });
-      toast.success("Aditivo salvo.");
-      setDialogOpen(false);
+      toast.success(editingId ? "Aditivo atualizado." : "Aditivo salvo.");
+      closeDialog();
     },
     onError: () => toast.error("Erro ao salvar aditivo."),
   });
@@ -89,11 +100,19 @@ export default function Aditivos() {
   });
 
   const openNew = () => {
-    setFuncId(""); setTipoAditivoId(""); setEmpresaFinalId(""); setCargoFinalId("");
+    setEditingId(null); setFuncId(""); setTipoAditivoId(""); setEmpresaFinalId(""); setCargoFinalId("");
     setEquipeFinalId(""); setData(""); setObs(""); setFile(null);
     setDialogOpen(true);
   };
 
+  const openEdit = (a: any) => {
+    setEditingId(a.id); setFuncId(a.funcionario_id); setTipoAditivoId(a.tipo_aditivo_id || "");
+    setEmpresaFinalId(a.empresa_final_id || ""); setCargoFinalId(a.cargo_final_id || "");
+    setEquipeFinalId(a.equipe_final_id || ""); setData(a.data); setObs(a.observacoes || ""); setFile(null);
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
   const filtered = filterFunc ? aditivos.filter((a: any) => a.funcionario_id === filterFunc) : aditivos;
 
   return (
@@ -115,7 +134,7 @@ export default function Aditivos() {
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Tipo</TableHead>
             <TableHead>Empresa Final</TableHead><TableHead>Cargo Final</TableHead><TableHead>Equipe Final</TableHead>
-            <TableHead className="w-16 text-right">Ações</TableHead>
+            <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {isLoading ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
@@ -129,7 +148,10 @@ export default function Aditivos() {
                 <TableCell>{a.rh_cargos?.nome || "—"}</TableCell>
                 <TableCell>{a.rh_equipes?.nome || "—"}</TableCell>
                 <TableCell className="text-right">
-                  {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(a)}><Trash2 className="h-4 w-4" /></Button>}
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(a)}><Pencil className="h-4 w-4" /></Button>
+                    {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(a)}><Trash2 className="h-4 w-4" /></Button>}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -139,7 +161,7 @@ export default function Aditivos() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Novo Aditivo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Aditivo" : "Novo Aditivo"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
               <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
@@ -148,9 +170,7 @@ export default function Aditivos() {
               <div className="space-y-2"><label className="text-sm font-medium">Tipo de Aditivo</label>
                 <Combobox options={tiposAditivo.map((t: any) => ({ value: t.id, label: t.nome }))} value={tipoAditivoId} onValueChange={setTipoAditivoId} placeholder="Selecione" />
               </div>
-              <div className="space-y-2"><label className="text-sm font-medium">Data *</label>
-                <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
-              </div>
+              <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Empresa Final</label>
               <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={empresaFinalId} onValueChange={setEmpresaFinalId} placeholder="Selecione" />
@@ -162,7 +182,7 @@ export default function Aditivos() {
               <Combobox options={equipes.map((e: any) => ({ value: e.id, label: e.nome }))} value={equipeFinalId} onValueChange={setEquipeFinalId} placeholder="Selecione" />
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
-            <div className="space-y-2"><label className="text-sm font-medium">Anexo (aditivo)</label>
+            <div className="space-y-2"><label className="text-sm font-medium">Anexo</label>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Upload className="mr-1 h-3 w-3" /> Selecionar</Button>
                 <span className="text-sm text-muted-foreground">{file?.name || "Nenhum arquivo"}</span>
@@ -171,7 +191,7 @@ export default function Aditivos() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} disabled={!funcId || !data || saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>

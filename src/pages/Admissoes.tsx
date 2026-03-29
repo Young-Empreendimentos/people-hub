@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,13 +15,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Upload } from "lucide-react";
-import { useRef } from "react";
+import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 export default function Admissoes() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -45,11 +45,7 @@ export default function Admissoes() {
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
   });
 
   const saveMutation = useMutation({
@@ -60,24 +56,31 @@ export default function Admissoes() {
         const path = `admissoes/${funcId}/${Date.now()}_${file.name}`;
         const { error } = await supabase.storage.from("rh-anexos").upload(path, file);
         if (error) throw error;
-        anexo_path = path;
-        anexo_name = file.name;
+        anexo_path = path; anexo_name = file.name;
       }
-      const { error } = await supabase.from("rh_admissoes_desligamentos").insert({
+      const payload: any = {
         funcionario_id: funcId,
         tipo,
         data,
         observacoes: obs || null,
-        anexo_path,
-        anexo_name,
-      });
-      if (error) throw error;
+      };
+      if (file) { payload.anexo_path = anexo_path; payload.anexo_name = anexo_name; }
+
+      if (editingId) {
+        const { error } = await supabase.from("rh_admissoes_desligamentos").update(payload).eq("id", editingId);
+        if (error) throw error;
+      } else {
+        payload.anexo_path = anexo_path;
+        payload.anexo_name = anexo_name;
+        const { error } = await supabase.from("rh_admissoes_desligamentos").insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_admissoes_desligamentos"] });
       queryClient.invalidateQueries({ queryKey: ["rh_status_funcionarios"] });
-      toast.success("Registro salvo.");
-      setDialogOpen(false);
+      toast.success(editingId ? "Registro atualizado." : "Registro salvo.");
+      closeDialog();
     },
     onError: () => toast.error("Erro ao salvar registro."),
   });
@@ -96,13 +99,19 @@ export default function Admissoes() {
   });
 
   const openNew = () => {
-    setFuncId(""); setTipo("admissao"); setData(""); setObs(""); setFile(null);
+    setEditingId(null); setFuncId(""); setTipo("admissao"); setData(""); setObs(""); setFile(null);
     setDialogOpen(true);
   };
 
-  const filtered = filterFunc
-    ? registros.filter((r: any) => r.funcionario_id === filterFunc)
-    : registros;
+  const openEdit = (r: any) => {
+    setEditingId(r.id);
+    setFuncId(r.funcionario_id); setTipo(r.tipo); setData(r.data); setObs(r.observacoes || ""); setFile(null);
+    setDialogOpen(true);
+  };
+
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
+
+  const filtered = filterFunc ? registros.filter((r: any) => r.funcionario_id === filterFunc) : registros;
 
   return (
     <div className="space-y-4">
@@ -115,107 +124,70 @@ export default function Admissoes() {
       </div>
 
       <div className="max-w-sm">
-        <Combobox
-          options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))}
-          value={filterFunc}
-          onValueChange={setFilterFunc}
-          placeholder="Filtrar por funcionário"
-          searchPlaceholder="Buscar funcionário..."
-        />
+        <Combobox options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
       </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Funcionário</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Observações</TableHead>
-                <TableHead>Anexo</TableHead>
-                <TableHead className="w-16 text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
-              ) : filtered.map((r: any) => (
-                <TableRow key={r.id}>
-                  <TableCell>{r.data}</TableCell>
-                  <TableCell className="font-medium">{r.rh_funcionarios?.nome_completo || "—"}</TableCell>
-                  <TableCell>
-                    <Badge variant={r.tipo === "admissao" ? "default" : "destructive"}>
-                      {r.tipo === "admissao" ? "Admissão" : "Desligamento"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[200px] truncate">{r.observacoes || "—"}</TableCell>
-                  <TableCell>{r.anexo_name || "—"}</TableCell>
-                  <TableCell className="text-right">
+      <Card><CardContent className="p-0">
+        <Table>
+          <TableHeader><TableRow>
+            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Tipo</TableHead>
+            <TableHead>Observações</TableHead><TableHead>Anexo</TableHead>
+            <TableHead className="w-24 text-right">Ações</TableHead>
+          </TableRow></TableHeader>
+          <TableBody>
+            {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+            : filtered.map((r: any) => (
+              <TableRow key={r.id}>
+                <TableCell>{r.data}</TableCell>
+                <TableCell className="font-medium">{r.rh_funcionarios?.nome_completo || "—"}</TableCell>
+                <TableCell>
+                  <Badge variant={r.tipo === "admissao" ? "default" : "destructive"}>
+                    {r.tipo === "admissao" ? "Admissão" : "Desligamento"}
+                  </Badge>
+                </TableCell>
+                <TableCell className="max-w-[200px] truncate">{r.observacoes || "—"}</TableCell>
+                <TableCell>{r.anexo_name || "—"}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(r)}><Pencil className="h-4 w-4" /></Button>
                     {canDelete && (
                       <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(r)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent></Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Novo Registro</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar Registro" : "Novo Registro"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Funcionário *</label>
-              <Combobox
-                options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))}
-                value={funcId}
-                onValueChange={setFuncId}
-                placeholder="Selecione o funcionário"
-              />
+            <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
+              <Combobox options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione o funcionário" />
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Tipo *</label>
-                <Combobox
-                  options={[
-                    { value: "admissao", label: "Admissão" },
-                    { value: "desligamento", label: "Desligamento" },
-                  ]}
-                  value={tipo}
-                  onValueChange={setTipo}
-                />
+              <div className="space-y-2"><label className="text-sm font-medium">Tipo *</label>
+                <Combobox options={[{ value: "admissao", label: "Admissão" }, { value: "desligamento", label: "Desligamento" }]} value={tipo} onValueChange={setTipo} />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Data *</label>
-                <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
-              </div>
+              <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Observações</label>
-              <Textarea value={obs} onChange={(e) => setObs(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Anexo ({tipo === "admissao" ? "Contrato de Trabalho" : "Aviso"})
-              </label>
+            <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
+            <div className="space-y-2"><label className="text-sm font-medium">Anexo</label>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
-                  <Upload className="mr-1 h-3 w-3" /> Selecionar arquivo
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}><Upload className="mr-1 h-3 w-3" /> Selecionar arquivo</Button>
                 <span className="text-sm text-muted-foreground">{file?.name || "Nenhum arquivo"}</span>
                 <input ref={fileRef} type="file" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={closeDialog}>Cancelar</Button>
             <Button onClick={() => saveMutation.mutate()} disabled={!funcId || !data || saveMutation.isPending}>
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>

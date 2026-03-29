@@ -4583,6 +4583,16 @@ export type Database = {
         Args: { _role: string; _user_id: string }
         Returns: boolean
       }
+      rh_get_all_users_with_roles: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          role: Database["public"]["Enums"]["rh_app_role"]
+        }[]
+      }
       rh_has_role: {
         Args: {
           _role: Database["public"]["Enums"]["rh_app_role"]

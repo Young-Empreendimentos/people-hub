@@ -29,11 +29,16 @@ export default function Login() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center space-y-2">
-          <CardTitle className="text-2xl tracking-tight">Pilares</CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Sistema de Gestão de Recursos Humanos
-          </p>
+        <CardHeader className="text-center space-y-3">
+          <div className="flex justify-center">
+            <img src="/logo-young.svg" alt="Young Empreendimentos" className="h-16 w-16 rounded-lg" />
+          </div>
+          <div>
+            <CardTitle className="text-2xl tracking-tight">Pilares</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Sistema de Gestão de Recursos Humanos
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">

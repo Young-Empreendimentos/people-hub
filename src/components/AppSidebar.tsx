@@ -41,6 +41,15 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
+        <div className={`flex items-center gap-2 px-3 py-4 ${collapsed ? "justify-center" : ""}`}>
+          <img src="/logo-young.svg" alt="Young" className={`${collapsed ? "h-8 w-8" : "h-9 w-9"} rounded`} />
+          {!collapsed && (
+            <div className="leading-tight">
+              <p className="text-sm font-bold tracking-tight text-sidebar-foreground">Pilares</p>
+              <p className="text-[10px] text-sidebar-foreground/60">Gestão de RH</p>
+            </div>
+          )}
+        </div>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>

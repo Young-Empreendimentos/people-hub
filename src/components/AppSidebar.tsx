@@ -42,7 +42,7 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         <div className={`flex items-center gap-2 px-3 py-4 ${collapsed ? "justify-center" : ""}`}>
-          <img src="/logo-young.svg" alt="Young" className={`${collapsed ? "h-8 w-8" : "h-9 w-9"} rounded`} />
+          <img src="/logo-icon.png" alt="Young" className={`${collapsed ? "h-8 w-8" : "h-9 w-9"} rounded`} />
           {!collapsed && (
             <div className="leading-tight">
               <p className="text-sm font-bold tracking-tight text-sidebar-foreground">Pilares</p>

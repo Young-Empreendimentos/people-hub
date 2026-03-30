@@ -31,7 +31,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-3">
           <div className="flex justify-center">
-            <img src="/logo-young.svg" alt="Young Empreendimentos" className="h-16 w-16 rounded-lg" />
+            <img src="/logo-full.png" alt="Young Empreendimentos" className="h-16" />
           </div>
           <div>
             <CardTitle className="text-2xl tracking-tight">Pilares</CardTitle>

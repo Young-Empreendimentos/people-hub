@@ -43,6 +43,7 @@ export default function Funcionarios() {
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
   const [dataContratoVigente, setDataContratoVigente] = useState("");
+  const [gestorId, setGestorId] = useState("");
   const [cpfError, setCpfError] = useState("");
 
   const { funcionarios, statusMap, isActive, activeCount, isLoading } = useActiveEmployees();
@@ -79,6 +80,7 @@ export default function Funcionarios() {
         equipe_id: equipeId || null,
         cargo_id: cargoId || null,
         data_contrato_vigente: dataContratoVigente || null,
+        gestor_id: gestorId || null,
       };
       if (editingId) {
         const { error } = await supabase.from("rh_funcionarios").update(payload).eq("id", editingId);
@@ -115,6 +117,7 @@ export default function Funcionarios() {
     setAniversario(f.aniversario || "");
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
     setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
+    setGestorId(f.gestor_id || "");
     setCpfError("");
     setDialogOpen(true);
   };
@@ -280,6 +283,15 @@ export default function Funcionarios() {
                   label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome} (Nível ${c.nivel})`,
                 }))}
                 value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Gestor Direto</label>
+              <Combobox
+                options={funcionarios
+                  .filter((f: any) => f.id !== editingId)
+                  .map((f: any) => ({ value: f.id, label: f.nome_completo }))}
+                value={gestorId} onValueChange={setGestorId} placeholder="Selecione o gestor"
               />
             </div>
           </div>

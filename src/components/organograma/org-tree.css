@@ -1,0 +1,76 @@
+.org-tree ul {
+  display: flex;
+  justify-content: center;
+  padding-top: 1.5rem;
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding-left: 0;
+}
+
+.org-tree ul.org-tree-root {
+  padding-top: 0;
+}
+
+.org-tree li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  padding: 1.5rem 0.75rem 0;
+}
+
+/* Vertical line from parent down to horizontal bar */
+.org-tree li::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 1.5rem;
+  background: hsl(var(--border));
+}
+
+/* Horizontal connector between siblings */
+.org-tree li::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 2px;
+  background: hsl(var(--border));
+}
+
+/* First child: horizontal line only on the right half */
+.org-tree li:first-child::after {
+  left: 50%;
+  width: 50%;
+}
+
+/* Last child: horizontal line only on the left half */
+.org-tree li:last-child::after {
+  right: 50%;
+  width: 50%;
+}
+
+/* Only child: no horizontal line */
+.org-tree li:only-child::after {
+  display: none;
+}
+
+/* Root items: no connectors */
+.org-tree .org-tree-root > li::before,
+.org-tree .org-tree-root > li::after {
+  display: none;
+}
+
+/* Vertical line from node card down to children */
+.org-tree li > ul::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 2px;
+  height: 1.5rem;
+  background: hsl(var(--border));
+}

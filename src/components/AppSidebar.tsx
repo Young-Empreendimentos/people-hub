@@ -1,6 +1,6 @@
 import {
   Users, Building2, Briefcase, UserPlus, FileText,
-  DollarSign, ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, Factory
+  DollarSign, ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, Factory, Network
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Início", url: "/", icon: Home },
   { title: "Funcionários", url: "/funcionarios", icon: Users },
+  { title: "Organograma", url: "/organograma", icon: Network },
   { title: "Equipes", url: "/equipes", icon: Building2 },
   { title: "Empresas", url: "/empresas", icon: Factory },
   { title: "Cargos", url: "/cargos", icon: Briefcase },

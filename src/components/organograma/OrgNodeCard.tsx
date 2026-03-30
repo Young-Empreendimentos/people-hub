@@ -18,6 +18,7 @@ interface OrgNodeCardProps {
   onToggleCollapse: () => void;
   canEdit: boolean;
   onEdit: (node: OrgNode) => void;
+  highlighted?: boolean;
 }
 
 export function OrgNodeCard({
@@ -27,6 +28,7 @@ export function OrgNodeCard({
   onToggleCollapse,
   canEdit,
   onEdit,
+  highlighted,
 }: OrgNodeCardProps) {
   const navigate = useNavigate();
   const hasChildren = node.children.length > 0;
@@ -34,7 +36,7 @@ export function OrgNodeCard({
   return (
     <div className="flex flex-col items-center">
       <div
-        className="relative bg-card border rounded-lg shadow-sm px-4 py-3 w-48 cursor-pointer hover:shadow-md transition-shadow group"
+        className={`relative bg-card border rounded-lg shadow-sm px-4 py-3 w-48 cursor-pointer hover:shadow-md transition-shadow group ${highlighted ? "ring-2 ring-primary border-primary" : ""}`}
         onClick={() => navigate(`/funcionarios/${node.id}`)}
       >
         {canEdit && (

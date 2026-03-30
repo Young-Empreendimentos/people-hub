@@ -64,6 +64,7 @@ export default function Organograma() {
         canEdit={canDelete}
         onEdit={setEditingNode}
         countDescendants={countDescendants}
+        search={search}
       />
 
       <OrgEditPopover

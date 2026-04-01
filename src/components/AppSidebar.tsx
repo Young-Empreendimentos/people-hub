@@ -35,7 +35,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { canConfig, signOut, user } = useAuth();
+  const { canConfig, signOut, user, userName } = useAuth();
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -82,7 +82,7 @@ export function AppSidebar() {
       <SidebarFooter>
         {!collapsed && user && (
           <p className="text-xs text-sidebar-foreground/60 truncate px-2 mb-1">
-            {user.email}
+            {userName || user.email}
           </p>
         )}
         <Button variant="ghost" size="sm" onClick={signOut} className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground">

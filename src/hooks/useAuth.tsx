@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   role: RhRole | null;
+  userName: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -21,15 +22,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<RhRole | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string) => {
     const { data } = await supabase
       .from("rh_user_roles")
-      .select("role")
+      .select("role, nome")
       .eq("user_id", userId)
       .maybeSingle();
     setRole((data?.role as RhRole) ?? null);
+    setUserName((data?.nome as string) ?? null);
   };
 
   useEffect(() => {
@@ -41,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setTimeout(() => fetchRole(session.user.id), 0);
         } else {
           setRole(null);
+          setUserName(null);
         }
         setLoading(false);
       }
@@ -71,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canConfig = role === "admin";
 
   return (
-    <AuthContext.Provider value={{ session, user, role, loading, signIn, signOut, canDelete, canConfig }}>
+    <AuthContext.Provider value={{ session, user, role, userName, loading, signIn, signOut, canDelete, canConfig }}>
       {children}
     </AuthContext.Provider>
   );

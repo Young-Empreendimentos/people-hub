@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,7 +19,7 @@ export default function FuncionarioDetalhes() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { canDelete } = useAuth();
+  const { canDelete, role } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadTipo, setUploadTipo] = useState<string>("documento");
 
@@ -135,6 +136,31 @@ export default function FuncionarioDetalhes() {
     onError: () => toast.error("Erro ao excluir anexo."),
   });
 
+  const canUncheck = role === "admin" || role === "coordenador";
+
+  const toggleFieldMutation = useMutation({
+    mutationFn: async ({ field, value }: { field: "seguro_vida" | "kit_onboarding"; value: boolean }) => {
+      const { error } = await supabase
+        .from("rh_funcionarios")
+        .update({ [field]: value })
+        .eq("id", id!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rh_funcionario", id] });
+    },
+    onError: () => toast.error("Erro ao atualizar."),
+  });
+
+  const handleToggle = (field: "seguro_vida" | "kit_onboarding", current: boolean) => {
+    const newValue = !current;
+    if (!newValue && !canUncheck) {
+      toast.error("Apenas coordenadores ou administradores podem desmarcar esta opção.");
+      return;
+    }
+    toggleFieldMutation.mutate({ field, value: newValue });
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) uploadMutation.mutate(file);
@@ -200,6 +226,22 @@ export default function FuncionarioDetalhes() {
               <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {(func as any).data_contrato_vigente || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Empresa:</span> {(func as any).rh_empresas?.nome || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Equipe:</span> {(func as any).rh_equipes?.nome || "—"}</div>
+              <div className="col-span-2 border-t pt-4 mt-2 flex gap-8">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Switch
+                    checked={!!(func as any).seguro_vida}
+                    onCheckedChange={() => handleToggle("seguro_vida", !!(func as any).seguro_vida)}
+                  />
+                  <span className="font-medium text-sm">Seguro de Vida</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Switch
+                    checked={!!(func as any).kit_onboarding}
+                    onCheckedChange={() => handleToggle("kit_onboarding", !!(func as any).kit_onboarding)}
+                  />
+                  <span className="font-medium text-sm">Kit Onboarding</span>
+                </label>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

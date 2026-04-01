@@ -78,6 +78,27 @@ export default function FuncionarioDetalhes() {
     enabled: !!id,
   });
 
+  const { data: treinamentos = [] } = useQuery({
+    queryKey: ["rh_treinamentos_funcionario", id],
+    queryFn: async () => {
+      const { data: partRows, error: pErr } = await supabase
+        .from("rh_treinamento_participantes")
+        .select("treinamento_id")
+        .eq("funcionario_id", id!);
+      if (pErr) throw pErr;
+      if (!partRows || partRows.length === 0) return [];
+      const ids = partRows.map((r) => r.treinamento_id);
+      const { data, error } = await supabase
+        .from("rh_treinamentos")
+        .select("*, rh_tipos_treinamento(nome)")
+        .in("id", ids)
+        .order("data", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const path = `funcionarios/${id}/${Date.now()}_${file.name}`;
@@ -131,6 +152,7 @@ export default function FuncionarioDetalhes() {
 
   const lastEvent = historico[0];
   const status = lastEvent?.tipo === "desligamento" ? "Desligado" : lastEvent?.tipo === "admissao" ? "Ativo" : "Sem registro";
+  const dataAdmissao = [...historico].reverse().find((h) => h.tipo === "admissao")?.data || null;
 
   const tipoAnexoLabels: Record<string, string> = {
     documento: "Documento",
@@ -164,6 +186,7 @@ export default function FuncionarioDetalhes() {
           <TabsTrigger value="anexos">Anexos ({anexos.length})</TabsTrigger>
           <TabsTrigger value="historico">Histórico ({historico.length})</TabsTrigger>
           <TabsTrigger value="aditivos">Aditivos ({aditivos.length})</TabsTrigger>
+          <TabsTrigger value="treinamentos">Treinamentos ({treinamentos.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
@@ -173,6 +196,7 @@ export default function FuncionarioDetalhes() {
               <div><span className="font-medium text-muted-foreground">CPF:</span> {(func as any).cpf || "—"}</div>
               <div className="col-span-2"><span className="font-medium text-muted-foreground">Endereço:</span> {(func as any).endereco || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Aniversário:</span> {(func as any).aniversario || "—"}</div>
+              <div><span className="font-medium text-muted-foreground">Data de Admissão:</span> {dataAdmissao || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {(func as any).data_contrato_vigente || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Empresa:</span> {(func as any).rh_empresas?.nome || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Equipe:</span> {(func as any).rh_equipes?.nome || "—"}</div>
@@ -297,6 +321,35 @@ export default function FuncionarioDetalhes() {
                         <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
                         <TableCell>{a.rh_cargos?.nome || "—"}</TableCell>
                         <TableCell>{a.rh_equipes?.nome || "—"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="treinamentos">
+          <Card>
+            <CardContent className="pt-6">
+              {treinamentos.length === 0 ? (
+                <p className="text-muted-foreground text-sm">Nenhum treinamento registrado.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Treinamento</TableHead>
+                      <TableHead>Observações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {treinamentos.map((t: any) => (
+                      <TableRow key={t.id}>
+                        <TableCell>{t.data}</TableCell>
+                        <TableCell className="font-medium">{(t.rh_tipos_treinamento as any)?.nome || "—"}</TableCell>
+                        <TableCell className="text-muted-foreground">{t.observacoes || "—"}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

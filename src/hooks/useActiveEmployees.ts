@@ -14,20 +14,25 @@ export function useActiveEmployees() {
     },
   });
 
-  const { data: statusMap = {} } = useQuery({
+  const { data: admissaoData = { statusMap: {}, admissaoMap: {} } } = useQuery({
     queryKey: ["rh_status_funcionarios"],
     queryFn: async () => {
       const { data } = await supabase
         .from("rh_admissoes_desligamentos")
         .select("*")
         .order("data", { ascending: false });
-      const map: Record<string, string> = {};
+      const statusMap: Record<string, string> = {};
+      const admissaoMap: Record<string, string> = {};
       for (const row of data || []) {
-        if (!map[row.funcionario_id]) map[row.funcionario_id] = row.tipo;
+        if (!statusMap[row.funcionario_id]) statusMap[row.funcionario_id] = row.tipo;
+        // Keep the earliest admissao date per employee
+        if (row.tipo === "admissao") admissaoMap[row.funcionario_id] = row.data;
       }
-      return map;
+      return { statusMap, admissaoMap };
     },
   });
+
+  const { statusMap, admissaoMap } = admissaoData;
 
   const isActive = (funcId: string) =>
     (statusMap as Record<string, string>)[funcId] !== "desligamento";
@@ -37,5 +42,5 @@ export function useActiveEmployees() {
   const getActiveByField = (field: "equipe_id" | "empresa_id", value: string) =>
     funcionarios.filter((f) => (f as any)[field] === value && isActive(f.id));
 
-  return { funcionarios, statusMap, isActive, activeCount, isLoading, getActiveByField };
+  return { funcionarios, statusMap, admissaoMap, isActive, activeCount, isLoading, getActiveByField };
 }

@@ -61,6 +61,34 @@ export default function Funcionarios() {
     queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome"); return data || []; },
   });
 
+  const { data: ultimoAditivoPorFunc = {} } = useQuery({
+    queryKey: ["rh_aditivos_ultimo_cargo"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rh_aditivos")
+        .select("funcionario_id, cargo_final_id, data")
+        .not("cargo_final_id", "is", null)
+        .order("data", { ascending: false });
+      const map: Record<string, string> = {};
+      for (const row of data || []) {
+        if (!map[row.funcionario_id]) map[row.funcionario_id] = row.cargo_final_id!;
+      }
+      return map;
+    },
+  });
+
+  const cargoMap = Object.fromEntries(cargos.map((c: any) => [c.id, c]));
+
+  const getSalario = (f: any): number | null => {
+    const aditivoCargoId = (ultimoAditivoPorFunc as Record<string, string>)[f.id];
+    const cargoId = aditivoCargoId || f.cargo_id;
+    if (!cargoId) return null;
+    return cargoMap[cargoId]?.remuneracao ?? null;
+  };
+
+  const formatCurrency = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
   const validateForm = () => {
     if (!nomeCompleto.trim()) { toast.error("Nome completo é obrigatório."); return false; }
     if (cpf && !isValidCPF(cpf)) { setCpfError("CPF inválido"); return false; }
@@ -190,15 +218,16 @@ export default function Funcionarios() {
                 <TableHead>Empresa</TableHead>
                 <TableHead>Equipe</TableHead>
                 <TableHead>Cargo</TableHead>
+                <TableHead>Salário</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-28 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum funcionário encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum funcionário encontrado.</TableCell></TableRow>
               ) : filtered.map((f: any) => (
                 <TableRow key={f.id}>
                   <TableCell className="font-medium">{f.nome_completo}</TableCell>
@@ -206,6 +235,7 @@ export default function Funcionarios() {
                   <TableCell>{f.rh_empresas?.nome || "—"}</TableCell>
                   <TableCell>{f.rh_equipes?.nome || "—"}</TableCell>
                   <TableCell>{f.rh_cargos?.nome || "—"}</TableCell>
+                  <TableCell className="tabular-nums">{(() => { const s = getSalario(f); return s != null ? formatCurrency(s) : "—"; })()}</TableCell>
                   <TableCell>{getStatusBadge(f.id)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">

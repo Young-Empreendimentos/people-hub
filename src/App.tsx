@@ -19,6 +19,8 @@ import Avaliacoes from "./pages/Avaliacoes";
 import FolhaMensal from "./pages/FolhaMensal";
 import Atividades from "./pages/Atividades";
 import Organograma from "./pages/Organograma";
+import Aniversarios from "./pages/Aniversarios";
+import Treinamentos from "./pages/Treinamentos";
 import Configuracoes from "./pages/Configuracoes";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +49,8 @@ const App = () => (
               <Route path="/folha" element={<FolhaMensal />} />
               <Route path="/atividades" element={<Atividades />} />
               <Route path="/organograma" element={<Organograma />} />
+              <Route path="/aniversarios" element={<Aniversarios />} />
+              <Route path="/treinamentos" element={<Treinamentos />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

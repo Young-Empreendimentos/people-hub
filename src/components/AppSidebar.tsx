@@ -1,6 +1,6 @@
 import {
   Users, Building2, Briefcase, UserPlus, FileText,
-  DollarSign, ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, Factory, Network
+  DollarSign, ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, Factory, Network, Cake, GraduationCap
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -16,12 +16,14 @@ const mainItems = [
   { title: "Início", url: "/", icon: Home },
   { title: "Funcionários", url: "/funcionarios", icon: Users },
   { title: "Organograma", url: "/organograma", icon: Network },
+  { title: "Aniversários", url: "/aniversarios", icon: Cake },
   { title: "Equipes", url: "/equipes", icon: Building2 },
   { title: "Empresas", url: "/empresas", icon: Factory },
   { title: "Cargos", url: "/cargos", icon: Briefcase },
   { title: "Admissões e Deslig.", url: "/admissoes", icon: UserPlus },
   { title: "Aditivos", url: "/aditivos", icon: FileText },
   { title: "Adiantamentos", url: "/adiantamentos", icon: DollarSign },
+  { title: "Treinamentos", url: "/treinamentos", icon: GraduationCap },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
   { title: "Folha Mensal", url: "/folha", icon: Receipt },
   { title: "Atividades", url: "/atividades", icon: ListChecks },

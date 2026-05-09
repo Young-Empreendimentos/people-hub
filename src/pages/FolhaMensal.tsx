@@ -20,7 +20,8 @@ import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
-  const { canDelete } = useAuth();
+  const { canDelete, role } = useAuth();
+  const { isActive } = useActiveEmployees();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");

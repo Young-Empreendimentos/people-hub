@@ -31,8 +31,8 @@ export default function FolhaMensal() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState("");
-  const [filterDataIni, setFilterDataIni] = useState("");
-  const [filterDataFim, setFilterDataFim] = useState("");
+  const [filterDataIni, setFilterDataIni] = useState<Date | undefined>(undefined);
+  const [filterDataFim, setFilterDataFim] = useState<Date | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [funcId, setFuncId] = useState("");

@@ -52,13 +52,33 @@ export default function FolhaMensal() {
     },
   });
 
-  const { data: funcionarios = [] } = useQuery({
-    queryKey: ["rh_funcionarios"],
+  const { data: funcionariosAll = [] } = useQuery({
+    queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id").order("nome_completo");
+      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id").order("nome_completo");
       return data || [];
     },
   });
+  const funcionarios = useMemo(() => funcionariosAll.filter((f: any) => isActive(f.id)), [funcionariosAll, isActive]);
+
+  const { data: cargos = [] } = useQuery({
+    queryKey: ["rh_cargos_folha"],
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_cargos").select("id, remuneracao, nome");
+      return data || [];
+    },
+  });
+  const cargoMap = useMemo(() => {
+    const m: Record<string, { remuneracao: number; nome: string }> = {};
+    for (const c of cargos as any[]) m[c.id] = { remuneracao: Number(c.remuneracao) || 0, nome: c.nome };
+    return m;
+  }, [cargos]);
+
+  const selectedFuncCargo = useMemo(() => {
+    const f = funcionariosAll.find((x: any) => x.id === funcId) as any;
+    if (!f?.cargo_id) return null;
+    return cargoMap[f.cargo_id] || null;
+  }, [funcId, funcionariosAll, cargoMap]);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],

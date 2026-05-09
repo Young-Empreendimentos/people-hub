@@ -64,13 +64,13 @@ export default function FolhaMensal() {
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_cargos").select("id, remuneracao, nome");
+      const { data } = await supabase.from("rh_cargos").select("id, remuneracao, nome, nivel");
       return data || [];
     },
   });
   const cargoMap = useMemo(() => {
-    const m: Record<string, { remuneracao: number; nome: string }> = {};
-    for (const c of cargos as any[]) m[c.id] = { remuneracao: Number(c.remuneracao) || 0, nome: c.nome };
+    const m: Record<string, { remuneracao: number; nome: string; nivel: number | null }> = {};
+    for (const c of cargos as any[]) m[c.id] = { remuneracao: Number(c.remuneracao) || 0, nome: c.nome, nivel: c.nivel ?? null };
     return m;
   }, [cargos]);
 

@@ -233,8 +233,8 @@ export default function FolhaMensal() {
         if (empAt !== filterEmpresa) return false;
       }
       const data = (f.mes_referencia || "").slice(0, 10);
-      const ini = brDateToISO(filterDataIni);
-      const fim = brDateToISO(filterDataFim);
+      const ini = filterDataIni ? format(filterDataIni, "yyyy-MM-dd") : "";
+      const fim = filterDataFim ? format(filterDataFim, "yyyy-MM-dd") : "";
       if (ini && data < ini) return false;
       if (fim && data > fim) return false;
       return true;

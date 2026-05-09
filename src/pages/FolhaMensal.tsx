@@ -284,9 +284,15 @@ export default function FolhaMensal() {
               </div>
             </div>
             {funcId && (
-              <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
-                <span>{dialogEmpresa}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                  <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
+                  <span>{dialogEmpresa}</span>
+                </div>
+                <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}):</span>{" "}
+                  <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
+                </div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">

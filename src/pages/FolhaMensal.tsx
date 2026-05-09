@@ -220,7 +220,19 @@ export default function FolhaMensal() {
   };
 
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
-  const filtered = filterFunc ? folhas.filter((f: any) => f.funcionario_id === filterFunc) : folhas;
+  const filtered = useMemo(() => {
+    return (folhas as any[]).filter((f) => {
+      if (filterFunc && f.funcionario_id !== filterFunc) return false;
+      if (filterEmpresa) {
+        const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
+        if (empAt !== filterEmpresa) return false;
+      }
+      const mes = (f.mes_referencia || "").slice(0, 7);
+      if (filterMesIni && mes < filterMesIni) return false;
+      if (filterMesFim && mes > filterMesFim) return false;
+      return true;
+    });
+  }, [folhas, filterFunc, filterEmpresa, filterMesIni, filterMesFim, funcionariosAll, aditivosByFunc]);
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
   const canEditFolha = (f: any) => {
     if (role !== "usuario") return true;

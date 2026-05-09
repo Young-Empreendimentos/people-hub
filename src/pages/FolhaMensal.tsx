@@ -64,13 +64,13 @@ export default function FolhaMensal() {
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_cargos").select("id, remuneracao, nome");
+      const { data } = await supabase.from("rh_cargos").select("id, remuneracao, nome, nivel");
       return data || [];
     },
   });
   const cargoMap = useMemo(() => {
-    const m: Record<string, { remuneracao: number; nome: string }> = {};
-    for (const c of cargos as any[]) m[c.id] = { remuneracao: Number(c.remuneracao) || 0, nome: c.nome };
+    const m: Record<string, { remuneracao: number; nome: string; nivel: number | null }> = {};
+    for (const c of cargos as any[]) m[c.id] = { remuneracao: Number(c.remuneracao) || 0, nome: c.nome, nivel: c.nivel ?? null };
     return m;
   }, [cargos]);
 
@@ -290,7 +290,7 @@ export default function FolhaMensal() {
                   <span>{dialogEmpresa}</span>
                 </div>
                 <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}):</span>{" "}
+                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}{selectedFuncCargo?.nivel != null ? ` - Nível ${selectedFuncCargo.nivel}` : ""}):</span>{" "}
                   <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
                 </div>
               </div>

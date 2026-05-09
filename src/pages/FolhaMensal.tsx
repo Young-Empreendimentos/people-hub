@@ -228,12 +228,14 @@ export default function FolhaMensal() {
         const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
         if (empAt !== filterEmpresa) return false;
       }
-      const mes = (f.mes_referencia || "").slice(0, 7);
-      if (filterMesIni && mes < filterMesIni) return false;
-      if (filterMesFim && mes > filterMesFim) return false;
+      const data = (f.mes_referencia || "").slice(0, 10);
+      const ini = brDateToISO(filterDataIni);
+      const fim = brDateToISO(filterDataFim);
+      if (ini && data < ini) return false;
+      if (fim && data > fim) return false;
       return true;
     });
-  }, [folhas, filterFunc, filterEmpresa, filterMesIni, filterMesFim, funcionariosAll, aditivosByFunc]);
+  }, [folhas, filterFunc, filterEmpresa, filterDataIni, filterDataFim, funcionariosAll, aditivosByFunc]);
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
   const canEditFolha = (f: any) => {
     if (role !== "usuario") return true;

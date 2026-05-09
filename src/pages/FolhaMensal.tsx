@@ -306,12 +306,24 @@ export default function FolhaMensal() {
           onValueChange={setFilterFunc}
           placeholder="Filtrar por funcionário"
         />
-        <Input type="month" value={filterMesIni} onChange={(e) => setFilterMesIni(e.target.value)} placeholder="Mês inicial" />
-        <Input type="month" value={filterMesFim} onChange={(e) => setFilterMesFim(e.target.value)} placeholder="Mês final" />
+        <Input
+          inputMode="numeric"
+          maxLength={10}
+          value={filterDataIni}
+          onChange={(e) => setFilterDataIni(maskDate(e.target.value))}
+          placeholder="Data inicial (dd/mm/aaaa)"
+        />
+        <Input
+          inputMode="numeric"
+          maxLength={10}
+          value={filterDataFim}
+          onChange={(e) => setFilterDataFim(maskDate(e.target.value))}
+          placeholder="Data final (dd/mm/aaaa)"
+        />
       </div>
-      {(filterEmpresa || filterFunc || filterMesIni || filterMesFim) && (
+      {(filterEmpresa || filterFunc || filterDataIni || filterDataFim) && (
         <div className="flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterMesIni(""); setFilterMesFim(""); }}>
+          <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterDataIni(""); setFilterDataFim(""); }}>
             Limpar filtros
           </Button>
         </div>

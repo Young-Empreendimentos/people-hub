@@ -240,15 +240,79 @@ export default function FolhaMensal() {
     return Date.now() - created <= 30 * 24 * 60 * 60 * 1000;
   };
 
+  const exportCSV = () => {
+    if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
+    const headers = [
+      "Mês","Funcionário","Empresa","Cargo","Nível","Salário Base",
+      "Horas Atraso/Faltas","Horas Extra","Plano Saúde","Desc. Título Parque",
+      "Auxílio Educacional","Descontos/Adiantamentos","Comissões","PLR","Observações","Criado em",
+    ];
+    const rows = filtered.map((f: any) => {
+      const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
+      const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
+      return [
+        f.mes_referencia?.slice(0, 7) || "",
+        f.rh_funcionarios?.nome_completo || "",
+        getEmpresaNome(f.funcionario_id, f.mes_referencia),
+        cargo?.nome || "",
+        cargo?.nivel ?? "",
+        cargo ? cargo.remuneracao.toFixed(2).replace(".", ",") : "",
+        Number(f.horas_atraso_faltas || 0).toFixed(1).replace(".", ","),
+        Number(f.horas_extra || 0).toFixed(1).replace(".", ","),
+        Number(f.plano_saude || 0).toFixed(2).replace(".", ","),
+        Number(f.desconto_titulo_parque || 0).toFixed(2).replace(".", ","),
+        f.auxilio_educacional ? "Sim" : "Não",
+        Number(f.descontos_adiantamentos || 0).toFixed(2).replace(".", ","),
+        Number(f.valor_comissoes || 0).toFixed(2).replace(".", ","),
+        Number(f.valor_plr || 0).toFixed(2).replace(".", ","),
+        (f.observacoes || "").replace(/\r?\n/g, " "),
+        f.created_at ? new Date(f.created_at).toLocaleString("pt-BR") : "",
+      ];
+    });
+    const escape = (v: any) => {
+      const s = String(v ?? "");
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [headers, ...rows].map((r) => r.map(escape).join(";")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `folha_mensal_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Nova Folha</Button>
+        <Button variant="outline" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Exportar relatório</Button>
       </div>
 
-      <div className="max-w-sm">
-        <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <Combobox
+          options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))}
+          value={filterEmpresa}
+          onValueChange={setFilterEmpresa}
+          placeholder="Filtrar por empresa"
+        />
+        <Combobox
+          options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))}
+          value={filterFunc}
+          onValueChange={setFilterFunc}
+          placeholder="Filtrar por funcionário"
+        />
+        <Input type="month" value={filterMesIni} onChange={(e) => setFilterMesIni(e.target.value)} placeholder="Mês inicial" />
+        <Input type="month" value={filterMesFim} onChange={(e) => setFilterMesFim(e.target.value)} placeholder="Mês final" />
       </div>
+      {(filterEmpresa || filterFunc || filterMesIni || filterMesFim) && (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterMesIni(""); setFilterMesFim(""); }}>
+            Limpar filtros
+          </Button>
+        </div>
+      )}
 
       <Card><CardContent className="p-0">
         <Table>

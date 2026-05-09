@@ -16,8 +16,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Upload, Download } from "lucide-react";
-import { maskDate, brDateToISO } from "@/lib/masks";
+import { Plus, Pencil, Trash2, Upload, Download, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
@@ -27,8 +31,8 @@ export default function FolhaMensal() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState("");
-  const [filterDataIni, setFilterDataIni] = useState("");
-  const [filterDataFim, setFilterDataFim] = useState("");
+  const [filterDataIni, setFilterDataIni] = useState<Date | undefined>(undefined);
+  const [filterDataFim, setFilterDataFim] = useState<Date | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [funcId, setFuncId] = useState("");
@@ -229,8 +233,8 @@ export default function FolhaMensal() {
         if (empAt !== filterEmpresa) return false;
       }
       const data = (f.mes_referencia || "").slice(0, 10);
-      const ini = brDateToISO(filterDataIni);
-      const fim = brDateToISO(filterDataFim);
+      const ini = filterDataIni ? format(filterDataIni, "yyyy-MM-dd") : "";
+      const fim = filterDataFim ? format(filterDataFim, "yyyy-MM-dd") : "";
       if (ini && data < ini) return false;
       if (fim && data > fim) return false;
       return true;
@@ -306,24 +310,32 @@ export default function FolhaMensal() {
           onValueChange={setFilterFunc}
           placeholder="Filtrar por funcionário"
         />
-        <Input
-          inputMode="numeric"
-          maxLength={10}
-          value={filterDataIni}
-          onChange={(e) => setFilterDataIni(maskDate(e.target.value))}
-          placeholder="Data inicial (dd/mm/aaaa)"
-        />
-        <Input
-          inputMode="numeric"
-          maxLength={10}
-          value={filterDataFim}
-          onChange={(e) => setFilterDataFim(maskDate(e.target.value))}
-          placeholder="Data final (dd/mm/aaaa)"
-        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("justify-start text-left font-normal", !filterDataIni && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {filterDataIni ? format(filterDataIni, "dd/MM/yyyy", { locale: ptBR }) : "Data inicial"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={filterDataIni} onSelect={setFilterDataIni} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className={cn("justify-start text-left font-normal", !filterDataFim && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {filterDataFim ? format(filterDataFim, "dd/MM/yyyy", { locale: ptBR }) : "Data final"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar mode="single" selected={filterDataFim} onSelect={setFilterDataFim} locale={ptBR} initialFocus className={cn("p-3 pointer-events-auto")} />
+          </PopoverContent>
+        </Popover>
       </div>
       {(filterEmpresa || filterFunc || filterDataIni || filterDataFim) && (
         <div className="flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterDataIni(""); setFilterDataFim(""); }}>
+          <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterDataIni(undefined); setFilterDataFim(undefined); }}>
             Limpar filtros
           </Button>
         </div>

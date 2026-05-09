@@ -118,7 +118,7 @@ export default function FolhaMensal() {
 
   const getEmpresaAtDate = (funcIdVal: string, dateStr: string): string | null => {
     // Find the employee's original empresa
-    const func = funcionarios.find((f: any) => f.id === funcIdVal) as any;
+    const func = funcionariosAll.find((f: any) => f.id === funcIdVal) as any;
     let empresaId = func?.empresa_id || null;
 
     // Apply aditivos in chronological order up to the given date

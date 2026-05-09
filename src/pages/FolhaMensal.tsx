@@ -290,7 +290,7 @@ export default function FolhaMensal() {
                   <span>{dialogEmpresa}</span>
                 </div>
                 <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}):</span>{" "}
+                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}{selectedFuncCargo?.nivel != null ? ` - Nível ${selectedFuncCargo.nivel}` : ""}):</span>{" "}
                   <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
                 </div>
               </div>

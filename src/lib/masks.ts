@@ -17,6 +17,21 @@ export function maskRG(value: string): string {
   return digits;
 }
 
+export function maskDate(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+  return digits
+    .replace(/(\d{2})(\d)/, "$1/$2")
+    .replace(/(\d{2})(\d)/, "$1/$2");
+}
+
+// Convert "dd/mm/yyyy" -> "yyyy-mm-dd" (returns "" if incomplete/invalid)
+export function brDateToISO(value: string): string {
+  const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!m) return "";
+  const [, d, mo, y] = m;
+  return `${y}-${mo}-${d}`;
+}
+
 export function isValidCPF(cpf: string): boolean {
   const digits = cpf.replace(/\D/g, "");
   if (digits.length !== 11) return false;

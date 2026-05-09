@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload, Download } from "lucide-react";
+import { maskDate, brDateToISO } from "@/lib/masks";
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
@@ -26,8 +27,8 @@ export default function FolhaMensal() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState("");
-  const [filterMesIni, setFilterMesIni] = useState("");
-  const [filterMesFim, setFilterMesFim] = useState("");
+  const [filterDataIni, setFilterDataIni] = useState("");
+  const [filterDataFim, setFilterDataFim] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [funcId, setFuncId] = useState("");
@@ -227,12 +228,14 @@ export default function FolhaMensal() {
         const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
         if (empAt !== filterEmpresa) return false;
       }
-      const mes = (f.mes_referencia || "").slice(0, 7);
-      if (filterMesIni && mes < filterMesIni) return false;
-      if (filterMesFim && mes > filterMesFim) return false;
+      const data = (f.mes_referencia || "").slice(0, 10);
+      const ini = brDateToISO(filterDataIni);
+      const fim = brDateToISO(filterDataFim);
+      if (ini && data < ini) return false;
+      if (fim && data > fim) return false;
       return true;
     });
-  }, [folhas, filterFunc, filterEmpresa, filterMesIni, filterMesFim, funcionariosAll, aditivosByFunc]);
+  }, [folhas, filterFunc, filterEmpresa, filterDataIni, filterDataFim, funcionariosAll, aditivosByFunc]);
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
   const canEditFolha = (f: any) => {
     if (role !== "usuario") return true;
@@ -303,12 +306,24 @@ export default function FolhaMensal() {
           onValueChange={setFilterFunc}
           placeholder="Filtrar por funcionário"
         />
-        <Input type="month" value={filterMesIni} onChange={(e) => setFilterMesIni(e.target.value)} placeholder="Mês inicial" />
-        <Input type="month" value={filterMesFim} onChange={(e) => setFilterMesFim(e.target.value)} placeholder="Mês final" />
+        <Input
+          inputMode="numeric"
+          maxLength={10}
+          value={filterDataIni}
+          onChange={(e) => setFilterDataIni(maskDate(e.target.value))}
+          placeholder="Data inicial (dd/mm/aaaa)"
+        />
+        <Input
+          inputMode="numeric"
+          maxLength={10}
+          value={filterDataFim}
+          onChange={(e) => setFilterDataFim(maskDate(e.target.value))}
+          placeholder="Data final (dd/mm/aaaa)"
+        />
       </div>
-      {(filterEmpresa || filterFunc || filterMesIni || filterMesFim) && (
+      {(filterEmpresa || filterFunc || filterDataIni || filterDataFim) && (
         <div className="flex justify-end">
-          <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterMesIni(""); setFilterMesFim(""); }}>
+          <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterDataIni(""); setFilterDataFim(""); }}>
             Limpar filtros
           </Button>
         </div>

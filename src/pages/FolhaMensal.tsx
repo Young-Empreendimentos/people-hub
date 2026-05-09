@@ -219,6 +219,11 @@ export default function FolhaMensal() {
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
   const filtered = filterFunc ? folhas.filter((f: any) => f.funcionario_id === filterFunc) : folhas;
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  const canEditFolha = (f: any) => {
+    if (role !== "usuario") return true;
+    const created = new Date(f.created_at).getTime();
+    return Date.now() - created <= 30 * 24 * 60 * 60 * 1000;
+  };
 
   return (
     <div className="space-y-4">

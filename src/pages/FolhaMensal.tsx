@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +20,8 @@ import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
-  const { canDelete } = useAuth();
+  const { canDelete, role } = useAuth();
+  const { isActive } = useActiveEmployees();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
@@ -50,13 +52,33 @@ export default function FolhaMensal() {
     },
   });
 
-  const { data: funcionarios = [] } = useQuery({
-    queryKey: ["rh_funcionarios"],
+  const { data: funcionariosAll = [] } = useQuery({
+    queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id").order("nome_completo");
+      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id").order("nome_completo");
       return data || [];
     },
   });
+  const funcionarios = useMemo(() => funcionariosAll.filter((f: any) => isActive(f.id)), [funcionariosAll, isActive]);
+
+  const { data: cargos = [] } = useQuery({
+    queryKey: ["rh_cargos_folha"],
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_cargos").select("id, remuneracao, nome");
+      return data || [];
+    },
+  });
+  const cargoMap = useMemo(() => {
+    const m: Record<string, { remuneracao: number; nome: string }> = {};
+    for (const c of cargos as any[]) m[c.id] = { remuneracao: Number(c.remuneracao) || 0, nome: c.nome };
+    return m;
+  }, [cargos]);
+
+  const selectedFuncCargo = useMemo(() => {
+    const f = funcionariosAll.find((x: any) => x.id === funcId) as any;
+    if (!f?.cargo_id) return null;
+    return cargoMap[f.cargo_id] || null;
+  }, [funcId, funcionariosAll, cargoMap]);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
@@ -96,7 +118,7 @@ export default function FolhaMensal() {
 
   const getEmpresaAtDate = (funcIdVal: string, dateStr: string): string | null => {
     // Find the employee's original empresa
-    const func = funcionarios.find((f: any) => f.id === funcIdVal) as any;
+    const func = funcionariosAll.find((f: any) => f.id === funcIdVal) as any;
     let empresaId = func?.empresa_id || null;
 
     // Apply aditivos in chronological order up to the given date
@@ -197,6 +219,11 @@ export default function FolhaMensal() {
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
   const filtered = filterFunc ? folhas.filter((f: any) => f.funcionario_id === filterFunc) : folhas;
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  const canEditFolha = (f: any) => {
+    if (role !== "usuario") return true;
+    const created = new Date(f.created_at).getTime();
+    return Date.now() - created <= 30 * 24 * 60 * 60 * 1000;
+  };
 
   return (
     <div className="space-y-4">
@@ -234,7 +261,7 @@ export default function FolhaMensal() {
                 <TableCell className="tabular-nums">{fmt(Number(f.valor_plr))}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(f)}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => openEdit(f)} disabled={!canEditFolha(f)} title={!canEditFolha(f) ? "Edição liberada apenas até 30 dias após o lançamento" : undefined}><Pencil className="h-4 w-4" /></Button>
                     {canDelete && <Button variant="ghost" size="icon" className="text-destructive" onClick={() => deleteMutation.mutate(f)}><Trash2 className="h-4 w-4" /></Button>}
                   </div>
                 </TableCell>
@@ -257,9 +284,15 @@ export default function FolhaMensal() {
               </div>
             </div>
             {funcId && (
-              <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
-                <span>{dialogEmpresa}</span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                  <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
+                  <span>{dialogEmpresa}</span>
+                </div>
+                <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}):</span>{" "}
+                  <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
+                </div>
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">

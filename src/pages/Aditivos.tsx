@@ -221,7 +221,7 @@ export default function Aditivos() {
           <DialogHeader><DialogTitle>{editingId ? "Editar Aditivo" : "Novo Aditivo"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
-              <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
+              <Combobox options={funcionarios.filter((f: any) => isActive(f.id)).map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

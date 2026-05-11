@@ -46,7 +46,11 @@ export default function FolhaMensal() {
   const [comissoes, setComissoes] = useState("");
   const [plr, setPlr] = useState("");
   const [obs, setObs] = useState("");
+  const [vrDesconsiderado, setVrDesconsiderado] = useState(false);
+  const [vrJustificativa, setVrJustificativa] = useState("");
   const [file, setFile] = useState<File | null>(null);
+
+  const VR_CLT_VALOR = 300;
 
   const { data: folhas = [], isLoading } = useQuery({
     queryKey: ["rh_folha_mensal"],

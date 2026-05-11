@@ -217,6 +217,31 @@ export default function FolhaMensal() {
     return getEmpresaNome(funcId, date);
   }, [funcId, mesRef, funcionarios, aditivosByFunc, empresaMap]);
 
+  // Ciclo de RH: dia 20 do mês anterior ao dia 19 do mês de referência
+  const cicloRange = useMemo(() => {
+    if (!mesRef) return null;
+    const [y, m] = mesRef.split("-").map(Number);
+    const ini = new Date(y, m - 2, 20); // mês anterior dia 20
+    const fim = new Date(y, m - 1, 19); // mês atual dia 19
+    return { ini: format(ini, "yyyy-MM-dd"), fim: format(fim, "yyyy-MM-dd") };
+  }, [mesRef]);
+
+  const { data: advertenciasCiclo = [] } = useQuery({
+    queryKey: ["rh_advertencias_ciclo", funcId, cicloRange?.ini, cicloRange?.fim],
+    enabled: !!funcId && !!cicloRange,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rh_advertencias")
+        .select("id, data, tipo, motivo")
+        .eq("funcionario_id", funcId)
+        .gte("data", cicloRange!.ini)
+        .lte("data", cicloRange!.fim)
+        .order("data", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       let anexo_holerite_path: string | null = null;
@@ -534,6 +559,20 @@ export default function FolhaMensal() {
                   )}
                 </div>
               </>
+            )}
+            {funcId && cicloRange && advertenciasCiclo.length > 0 && (
+              <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 space-y-1">
+                <p className="text-sm font-semibold text-destructive">
+                  ⚠ {advertenciasCiclo.length} advertência(s) no ciclo ({format(new Date(cicloRange.ini + "T00:00:00"), "dd/MM/yyyy")} a {format(new Date(cicloRange.fim + "T00:00:00"), "dd/MM/yyyy")})
+                </p>
+                <ul className="text-xs space-y-0.5">
+                  {advertenciasCiclo.map((a: any) => (
+                    <li key={a.id}>
+                      <span className="font-medium">{a.tipo}</span> em {format(new Date(a.data + "T00:00:00"), "dd/MM/yyyy")} — {a.motivo}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Horas Atraso/Faltas</label><Input type="number" step="0.1" value={horasAtraso} onChange={(e) => setHorasAtraso(e.target.value)} /></div>

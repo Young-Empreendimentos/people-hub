@@ -156,6 +156,7 @@ export default function Funcionarios() {
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
     setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
     setGestorId(f.gestor_id || "");
+    setTipoContrato(f.tipo_contrato || "");
     setCpfError("");
     setDialogOpen(true);
   };

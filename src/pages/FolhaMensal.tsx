@@ -92,6 +92,16 @@ export default function FolhaMensal() {
     return cargoMap[f.cargo_id] || null;
   }, [funcId, funcionariosAll, cargoMap]);
 
+  const selectedFuncTipoContrato = useMemo(() => {
+    const f = funcionariosAll.find((x: any) => x.id === funcId) as any;
+    return f?.tipo_contrato || null;
+  }, [funcId, funcionariosAll]);
+
+  const vrCalculado = useMemo(() => {
+    if (vrDesconsiderado) return 0;
+    return selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
+  }, [selectedFuncTipoContrato, vrDesconsiderado]);
+
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
     queryFn: async () => {

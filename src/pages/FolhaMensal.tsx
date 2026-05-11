@@ -377,10 +377,11 @@ export default function FolhaMensal() {
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
     setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
+    setDescontosLista([]); setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
     setDialogOpen(true);
   };
 
-  const openEdit = (f: any) => {
+  const openEdit = async (f: any) => {
     setEditingId(f.id); setFuncId(f.funcionario_id); setMesRef(f.mes_referencia?.slice(0, 7) || "");
     const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
     setDialogEmpresaId(empAt || "");
@@ -391,6 +392,14 @@ export default function FolhaMensal() {
     setObs(f.observacoes || ""); setFile(null);
     setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
     setValorVr(String(f.valor_vr || 0));
+    setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
+    const { data } = await supabase
+      .from("rh_folha_descontos")
+      .select("id, tipo, valor, observacao")
+      .eq("folha_id", f.id);
+    setDescontosLista((data || []).map((d: any) => ({
+      id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
+    })));
     setDialogOpen(true);
   };
 

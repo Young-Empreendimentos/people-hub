@@ -22,6 +22,8 @@ import Organograma from "./pages/Organograma";
 import Aniversarios from "./pages/Aniversarios";
 import Treinamentos from "./pages/Treinamentos";
 import Configuracoes from "./pages/Configuracoes";
+import GestaoPessoas from "./pages/GestaoPessoas";
+import Advertencias from "./pages/Advertencias";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +53,8 @@ const App = () => (
               <Route path="/organograma" element={<Organograma />} />
               <Route path="/aniversarios" element={<Aniversarios />} />
               <Route path="/treinamentos" element={<Treinamentos />} />
+              <Route path="/gestao-pessoas" element={<GestaoPessoas />} />
+              <Route path="/gestao-pessoas/advertencias" element={<Advertencias />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

@@ -664,7 +664,6 @@ export default function FolhaMensal() {
         fmtNum(Number(f.valor_vr || 0)),
         f.vr_desconsiderado ? "Sim" : "Não",
         (f.vr_justificativa || "").replace(/\r?\n/g, " "),
-        fmtNum(Number(f.plano_saude || 0)),
         ...descTiposArr.map((t) => fmtNum(sumByTipo(ds, t))),
         fmtNum(totalDesc),
         ...reembTiposArr.map((t) => fmtNum(sumByTipo(rs, t))),

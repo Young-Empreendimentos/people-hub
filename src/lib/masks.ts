@@ -24,7 +24,16 @@ export function maskDate(value: string): string {
     .replace(/(\d{2})(\d)/, "$1/$2");
 }
 
-// Convert "dd/mm/yyyy" -> "yyyy-mm-dd" (returns "" if incomplete/invalid)
+export function maskPhone(value: string): string {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  if (digits.length <= 10) {
+    return digits
+      .replace(/(\d{2})(\d)/, "($1) $2")
+      .replace(/(\d{4})(\d{1,4})$/, "$1-$2");
+  }
+  return digits
+    .replace(/(\d{2})(\d)/, "($1) $2")
+    .replace(/(\d{5})(\d{1,4})$/, "$1-$2");
 export function brDateToISO(value: string): string {
   const m = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
   if (!m) return "";

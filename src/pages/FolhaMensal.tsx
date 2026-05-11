@@ -971,7 +971,7 @@ export default function FolhaMensal() {
                   {descontosLista.map((d, idx) => (
                     <div key={idx} className="flex items-center justify-between gap-2 text-sm rounded bg-muted px-2 py-1">
                       <div className="flex-1 truncate">
-                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{fmt(parseFloat(d.valor) || 0)}</span>
+                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{d.tipo === "Horas Falta" ? hoursToHHMM(parseFloat(d.valor) || 0) : fmt(parseFloat(d.valor) || 0)}</span>
                         {d.observacao ? <span className="text-muted-foreground"> · {d.observacao}</span> : null}
                       </div>
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeDescontoItem(idx)}>

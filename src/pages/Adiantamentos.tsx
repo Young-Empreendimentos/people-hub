@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,10 +42,7 @@ export default function Adiantamentos() {
     },
   });
 
-  const { data: funcionarios = [] } = useQuery({
-    queryKey: ["rh_funcionarios"],
-    queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
-  });
+  const { funcionarios, isActive } = useActiveEmployees();
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -172,7 +170,7 @@ export default function Adiantamentos() {
           <DialogHeader><DialogTitle>{editingId ? "Editar Adiantamento" : "Novo Adiantamento"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
-              <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
+              <Combobox options={funcionarios.filter((f: any) => isActive(f.id)).map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>

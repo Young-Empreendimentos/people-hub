@@ -824,6 +824,75 @@ export default function FolhaMensal() {
                 </div>
               )}
             </div>
+            <div className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Reembolsos</label>
+                {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
+                  <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
+                    Benefício de moradia aplicado automaticamente
+                  </span>
+                )}
+              </div>
+              {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
+                <div className="space-y-1">
+                  {moradiaCalculada.aluguel > 0 && (
+                    <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">Reembolso de Aluguel</span> — <span className="tabular-nums">{fmt(moradiaCalculada.aluguel)}</span>
+                        <span className="text-muted-foreground"> · automático (cadastro do funcionário)</span>
+                      </div>
+                    </div>
+                  )}
+                  {moradiaCalculada.auxilio > 0 && (
+                    <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">Auxílio Moradia</span> — <span className="tabular-nums">{fmt(moradiaCalculada.auxilio)}</span>
+                        <span className="text-muted-foreground"> · {moradiaCalculada.perc}% do salário</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-4">
+                  <Combobox
+                    options={TIPOS_REEMBOLSO.map((t) => ({ value: t, label: t }))}
+                    value={novoReembolsoTipo}
+                    onValueChange={setNovoReembolsoTipo}
+                    placeholder="Tipo de reembolso"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoReembolsoValor} onChange={(e) => setNovoReembolsoValor(e.target.value)} />
+                </div>
+                <div className="col-span-3">
+                  <Input placeholder="Observação" value={novoReembolsoObs} onChange={(e) => setNovoReembolsoObs(e.target.value)} />
+                </div>
+                <div className="col-span-2">
+                  <Button type="button" variant="outline" className="w-full" onClick={addReembolsoItem}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
+              </div>
+              {reembolsosLista.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  {reembolsosLista.map((d, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2 text-sm rounded bg-muted px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{fmt(parseFloat(d.valor) || 0)}</span>
+                        {d.observacao ? <span className="text-muted-foreground"> · {d.observacao}</span> : null}
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeReembolsoItem(idx)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Total manual: {fmt(reembolsosLista.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0))}
+                  </p>
+                </div>
+              )}
+            </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
             <div className="space-y-2"><label className="text-sm font-medium">Holerite (anexo)</label>
               <div className="flex items-center gap-2">

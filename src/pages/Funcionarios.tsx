@@ -44,7 +44,16 @@ export default function Funcionarios() {
   const [cargoId, setCargoId] = useState("");
   const [dataContratoVigente, setDataContratoVigente] = useState("");
   const [gestorId, setGestorId] = useState("");
+  const [tipoContrato, setTipoContrato] = useState("");
   const [cpfError, setCpfError] = useState("");
+
+  const TIPO_CONTRATO_OPTIONS = [
+    { value: "CLT", label: "CLT" },
+    { value: "PJ", label: "PJ" },
+    { value: "Estágio", label: "Estágio" },
+    { value: "Menor aprendiz", label: "Menor aprendiz" },
+    { value: "S/ DOC", label: "S/ DOC" },
+  ];
 
   const { funcionarios, statusMap, isActive, activeCount, isLoading } = useActiveEmployees();
 

@@ -25,7 +25,7 @@ import { maskCPF, maskRG, maskPhone, isValidCPF } from "@/lib/masks";
 
 export default function Funcionarios() {
   const queryClient = useQueryClient();
-  const { canDelete } = useAuth();
+  const { canDelete, canEditCargoSalario } = useAuth();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

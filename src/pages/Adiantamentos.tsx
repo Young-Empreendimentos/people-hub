@@ -135,6 +135,22 @@ export default function Adiantamentos() {
     return list.map((p, i) => ({ ...p, valor: i === 0 ? +(base + resto).toFixed(2) : base }));
   };
 
+  const gerarParcelas = () => {
+    const n = parseInt(numParcelas);
+    const total = parseFloat(valor) || 0;
+    if (!n || n <= 0) { toast.error("Informe o número de parcelas."); return; }
+    if (total <= 0) { toast.error("Informe o valor total."); return; }
+    if (!mesInicial || !anoInicial) { toast.error("Informe o mês e ano inicial."); return; }
+    const startMes = parseInt(mesInicial);
+    const startAno = parseInt(anoInicial);
+    const lista: Parcela[] = Array.from({ length: n }, (_, i) => {
+      const mTotal = startMes - 1 + i;
+      const ano = startAno + Math.floor(mTotal / 12);
+      const mes = (mTotal % 12) + 1;
+      return { mes_ano: `${ano}-${String(mes).padStart(2, "0")}-01`, valor: 0 };
+    });
+    setParcelas(recalcParcelas(lista, total));
+  };
   const addParcela = () => {
     const total = parseFloat(valor) || 0;
     const next = [...parcelas, { mes_ano: "", valor: 0 }];

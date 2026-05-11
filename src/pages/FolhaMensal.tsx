@@ -213,7 +213,7 @@ export default function FolhaMensal() {
         valor_comissoes: parseFloat(comissoes) || 0,
         valor_plr: parseFloat(plr) || 0,
         observacoes: obs || null,
-        valor_vr: vrCalculado,
+        valor_vr: parseFloat(valorVr) || 0,
         vr_desconsiderado: vrDesconsiderado,
         vr_justificativa: vrDesconsiderado ? (vrJustificativa || null) : null,
       };

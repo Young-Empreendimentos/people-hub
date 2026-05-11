@@ -217,6 +217,31 @@ export default function FolhaMensal() {
     return getEmpresaNome(funcId, date);
   }, [funcId, mesRef, funcionarios, aditivosByFunc, empresaMap]);
 
+  // Ciclo de RH: dia 20 do mês anterior ao dia 19 do mês de referência
+  const cicloRange = useMemo(() => {
+    if (!mesRef) return null;
+    const [y, m] = mesRef.split("-").map(Number);
+    const ini = new Date(y, m - 2, 20); // mês anterior dia 20
+    const fim = new Date(y, m - 1, 19); // mês atual dia 19
+    return { ini: format(ini, "yyyy-MM-dd"), fim: format(fim, "yyyy-MM-dd") };
+  }, [mesRef]);
+
+  const { data: advertenciasCiclo = [] } = useQuery({
+    queryKey: ["rh_advertencias_ciclo", funcId, cicloRange?.ini, cicloRange?.fim],
+    enabled: !!funcId && !!cicloRange,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rh_advertencias")
+        .select("id, data, tipo, motivo")
+        .eq("funcionario_id", funcId)
+        .gte("data", cicloRange!.ini)
+        .lte("data", cicloRange!.fim)
+        .order("data", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       let anexo_holerite_path: string | null = null;

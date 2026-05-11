@@ -335,6 +335,10 @@ export default function Funcionarios() {
                 value={gestorId} onValueChange={setGestorId} placeholder="Selecione o gestor"
               />
             </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Contrato</label>
+              <Combobox options={TIPO_CONTRATO_OPTIONS} value={tipoContrato} onValueChange={setTipoContrato} placeholder="Selecione o tipo de contrato" />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancelar</Button>

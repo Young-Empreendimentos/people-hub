@@ -52,6 +52,35 @@ export default function FolhaMensal() {
   const [valorVr, setValorVr] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
+  // Lista de descontos (tipo + valor)
+  const TIPOS_DESCONTO = [
+    "Plano de Saúde",
+    "Parque da Guarda",
+    "Danos Patrimoniais",
+    "Horas Falta",
+    "Reembolso de Aluguel",
+    "Gastos no Cartão Corporativo",
+  ];
+  type DescontoItem = { id?: string; tipo: string; valor: string; observacao: string };
+  const [descontosLista, setDescontosLista] = useState<DescontoItem[]>([]);
+  const [novoDescontoTipo, setNovoDescontoTipo] = useState("");
+  const [novoDescontoValor, setNovoDescontoValor] = useState("");
+  const [novoDescontoObs, setNovoDescontoObs] = useState("");
+  const addDescontoItem = () => {
+    const v = parseFloat(novoDescontoValor);
+    if (!novoDescontoTipo || isNaN(v) || v <= 0) {
+      toast.error("Selecione o tipo e informe um valor válido.");
+      return;
+    }
+    setDescontosLista((arr) => [...arr, { tipo: novoDescontoTipo, valor: String(v), observacao: novoDescontoObs }]);
+    setNovoDescontoTipo("");
+    setNovoDescontoValor("");
+    setNovoDescontoObs("");
+  };
+  const removeDescontoItem = (idx: number) => {
+    setDescontosLista((arr) => arr.filter((_, i) => i !== idx));
+  };
+
   const VR_CLT_VALOR = 300;
 
   const { data: folhas = [], isLoading } = useQuery({

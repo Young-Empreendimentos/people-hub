@@ -35,6 +35,7 @@ export default function FolhaMensal() {
   const [filterDataFim, setFilterDataFim] = useState<Date | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [dialogEmpresaId, setDialogEmpresaId] = useState("");
   const [funcId, setFuncId] = useState("");
   const [mesRef, setMesRef] = useState("");
   const [horasAtraso, setHorasAtraso] = useState("");
@@ -73,6 +74,30 @@ export default function FolhaMensal() {
     },
   });
   const funcionarios = useMemo(() => funcionariosAll.filter((f: any) => isActive(f.id)), [funcionariosAll, isActive]);
+
+  const MESES_PT = [
+    { value: "01", label: "Janeiro" }, { value: "02", label: "Fevereiro" },
+    { value: "03", label: "Março" }, { value: "04", label: "Abril" },
+    { value: "05", label: "Maio" }, { value: "06", label: "Junho" },
+    { value: "07", label: "Julho" }, { value: "08", label: "Agosto" },
+    { value: "09", label: "Setembro" }, { value: "10", label: "Outubro" },
+    { value: "11", label: "Novembro" }, { value: "12", label: "Dezembro" },
+  ];
+  const anoAtual = new Date().getFullYear();
+  const ANOS_OPTS = Array.from({ length: 11 }, (_, i) => {
+    const a = String(anoAtual - 5 + i);
+    return { value: a, label: a };
+  });
+  const mesPart = mesRef ? mesRef.slice(5, 7) : "";
+  const anoPart = mesRef ? mesRef.slice(0, 4) : "";
+  const setMesPart = (m: string) => {
+    const a = anoPart || String(anoAtual);
+    setMesRef(m ? `${a}-${m}` : "");
+  };
+  const setAnoPart = (a: string) => {
+    const m = mesPart || "01";
+    setMesRef(a ? `${a}-${m}` : "");
+  };
 
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos_folha"],
@@ -247,7 +272,7 @@ export default function FolhaMensal() {
   });
 
   const openNew = () => {
-    setEditingId(null); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
+    setEditingId(null); setDialogEmpresaId(""); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
     setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
@@ -256,6 +281,8 @@ export default function FolhaMensal() {
 
   const openEdit = (f: any) => {
     setEditingId(f.id); setFuncId(f.funcionario_id); setMesRef(f.mes_referencia?.slice(0, 7) || "");
+    const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
+    setDialogEmpresaId(empAt || "");
     setHorasAtraso(String(f.horas_atraso_faltas)); setHorasExtra(String(f.horas_extra));
     setPlanoSaude(String(f.plano_saude || 0)); setDescontoParque(String(f.desconto_titulo_parque || 0));
     setAuxilioEdu(f.auxilio_educacional); setDescontos(String(f.descontos_adiantamentos));
@@ -423,12 +450,37 @@ export default function FolhaMensal() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar Folha" : "Nova Folha"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Empresa *</label>
+              <Combobox
+                options={(empresas as any[]).map((e) => ({ value: e.id, label: e.nome }))}
+                value={dialogEmpresaId}
+                onValueChange={(v) => { setDialogEmpresaId(v); setFuncId(""); }}
+                placeholder="Selecione a empresa"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
-                <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
+                <Combobox
+                  options={funcionarios
+                    .filter((f: any) => {
+                      if (!dialogEmpresaId) return false;
+                      const today = new Date().toISOString().slice(0, 10);
+                      return getEmpresaAtDate(f.id, today) === dialogEmpresaId;
+                    })
+                    .map((f: any) => ({ value: f.id, label: f.nome_completo }))}
+                  value={funcId}
+                  onValueChange={setFuncId}
+                  placeholder={dialogEmpresaId ? "Selecione" : "Selecione a empresa primeiro"}
+                  disabled={!dialogEmpresaId}
+                />
               </div>
-              <div className="space-y-2"><label className="text-sm font-medium">Mês de Referência *</label>
-                <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mês de Referência *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Combobox options={MESES_PT} value={mesPart} onValueChange={setMesPart} placeholder="Mês" />
+                  <Combobox options={ANOS_OPTS} value={anoPart} onValueChange={setAnoPart} placeholder="Ano" />
+                </div>
               </div>
             </div>
             {funcId && (

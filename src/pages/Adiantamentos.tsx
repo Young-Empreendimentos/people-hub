@@ -247,6 +247,17 @@ export default function Adiantamentos() {
               <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">Valor Total (R$) *</label><Input type="number" step="0.01" value={valor} onChange={(e) => onValorChange(e.target.value)} placeholder="0.00" /></div>
             </div>
+            <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+              <label className="text-sm font-medium">Gerar parcelas automaticamente</label>
+              <div className="grid grid-cols-3 gap-2">
+                <Input type="number" min="1" placeholder="Nº parcelas" value={numParcelas} onChange={(e) => setNumParcelas(e.target.value)} />
+                <Combobox options={MESES_PT} value={mesInicial} onValueChange={setMesInicial} placeholder="Mês inicial" />
+                <Combobox options={ANOS_OPTS} value={anoInicial} onValueChange={setAnoInicial} placeholder="Ano inicial" />
+              </div>
+              <Button type="button" variant="secondary" size="sm" onClick={gerarParcelas} className="w-full">
+                Gerar {numParcelas && valor ? `${numParcelas}x de ${formatCurrency((parseFloat(valor) || 0) / (parseInt(numParcelas) || 1))}` : "parcelas"}
+              </Button>
+            </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Parcelas</label>
@@ -255,7 +266,7 @@ export default function Adiantamentos() {
                 </Button>
               </div>
               {parcelas.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhuma parcela. Clique em "Adicionar parcela" para dividir o valor por mês.</p>
+                <p className="text-xs text-muted-foreground">Nenhuma parcela. Use "Gerar parcelas" acima ou clique em "Adicionar parcela" para inserir manualmente.</p>
               )}
               {parcelas.map((p, i) => {
                 const mes = p.mes_ano ? p.mes_ano.slice(5, 7) : "";

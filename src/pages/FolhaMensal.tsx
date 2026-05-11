@@ -48,6 +48,7 @@ export default function FolhaMensal() {
   const [obs, setObs] = useState("");
   const [vrDesconsiderado, setVrDesconsiderado] = useState(false);
   const [vrJustificativa, setVrJustificativa] = useState("");
+  const [valorVr, setValorVr] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const VR_CLT_VALOR = 300;
@@ -99,8 +100,10 @@ export default function FolhaMensal() {
 
   const vrCalculado = useMemo(() => {
     if (vrDesconsiderado) return 0;
+    const editado = parseFloat(valorVr);
+    if (!isNaN(editado)) return editado;
     return selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
-  }, [selectedFuncTipoContrato, vrDesconsiderado]);
+  }, [selectedFuncTipoContrato, vrDesconsiderado, valorVr]);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],

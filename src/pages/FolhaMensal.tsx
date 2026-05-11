@@ -560,6 +560,20 @@ export default function FolhaMensal() {
                 </div>
               </>
             )}
+            {funcId && cicloRange && advertenciasCiclo.length > 0 && (
+              <div className="rounded-md border border-destructive/50 bg-destructive/10 px-3 py-2 space-y-1">
+                <p className="text-sm font-semibold text-destructive">
+                  ⚠ {advertenciasCiclo.length} advertência(s) no ciclo ({format(new Date(cicloRange.ini + "T00:00:00"), "dd/MM/yyyy")} a {format(new Date(cicloRange.fim + "T00:00:00"), "dd/MM/yyyy")})
+                </p>
+                <ul className="text-xs space-y-0.5">
+                  {advertenciasCiclo.map((a: any) => (
+                    <li key={a.id}>
+                      <span className="font-medium">{a.tipo}</span> em {format(new Date(a.data + "T00:00:00"), "dd/MM/yyyy")} — {a.motivo}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Horas Atraso/Faltas</label><Input type="number" step="0.1" value={horasAtraso} onChange={(e) => setHorasAtraso(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">Horas Extra</label><Input type="number" step="0.1" value={horasExtra} onChange={(e) => setHorasExtra(e.target.value)} /></div>

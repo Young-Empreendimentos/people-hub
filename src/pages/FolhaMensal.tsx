@@ -637,7 +637,6 @@ export default function FolhaMensal() {
       "Mês","Funcionário","Empresa","Cargo","Nível","Salário Base",
       "Horas Extra",
       "Valor VR","VR Desconsiderado","Justificativa VR",
-      "Plano Saúde",
       ...descTiposArr.map((t) => `Desconto - ${t}`),
       "Total Descontos",
       ...reembTiposArr.map((t) => `Reembolso - ${t}`),

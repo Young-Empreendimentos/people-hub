@@ -320,6 +320,10 @@ export default function Admissoes() {
                     <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nome }))} value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo" />
                   </div>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de Contrato</label>
+                  <Combobox options={TIPO_CONTRATO_OPTIONS} value={tipoContrato} onValueChange={setTipoContrato} placeholder="Selecione o tipo de contrato" />
+                </div>
               </>
             )}
 

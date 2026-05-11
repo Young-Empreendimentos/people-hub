@@ -248,7 +248,7 @@ export default function FolhaMensal() {
   });
 
   const openNew = () => {
-    setEditingId(null); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
+    setEditingId(null); setDialogEmpresaId(""); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
     setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
@@ -257,6 +257,8 @@ export default function FolhaMensal() {
 
   const openEdit = (f: any) => {
     setEditingId(f.id); setFuncId(f.funcionario_id); setMesRef(f.mes_referencia?.slice(0, 7) || "");
+    const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
+    setDialogEmpresaId(empAt || "");
     setHorasAtraso(String(f.horas_atraso_faltas)); setHorasExtra(String(f.horas_extra));
     setPlanoSaude(String(f.plano_saude || 0)); setDescontoParque(String(f.desconto_titulo_parque || 0));
     setAuxilioEdu(f.auxilio_educacional); setDescontos(String(f.descontos_adiantamentos));

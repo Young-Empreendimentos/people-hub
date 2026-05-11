@@ -35,6 +35,7 @@ export default function FolhaMensal() {
   const [filterDataFim, setFilterDataFim] = useState<Date | undefined>(undefined);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [dialogEmpresaId, setDialogEmpresaId] = useState("");
   const [funcId, setFuncId] = useState("");
   const [mesRef, setMesRef] = useState("");
   const [horasAtraso, setHorasAtraso] = useState("");

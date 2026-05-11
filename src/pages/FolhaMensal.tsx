@@ -262,6 +262,7 @@ export default function FolhaMensal() {
     setComissoes(String(f.valor_comissoes)); setPlr(String(f.valor_plr));
     setObs(f.observacoes || ""); setFile(null);
     setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
+    setValorVr(String(f.valor_vr || 0));
     setDialogOpen(true);
   };
 

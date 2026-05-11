@@ -784,8 +784,8 @@ export default function FolhaMensal() {
             </div>
             <div className="space-y-2 rounded-md border p-3">
               <label className="text-sm font-medium">Descontos</label>
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                <div className="sm:col-span-4">
+              <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
+                <div className="md:col-span-4">
                   <Combobox
                     options={TIPOS_DESCONTO.map((t) => ({ value: t, label: t }))}
                     value={novoDescontoTipo}
@@ -793,13 +793,13 @@ export default function FolhaMensal() {
                     placeholder="Tipo de desconto"
                   />
                 </div>
-                <div className="sm:col-span-3">
+                <div className="md:col-span-3">
                   <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
                 </div>
-                <div className="sm:col-span-3">
+                <div className="md:col-span-3">
                   <Input placeholder="Observação" value={novoDescontoObs} onChange={(e) => setNovoDescontoObs(e.target.value)} />
                 </div>
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <Button type="button" variant="outline" className="w-full" onClick={addDescontoItem}>
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>
@@ -853,8 +853,8 @@ export default function FolhaMensal() {
                   )}
                 </div>
               )}
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-end">
-                <div className="sm:col-span-4">
+              <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
+                <div className="md:col-span-4">
                   <Combobox
                     options={TIPOS_REEMBOLSO.map((t) => ({ value: t, label: t }))}
                     value={novoReembolsoTipo}
@@ -862,13 +862,13 @@ export default function FolhaMensal() {
                     placeholder="Tipo de reembolso"
                   />
                 </div>
-                <div className="sm:col-span-3">
+                <div className="md:col-span-3">
                   <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoReembolsoValor} onChange={(e) => setNovoReembolsoValor(e.target.value)} />
                 </div>
-                <div className="sm:col-span-3">
+                <div className="md:col-span-3">
                   <Input placeholder="Observação" value={novoReembolsoObs} onChange={(e) => setNovoReembolsoObs(e.target.value)} />
                 </div>
-                <div className="sm:col-span-2">
+                <div className="md:col-span-2">
                   <Button type="button" variant="outline" className="w-full" onClick={addReembolsoItem}>
                     <Plus className="h-4 w-4 mr-1" /> Adicionar
                   </Button>

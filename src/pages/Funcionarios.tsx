@@ -332,7 +332,9 @@ export default function Funcionarios() {
                   label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome} (Nível ${c.nivel})`,
                 }))}
                 value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo"
+                disabled={!canEditCargoSalario}
               />
+              {!canEditCargoSalario && <p className="text-xs text-muted-foreground">Apenas coordenadores podem alterar cargos.</p>}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Gestor Direto</label>

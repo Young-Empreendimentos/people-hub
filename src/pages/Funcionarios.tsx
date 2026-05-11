@@ -118,6 +118,7 @@ export default function Funcionarios() {
         cargo_id: cargoId || null,
         data_contrato_vigente: dataContratoVigente || null,
         gestor_id: gestorId || null,
+        tipo_contrato: tipoContrato || null,
       };
       if (editingId) {
         const { error } = await supabase.from("rh_funcionarios").update(payload).eq("id", editingId);

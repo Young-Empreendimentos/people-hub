@@ -172,7 +172,8 @@ export default function Advertencias() {
               const list = advByFunc[f.id] || [];
               return (
                 <>
-                  <TableRow key={f.id}>
+                <>
+                  <TableRow key={f.id + "-row"}>
                     <TableCell>
                       {count > 0 && (
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded((p) => ({ ...p, [f.id]: !p[f.id] }))}>

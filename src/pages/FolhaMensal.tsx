@@ -58,7 +58,6 @@ export default function FolhaMensal() {
     "Parque da Guarda",
     "Danos Patrimoniais",
     "Horas Falta",
-    "Reembolso de Aluguel",
     "Gastos no Cartão Corporativo",
   ];
   type DescontoItem = { id?: string; tipo: string; valor: string; observacao: string };

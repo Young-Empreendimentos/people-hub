@@ -19,8 +19,6 @@ const mainItems = [
   { title: "Equipes", url: "/equipes", icon: Building2 },
   { title: "Empresas", url: "/empresas", icon: Factory },
   { title: "Cargos", url: "/cargos", icon: Briefcase },
-  { title: "Admissões e Deslig.", url: "/admissoes", icon: UserPlus },
-  { title: "Aditivos", url: "/aditivos", icon: FileText },
   { title: "Adiantamentos", url: "/adiantamentos", icon: DollarSign },
   { title: "Treinamentos", url: "/treinamentos", icon: GraduationCap },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },

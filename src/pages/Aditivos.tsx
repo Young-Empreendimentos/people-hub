@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,6 +22,7 @@ import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 export default function Aditivos() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
+  const { isActive } = useActiveEmployees();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -219,7 +221,7 @@ export default function Aditivos() {
           <DialogHeader><DialogTitle>{editingId ? "Editar Aditivo" : "Novo Aditivo"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
-              <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
+              <Combobox options={funcionarios.filter((f: any) => isActive(f.id)).map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -247,7 +249,7 @@ export default function Aditivos() {
               <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={empresaFinalId} onValueChange={setEmpresaFinalId} placeholder="Selecione" />
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Cargo Final</label>
-              <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nome }))} value={cargoFinalId} onValueChange={setCargoFinalId} placeholder="Selecione" />
+              <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nivel != null ? `${c.nome} — Nível ${c.nivel}` : c.nome }))} value={cargoFinalId} onValueChange={setCargoFinalId} placeholder="Selecione" />
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Equipe Final</label>
               <Combobox options={equipes.map((e: any) => ({ value: e.id, label: e.nome }))} value={equipeFinalId} onValueChange={setEquipeFinalId} placeholder="Selecione" />

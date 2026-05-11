@@ -5,7 +5,7 @@ import { AlertTriangle, Users } from "lucide-react";
 const options = [
   {
     title: "Funcionários",
-    description: "Cadastre e gerencie os funcionários da empresa.",
+    description: "Gerencie os dados dos funcionários da empresa.",
     url: "/funcionarios",
     icon: Users,
   },

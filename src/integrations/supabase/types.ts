@@ -4385,6 +4385,47 @@ export type Database = {
         }
         Relationships: []
       }
+      rh_absenteismo: {
+        Row: {
+          created_at: string
+          dias_faltas: number
+          dias_trabalhados: number
+          funcionario_id: string
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          dias_faltas?: number
+          dias_trabalhados?: number
+          funcionario_id: string
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          dias_faltas?: number
+          dias_trabalhados?: number
+          funcionario_id?: string
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_absenteismo_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_adiantamentos: {
         Row: {
           created_at: string

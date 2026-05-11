@@ -46,7 +46,11 @@ export default function FolhaMensal() {
   const [comissoes, setComissoes] = useState("");
   const [plr, setPlr] = useState("");
   const [obs, setObs] = useState("");
+  const [vrDesconsiderado, setVrDesconsiderado] = useState(false);
+  const [vrJustificativa, setVrJustificativa] = useState("");
   const [file, setFile] = useState<File | null>(null);
+
+  const VR_CLT_VALOR = 300;
 
   const { data: folhas = [], isLoading } = useQuery({
     queryKey: ["rh_folha_mensal"],
@@ -63,7 +67,7 @@ export default function FolhaMensal() {
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id").order("nome_completo");
+      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato").order("nome_completo");
       return data || [];
     },
   });
@@ -87,6 +91,16 @@ export default function FolhaMensal() {
     if (!f?.cargo_id) return null;
     return cargoMap[f.cargo_id] || null;
   }, [funcId, funcionariosAll, cargoMap]);
+
+  const selectedFuncTipoContrato = useMemo(() => {
+    const f = funcionariosAll.find((x: any) => x.id === funcId) as any;
+    return f?.tipo_contrato || null;
+  }, [funcId, funcionariosAll]);
+
+  const vrCalculado = useMemo(() => {
+    if (vrDesconsiderado) return 0;
+    return selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
+  }, [selectedFuncTipoContrato, vrDesconsiderado]);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
@@ -177,6 +191,9 @@ export default function FolhaMensal() {
         valor_comissoes: parseFloat(comissoes) || 0,
         valor_plr: parseFloat(plr) || 0,
         observacoes: obs || null,
+        valor_vr: vrCalculado,
+        vr_desconsiderado: vrDesconsiderado,
+        vr_justificativa: vrDesconsiderado ? (vrJustificativa || null) : null,
       };
       if (file) payload.anexo_holerite_path = anexo_holerite_path;
 
@@ -211,6 +228,7 @@ export default function FolhaMensal() {
     setEditingId(null); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
+    setVrDesconsiderado(false); setVrJustificativa("");
     setDialogOpen(true);
   };
 
@@ -221,6 +239,7 @@ export default function FolhaMensal() {
     setAuxilioEdu(f.auxilio_educacional); setDescontos(String(f.descontos_adiantamentos));
     setComissoes(String(f.valor_comissoes)); setPlr(String(f.valor_plr));
     setObs(f.observacoes || ""); setFile(null);
+    setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
     setDialogOpen(true);
   };
 
@@ -390,16 +409,50 @@ export default function FolhaMensal() {
               </div>
             </div>
             {funcId && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                  <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
-                  <span>{dialogEmpresa}</span>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
+                    <span>{dialogEmpresa}</span>
+                  </div>
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}{selectedFuncCargo?.nivel != null ? ` - Nível ${selectedFuncCargo.nivel}` : ""}):</span>{" "}
+                    <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
+                  </div>
                 </div>
-                <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}{selectedFuncCargo?.nivel != null ? ` - Nível ${selectedFuncCargo.nivel}` : ""}):</span>{" "}
-                  <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Tipo de Contrato:</span>{" "}
+                    <span>{selectedFuncTipoContrato || "—"}</span>
+                  </div>
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Vale Refeição (VR):</span>{" "}
+                    <span className="tabular-nums">{fmt(vrCalculado)}</span>
+                  </div>
                 </div>
-              </div>
+                <div className="rounded-md border px-3 py-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="vr-desc"
+                      checked={vrDesconsiderado}
+                      onChange={(e) => setVrDesconsiderado(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor="vr-desc" className="text-sm font-medium cursor-pointer">
+                      Desconsiderar VR nesta folha
+                    </label>
+                  </div>
+                  {vrDesconsiderado && (
+                    <Textarea
+                      placeholder="Justificativa para desconsiderar o VR"
+                      value={vrJustificativa}
+                      onChange={(e) => setVrJustificativa(e.target.value)}
+                      rows={2}
+                    />
+                  )}
+                </div>
+              </>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Horas Atraso/Faltas</label><Input type="number" step="0.1" value={horasAtraso} onChange={(e) => setHorasAtraso(e.target.value)} /></div>

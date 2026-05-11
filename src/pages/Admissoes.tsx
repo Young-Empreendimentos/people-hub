@@ -52,7 +52,16 @@ export default function Admissoes() {
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
   const [dataContratoVigente, setDataContratoVigente] = useState("");
+  const [tipoContrato, setTipoContrato] = useState("");
   const [cpfError, setCpfError] = useState("");
+
+  const TIPO_CONTRATO_OPTIONS = [
+    { value: "CLT", label: "CLT" },
+    { value: "PJ", label: "PJ" },
+    { value: "Estágio", label: "Estágio" },
+    { value: "Menor aprendiz", label: "Menor aprendiz" },
+    { value: "S/ DOC", label: "S/ DOC" },
+  ];
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["rh_admissoes_desligamentos"],
@@ -104,6 +113,7 @@ export default function Admissoes() {
           equipe_id: equipeId || null,
           cargo_id: cargoId || null,
           data_contrato_vigente: dataContratoVigente || data || null,
+          tipo_contrato: tipoContrato || null,
         };
         const { data: newFunc, error: funcError } = await supabase
           .from("rh_funcionarios")
@@ -168,7 +178,8 @@ export default function Admissoes() {
   const openNew = () => {
     setEditingId(null); setFuncId(""); setTipo("admissao"); setData(""); setObs(""); setFile(null);
     setNomeCompleto(""); setRg(""); setCpf(""); setEndereco(""); setAniversario("");
-    setEmpresaId(""); setEquipeId(""); setCargoId(""); setDataContratoVigente(""); setCpfError("");
+    setEmpresaId(""); setEquipeId(""); setCargoId(""); setDataContratoVigente("");
+    setTipoContrato(""); setCpfError("");
     setDialogOpen(true);
   };
 
@@ -308,6 +319,10 @@ export default function Admissoes() {
                     <label className="text-sm font-medium">Cargo</label>
                     <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nome }))} value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo" />
                   </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de Contrato</label>
+                  <Combobox options={TIPO_CONTRATO_OPTIONS} value={tipoContrato} onValueChange={setTipoContrato} placeholder="Selecione o tipo de contrato" />
                 </div>
               </>
             )}

@@ -44,7 +44,16 @@ export default function Funcionarios() {
   const [cargoId, setCargoId] = useState("");
   const [dataContratoVigente, setDataContratoVigente] = useState("");
   const [gestorId, setGestorId] = useState("");
+  const [tipoContrato, setTipoContrato] = useState("");
   const [cpfError, setCpfError] = useState("");
+
+  const TIPO_CONTRATO_OPTIONS = [
+    { value: "CLT", label: "CLT" },
+    { value: "PJ", label: "PJ" },
+    { value: "Estágio", label: "Estágio" },
+    { value: "Menor aprendiz", label: "Menor aprendiz" },
+    { value: "S/ DOC", label: "S/ DOC" },
+  ];
 
   const { funcionarios, statusMap, isActive, activeCount, isLoading } = useActiveEmployees();
 
@@ -109,6 +118,7 @@ export default function Funcionarios() {
         cargo_id: cargoId || null,
         data_contrato_vigente: dataContratoVigente || null,
         gestor_id: gestorId || null,
+        tipo_contrato: tipoContrato || null,
       };
       if (editingId) {
         const { error } = await supabase.from("rh_funcionarios").update(payload).eq("id", editingId);
@@ -146,6 +156,7 @@ export default function Funcionarios() {
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
     setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
     setGestorId(f.gestor_id || "");
+    setTipoContrato(f.tipo_contrato || "");
     setCpfError("");
     setDialogOpen(true);
   };
@@ -323,6 +334,10 @@ export default function Funcionarios() {
                   .map((f: any) => ({ value: f.id, label: f.nome_completo }))}
                 value={gestorId} onValueChange={setGestorId} placeholder="Selecione o gestor"
               />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tipo de Contrato</label>
+              <Combobox options={TIPO_CONTRATO_OPTIONS} value={tipoContrato} onValueChange={setTipoContrato} placeholder="Selecione o tipo de contrato" />
             </div>
           </div>
           <DialogFooter>

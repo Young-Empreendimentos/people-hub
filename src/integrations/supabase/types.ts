@@ -4760,6 +4760,9 @@ export type Database = {
           plano_saude: number
           valor_comissoes: number
           valor_plr: number
+          valor_vr: number
+          vr_desconsiderado: boolean
+          vr_justificativa: string | null
         }
         Insert: {
           anexo_holerite_path?: string | null
@@ -4776,6 +4779,9 @@ export type Database = {
           plano_saude?: number
           valor_comissoes?: number
           valor_plr?: number
+          valor_vr?: number
+          vr_desconsiderado?: boolean
+          vr_justificativa?: string | null
         }
         Update: {
           anexo_holerite_path?: string | null
@@ -4792,6 +4798,9 @@ export type Database = {
           plano_saude?: number
           valor_comissoes?: number
           valor_plr?: number
+          valor_vr?: number
+          vr_desconsiderado?: boolean
+          vr_justificativa?: string | null
         }
         Relationships: [
           {
@@ -4855,6 +4864,7 @@ export type Database = {
           nome_completo: string
           rg: string | null
           seguro_vida: boolean
+          tipo_contrato: string | null
           updated_at: string
         }
         Insert: {
@@ -4873,6 +4883,7 @@ export type Database = {
           nome_completo: string
           rg?: string | null
           seguro_vida?: boolean
+          tipo_contrato?: string | null
           updated_at?: string
         }
         Update: {
@@ -4891,6 +4902,7 @@ export type Database = {
           nome_completo?: string
           rg?: string | null
           seguro_vida?: boolean
+          tipo_contrato?: string | null
           updated_at?: string
         }
         Relationships: [

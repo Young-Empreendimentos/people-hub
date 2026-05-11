@@ -675,21 +675,16 @@ export default function FolhaMensal() {
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2"><label className="text-sm font-medium">Horas Atraso/Faltas</label><Input type="number" step="0.1" value={horasAtraso} onChange={(e) => setHorasAtraso(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">Horas Extra</label><Input type="number" step="0.1" value={horasExtra} onChange={(e) => setHorasExtra(e.target.value)} /></div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2"><label className="text-sm font-medium">Plano de Saúde (R$)</label><Input type="number" step="0.01" value={planoSaude} onChange={(e) => setPlanoSaude(e.target.value)} /></div>
-              <div className="space-y-2"><label className="text-sm font-medium">Desc. Título Parque (R$)</label><Input type="number" step="0.01" value={descontoParque} onChange={(e) => setDescontoParque(e.target.value)} /></div>
               <div className="flex items-center gap-2 self-end pb-2"><Switch checked={auxilioEdu} onCheckedChange={setAuxilioEdu} /><label className="text-sm">Auxílio Educacional</label></div>
             </div>
             <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2"><label className="text-sm font-medium">Descontos/Adiant. (R$)</label><Input type="number" step="0.01" value={descontos} onChange={(e) => setDescontos(e.target.value)} /></div>
+              <div className="space-y-2"><label className="text-sm font-medium">Adiantamentos (R$)</label><Input type="number" step="0.01" value={descontos} onChange={(e) => setDescontos(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">Comissões (R$)</label><Input type="number" step="0.01" value={comissoes} onChange={(e) => setComissoes(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">PLR (R$)</label><Input type="number" step="0.01" value={plr} onChange={(e) => setPlr(e.target.value)} /></div>
             </div>
             <div className="space-y-2 rounded-md border p-3">
-              <label className="text-sm font-medium">Descontos (lista)</label>
+              <label className="text-sm font-medium">Descontos</label>
               <div className="grid grid-cols-12 gap-2 items-end">
                 <div className="col-span-4">
                   <Combobox

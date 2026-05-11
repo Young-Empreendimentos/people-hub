@@ -33,6 +33,12 @@ const options = [
     url: "/gestao-pessoas/beneficios-moradia",
     icon: Home,
   },
+  {
+    title: "Absenteísmo",
+    description: "Controle mensal de faltas e taxa de absenteísmo por funcionário.",
+    url: "/gestao-pessoas/absenteismo",
+    icon: CalendarX,
+  },
 ];
 
 export default function GestaoPessoas() {

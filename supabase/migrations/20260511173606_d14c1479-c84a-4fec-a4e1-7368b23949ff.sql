@@ -1,0 +1,1 @@
+ALTER TABLE public.rh_adiantamentos ADD COLUMN IF NOT EXISTS parcelas jsonb;

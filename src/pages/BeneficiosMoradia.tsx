@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 
 export default function BeneficiosMoradia() {
   const queryClient = useQueryClient();
@@ -46,7 +47,8 @@ export default function BeneficiosMoradia() {
     },
   });
 
-  const { data: funcionarios = [] } = useQuery({
+  const { isActive } = useActiveEmployees();
+  const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_moradia"],
     queryFn: async () => {
       const { data } = await supabase
@@ -56,6 +58,10 @@ export default function BeneficiosMoradia() {
       return data || [];
     },
   });
+  const funcionarios = useMemo(
+    () => (funcionariosAll as any[]).filter((f) => isActive(f.id)),
+    [funcionariosAll, isActive]
+  );
 
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos_moradia"],

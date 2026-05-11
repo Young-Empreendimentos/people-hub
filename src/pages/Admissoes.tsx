@@ -52,7 +52,16 @@ export default function Admissoes() {
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
   const [dataContratoVigente, setDataContratoVigente] = useState("");
+  const [tipoContrato, setTipoContrato] = useState("");
   const [cpfError, setCpfError] = useState("");
+
+  const TIPO_CONTRATO_OPTIONS = [
+    { value: "CLT", label: "CLT" },
+    { value: "PJ", label: "PJ" },
+    { value: "Estágio", label: "Estágio" },
+    { value: "Menor aprendiz", label: "Menor aprendiz" },
+    { value: "S/ DOC", label: "S/ DOC" },
+  ];
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["rh_admissoes_desligamentos"],

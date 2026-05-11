@@ -242,6 +242,34 @@ export default function FolhaMensal() {
     },
   });
 
+  const { data: adiantamentosPrevistos = [] } = useQuery({
+    queryKey: ["rh_adiantamentos_previstos", funcId, mesRef],
+    enabled: !!funcId && !!mesRef,
+    queryFn: async () => {
+      const alvo = mesRef + "-01";
+      const { data, error } = await supabase
+        .from("rh_adiantamentos")
+        .select("id, data, valor, datas_pagamento_pretendidas, observacoes")
+        .eq("funcionario_id", funcId)
+        .contains("datas_pagamento_pretendidas", [alvo]);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const totalAdiantamentosPrevistos = useMemo(
+    () => (adiantamentosPrevistos as any[]).reduce((s, a) => s + Number(a.valor || 0), 0),
+    [adiantamentosPrevistos]
+  );
+
+  // Sugere preencher o desconto quando há adiantamentos previstos e o campo está vazio
+  useEffect(() => {
+    if (!editingId && totalAdiantamentosPrevistos > 0 && (!descontos || parseFloat(descontos) === 0)) {
+      setDescontos(totalAdiantamentosPrevistos.toFixed(2));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalAdiantamentosPrevistos, editingId]);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       let anexo_holerite_path: string | null = null;
@@ -569,6 +597,21 @@ export default function FolhaMensal() {
                   {advertenciasCiclo.map((a: any) => (
                     <li key={a.id}>
                       <span className="font-medium">{a.tipo}</span> em {format(new Date(a.data + "T00:00:00"), "dd/MM/yyyy")} — {a.motivo}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {funcId && mesRef && adiantamentosPrevistos.length > 0 && (
+              <div className="rounded-md border border-primary/50 bg-primary/10 px-3 py-2 space-y-1">
+                <p className="text-sm font-semibold text-primary">
+                  💰 {adiantamentosPrevistos.length} adiantamento(s) previsto(s) para este mês — Total: {fmt(totalAdiantamentosPrevistos)}
+                </p>
+                <ul className="text-xs space-y-0.5">
+                  {(adiantamentosPrevistos as any[]).map((a) => (
+                    <li key={a.id}>
+                      Em {format(new Date(a.data + "T00:00:00"), "dd/MM/yyyy")} — {fmt(Number(a.valor))}
+                      {a.observacoes ? ` — ${a.observacoes}` : ""}
                     </li>
                   ))}
                 </ul>

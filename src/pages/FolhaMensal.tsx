@@ -250,7 +250,7 @@ export default function FolhaMensal() {
     setEditingId(null); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
-    setVrDesconsiderado(false); setVrJustificativa("");
+    setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
     setDialogOpen(true);
   };
 

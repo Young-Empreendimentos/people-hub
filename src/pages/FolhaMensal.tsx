@@ -467,6 +467,15 @@ export default function FolhaMensal() {
             origem: "plano_saude",
           });
         }
+        if (totalAdiantamentosPrevistos > 0) {
+          descRows.push({
+            folha_id: folhaId,
+            tipo: "Adiantamentos",
+            valor: totalAdiantamentosPrevistos,
+            observacao: "Aplicado automaticamente a partir do módulo Adiantamentos",
+            origem: "adiantamento",
+          });
+        }
         if (descRows.length > 0) {
           const { error } = await supabase.from("rh_folha_descontos").insert(descRows);
           if (error) throw error;
@@ -612,11 +621,11 @@ export default function FolhaMensal() {
 
     const headers = [
       "Mês","Funcionário","Empresa","Cargo","Nível","Salário Base",
-      "Horas Atraso/Faltas","Horas Extra",
+      "Horas Extra",
       "Valor VR","VR Desconsiderado","Justificativa VR",
-      "Plano Saúde","Desc. Título Parque","Auxílio Educacional",
-      "Descontos/Adiantamentos","Descontos Detalhados","Total Descontos Detalhados",
-      "Reembolsos Detalhados","Total Reembolsos","Reembolsos Automáticos (Moradia)",
+      "Plano Saúde",
+      "Descontos Detalhados","Total Descontos",
+      "Reembolsos Detalhados","Total Reembolsos",
       "Comissões","PLR","Observações","Anexo Holerite","Criado em",
     ];
     const rows = filtered.map((f: any) => {
@@ -626,7 +635,6 @@ export default function FolhaMensal() {
       const rs = reembByFolha[f.id] || [];
       const totalDesc = ds.reduce((s, d) => s + Number(d.valor || 0), 0);
       const totalReemb = rs.reduce((s, d) => s + Number(d.valor || 0), 0);
-      const autoReemb = rs.filter((d) => d.origem === "beneficio_moradia").reduce((s, d) => s + Number(d.valor || 0), 0);
       return [
         f.mes_referencia?.slice(0, 7) || "",
         f.rh_funcionarios?.nome_completo || "",
@@ -634,20 +642,15 @@ export default function FolhaMensal() {
         cargo?.nome || "",
         cargo?.nivel ?? "",
         cargo ? fmtNum(cargo.remuneracao) : "",
-        Number(f.horas_atraso_faltas || 0).toFixed(1).replace(".", ","),
         Number(f.horas_extra || 0).toFixed(1).replace(".", ","),
         fmtNum(Number(f.valor_vr || 0)),
         f.vr_desconsiderado ? "Sim" : "Não",
         (f.vr_justificativa || "").replace(/\r?\n/g, " "),
         fmtNum(Number(f.plano_saude || 0)),
-        fmtNum(Number(f.desconto_titulo_parque || 0)),
-        f.auxilio_educacional ? "Sim" : "Não",
-        fmtNum(Number(f.descontos_adiantamentos || 0)),
         joinList(ds),
         fmtNum(totalDesc),
         joinList(rs),
         fmtNum(totalReemb),
-        fmtNum(autoReemb),
         fmtNum(Number(f.valor_comissoes || 0)),
         fmtNum(Number(f.valor_plr || 0)),
         (f.observacoes || "").replace(/\r?\n/g, " "),
@@ -725,23 +728,21 @@ export default function FolhaMensal() {
           <TableHeader><TableRow>
             <TableHead>Mês</TableHead><TableHead>Funcionário</TableHead>
             <TableHead>Empresa</TableHead>
-            <TableHead>H. Atraso</TableHead><TableHead>H. Extra</TableHead>
-            <TableHead>Pl. Saúde</TableHead><TableHead>Título Parque</TableHead>
+            <TableHead>H. Extra</TableHead>
+            <TableHead>Pl. Saúde</TableHead>
             <TableHead>Comissões</TableHead><TableHead>PLR</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+            {isLoading ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
             : filtered.map((f: any) => (
               <TableRow key={f.id}>
                 <TableCell>{f.mes_referencia?.slice(0, 7)}</TableCell>
                 <TableCell className="font-medium">{f.rh_funcionarios?.nome_completo || "—"}</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{getEmpresaNome(f.funcionario_id, f.mes_referencia)}</TableCell>
-                <TableCell>{Number(f.horas_atraso_faltas).toFixed(1)}h</TableCell>
                 <TableCell>{Number(f.horas_extra).toFixed(1)}h</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.plano_saude))}</TableCell>
-                <TableCell className="tabular-nums">{fmt(Number(f.desconto_titulo_parque))}</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.valor_comissoes))}</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.valor_plr))}</TableCell>
                 <TableCell className="text-right">

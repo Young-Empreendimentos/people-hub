@@ -450,12 +450,37 @@ export default function FolhaMensal() {
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader><DialogTitle>{editingId ? "Editar Folha" : "Nova Folha"}</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Empresa *</label>
+              <Combobox
+                options={(empresas as any[]).map((e) => ({ value: e.id, label: e.nome }))}
+                value={dialogEmpresaId}
+                onValueChange={(v) => { setDialogEmpresaId(v); setFuncId(""); }}
+                placeholder="Selecione a empresa"
+              />
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
-                <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
+                <Combobox
+                  options={funcionarios
+                    .filter((f: any) => {
+                      if (!dialogEmpresaId) return false;
+                      const today = new Date().toISOString().slice(0, 10);
+                      return getEmpresaAtDate(f.id, today) === dialogEmpresaId;
+                    })
+                    .map((f: any) => ({ value: f.id, label: f.nome_completo }))}
+                  value={funcId}
+                  onValueChange={setFuncId}
+                  placeholder={dialogEmpresaId ? "Selecione" : "Selecione a empresa primeiro"}
+                  disabled={!dialogEmpresaId}
+                />
               </div>
-              <div className="space-y-2"><label className="text-sm font-medium">Mês de Referência *</label>
-                <Input type="month" value={mesRef} onChange={(e) => setMesRef(e.target.value)} />
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Mês de Referência *</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Combobox options={MESES_PT} value={mesPart} onValueChange={setMesPart} placeholder="Mês" />
+                  <Combobox options={ANOS_OPTS} value={anoPart} onValueChange={setAnoPart} placeholder="Ano" />
+                </div>
               </div>
             </div>
             {funcId && (

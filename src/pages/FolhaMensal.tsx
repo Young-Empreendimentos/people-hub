@@ -65,18 +65,40 @@ export default function FolhaMensal() {
   const [novoDescontoTipo, setNovoDescontoTipo] = useState("");
   const [novoDescontoValor, setNovoDescontoValor] = useState("");
   const [novoDescontoObs, setNovoDescontoObs] = useState("");
+  const hhmmToHours = (s: string) => {
+    const m = /^(\d{1,3}):(\d{2})$/.exec(s.trim());
+    if (!m) return NaN;
+    return parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+  };
+  const hoursToHHMM = (h: number) => {
+    if (!isFinite(h)) return "00:00";
+    const total = Math.round(h * 60);
+    const hh = Math.floor(total / 60);
+    const mm = total % 60;
+    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
   const addDescontoItem = () => {
     if (!novoDescontoTipo) {
       toast.error("Selecione o tipo do desconto.");
       return;
     }
     const isHorasFalta = novoDescontoTipo === "Horas Falta";
-    const v = parseFloat(novoDescontoValor);
-    if (!isHorasFalta && (isNaN(v) || v <= 0)) {
-      toast.error("Informe um valor válido.");
-      return;
+    let valorFinal: number;
+    if (isHorasFalta) {
+      const h = hhmmToHours(novoDescontoValor);
+      if (isNaN(h) || h <= 0) {
+        toast.error("Informe a duração no formato HH:MM (ex.: 21:00).");
+        return;
+      }
+      valorFinal = h;
+    } else {
+      const v = parseFloat(novoDescontoValor);
+      if (isNaN(v) || v <= 0) {
+        toast.error("Informe um valor válido.");
+        return;
+      }
+      valorFinal = v;
     }
-    const valorFinal = isNaN(v) ? 0 : v;
     setDescontosLista((arr) => [...arr, { tipo: novoDescontoTipo, valor: String(valorFinal), observacao: novoDescontoObs }]);
     setNovoDescontoTipo("");
     setNovoDescontoValor("");
@@ -651,7 +673,7 @@ export default function FolhaMensal() {
       const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
       const ds = descByFolha[f.id] || [];
       const rs = reembByFolha[f.id] || [];
-      const totalDesc = ds.reduce((s, d) => s + Number(d.valor || 0), 0);
+      const totalDesc = ds.filter((d: any) => normTipo(d) !== "Horas Falta").reduce((s, d) => s + Number(d.valor || 0), 0);
       const totalReemb = rs.reduce((s, d) => s + Number(d.valor || 0), 0);
       return [
         f.mes_referencia?.slice(0, 7) || "",
@@ -664,7 +686,7 @@ export default function FolhaMensal() {
         fmtNum(Number(f.valor_vr || 0)),
         f.vr_desconsiderado ? "Sim" : "Não",
         (f.vr_justificativa || "").replace(/\r?\n/g, " "),
-        ...descTiposArr.map((t) => fmtNum(sumByTipo(ds, t))),
+        ...descTiposArr.map((t) => t === "Horas Falta" ? hoursToHHMM(sumByTipo(ds, t)) : fmtNum(sumByTipo(ds, t))),
         fmtNum(totalDesc),
         ...reembTiposArr.map((t) => fmtNum(sumByTipo(rs, t))),
         fmtNum(totalReemb),
@@ -929,7 +951,11 @@ export default function FolhaMensal() {
                   />
                 </div>
                 <div className="md:col-span-3">
-                  <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
+                  {novoDescontoTipo === "Horas Falta" ? (
+                    <Input type="time" placeholder="HH:MM" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
+                  ) : (
+                    <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
+                  )}
                 </div>
                 <div className="md:col-span-3">
                   <Input placeholder="Observação" value={novoDescontoObs} onChange={(e) => setNovoDescontoObs(e.target.value)} />
@@ -945,7 +971,7 @@ export default function FolhaMensal() {
                   {descontosLista.map((d, idx) => (
                     <div key={idx} className="flex items-center justify-between gap-2 text-sm rounded bg-muted px-2 py-1">
                       <div className="flex-1 truncate">
-                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{fmt(parseFloat(d.valor) || 0)}</span>
+                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{d.tipo === "Horas Falta" ? hoursToHHMM(parseFloat(d.valor) || 0) : fmt(parseFloat(d.valor) || 0)}</span>
                         {d.observacao ? <span className="text-muted-foreground"> · {d.observacao}</span> : null}
                       </div>
                       <Button type="button" variant="ghost" size="icon" onClick={() => removeDescontoItem(idx)}>

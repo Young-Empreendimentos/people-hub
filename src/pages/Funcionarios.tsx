@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { Pencil, Trash2, Search, Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
+import { maskCPF, maskRG, maskPhone, isValidCPF } from "@/lib/masks";
 
 export default function Funcionarios() {
   const queryClient = useQueryClient();

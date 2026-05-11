@@ -178,7 +178,8 @@ export default function Admissoes() {
   const openNew = () => {
     setEditingId(null); setFuncId(""); setTipo("admissao"); setData(""); setObs(""); setFile(null);
     setNomeCompleto(""); setRg(""); setCpf(""); setEndereco(""); setAniversario("");
-    setEmpresaId(""); setEquipeId(""); setCargoId(""); setDataContratoVigente(""); setCpfError("");
+    setEmpresaId(""); setEquipeId(""); setCargoId(""); setDataContratoVigente("");
+    setTipoContrato(""); setCpfError("");
     setDialogOpen(true);
   };
 

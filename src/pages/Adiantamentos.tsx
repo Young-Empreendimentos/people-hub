@@ -85,7 +85,7 @@ export default function Adiantamentos() {
     onError: () => toast.error("Erro ao excluir."),
   });
 
-  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setParcelas([]); setObs(""); setDialogOpen(true); };
+  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setParcelas([]); setNumParcelas(""); setMesInicial(""); setAnoInicial(""); setObs(""); setDialogOpen(true); };
 
   const openEdit = (a: any) => {
     setEditingId(a.id);

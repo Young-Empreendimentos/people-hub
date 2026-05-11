@@ -16,7 +16,7 @@ import {
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Pencil, Trash2, Upload } from "lucide-react";
-import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
+import { maskCPF, maskRG, maskPhone, isValidCPF } from "@/lib/masks";
 
 export default function Admissoes() {
   const queryClient = useQueryClient();

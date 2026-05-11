@@ -4393,6 +4393,7 @@ export type Database = {
           funcionario_id: string
           id: string
           observacoes: string | null
+          parcelas: Json | null
           valor: number
         }
         Insert: {
@@ -4402,6 +4403,7 @@ export type Database = {
           funcionario_id: string
           id?: string
           observacoes?: string | null
+          parcelas?: Json | null
           valor?: number
         }
         Update: {
@@ -4411,6 +4413,7 @@ export type Database = {
           funcionario_id?: string
           id?: string
           observacoes?: string | null
+          parcelas?: Json | null
           valor?: number
         }
         Relationships: [

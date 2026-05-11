@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 
+type Parcela = { mes_ano: string; valor: number };
+
 export default function Adiantamentos() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
@@ -27,7 +29,7 @@ export default function Adiantamentos() {
   const [funcId, setFuncId] = useState("");
   const [data, setData] = useState("");
   const [valor, setValor] = useState("");
-  const [datasPagamento, setDatasPagamento] = useState<string[]>([]);
+  const [parcelas, setParcelas] = useState<Parcela[]>([]);
   const [obs, setObs] = useState("");
 
   const { data: adiantamentos = [], isLoading } = useQuery({
@@ -46,12 +48,13 @@ export default function Adiantamentos() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const datasFiltered = datasPagamento.filter(Boolean);
-      const payload = {
+      const parcelasFiltered = parcelas.filter((p) => p.mes_ano);
+      const payload: any = {
         funcionario_id: funcId,
         data,
         valor: parseFloat(valor) || 0,
-        datas_pagamento_pretendidas: datasFiltered.length > 0 ? datasFiltered : null,
+        parcelas: parcelasFiltered.length > 0 ? parcelasFiltered : null,
+        datas_pagamento_pretendidas: parcelasFiltered.length > 0 ? parcelasFiltered.map((p) => p.mes_ano) : null,
         observacoes: obs || null,
       };
       if (editingId) {
@@ -79,14 +82,28 @@ export default function Adiantamentos() {
     onError: () => toast.error("Erro ao excluir."),
   });
 
-  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setDatasPagamento([]); setObs(""); setDialogOpen(true); };
+  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setParcelas([]); setObs(""); setDialogOpen(true); };
 
   const openEdit = (a: any) => {
     setEditingId(a.id);
     setFuncId(a.funcionario_id);
     setData(a.data);
     setValor(String(a.valor));
-    setDatasPagamento(a.datas_pagamento_pretendidas || []);
+    // Migra dados antigos: se não tiver parcelas mas tiver datas_pagamento_pretendidas, divide igualmente
+    if (a.parcelas && Array.isArray(a.parcelas)) {
+      setParcelas(a.parcelas);
+    } else if (a.datas_pagamento_pretendidas?.length) {
+      const total = Number(a.valor) || 0;
+      const n = a.datas_pagamento_pretendidas.length;
+      const base = Math.floor((total / n) * 100) / 100;
+      const resto = Math.round((total - base * n) * 100) / 100;
+      setParcelas(a.datas_pagamento_pretendidas.map((m: string, i: number) => ({
+        mes_ano: m,
+        valor: i === 0 ? +(base + resto).toFixed(2) : base,
+      })));
+    } else {
+      setParcelas([]);
+    }
     setObs(a.observacoes || "");
     setDialogOpen(true);
   };
@@ -107,15 +124,43 @@ export default function Adiantamentos() {
     return { value: a, label: a };
   });
 
-  const addDataPagamento = () => setDatasPagamento([...datasPagamento, ""]);
-  const updateDataPagamento = (index: number, value: string) => {
-    const updated = [...datasPagamento];
-    updated[index] = value;
-    setDatasPagamento(updated);
+  const recalcParcelas = (list: Parcela[], total: number): Parcela[] => {
+    const n = list.length;
+    if (n === 0) return list;
+    const base = Math.floor((total / n) * 100) / 100;
+    const resto = Math.round((total - base * n) * 100) / 100;
+    return list.map((p, i) => ({ ...p, valor: i === 0 ? +(base + resto).toFixed(2) : base }));
   };
-  const removeDataPagamento = (index: number) => {
-    setDatasPagamento(datasPagamento.filter((_, i) => i !== index));
+
+  const addParcela = () => {
+    const total = parseFloat(valor) || 0;
+    const next = [...parcelas, { mes_ano: "", valor: 0 }];
+    setParcelas(recalcParcelas(next, total));
   };
+  const updateParcelaMes = (i: number, mesAno: string) => {
+    const next = [...parcelas];
+    next[i] = { ...next[i], mes_ano: mesAno };
+    setParcelas(next);
+  };
+  const updateParcelaValor = (i: number, v: string) => {
+    const next = [...parcelas];
+    next[i] = { ...next[i], valor: parseFloat(v) || 0 };
+    setParcelas(next);
+  };
+  const removeParcela = (i: number) => {
+    const total = parseFloat(valor) || 0;
+    setParcelas(recalcParcelas(parcelas.filter((_, idx) => idx !== i), total));
+  };
+
+  const onValorChange = (v: string) => {
+    setValor(v);
+    if (parcelas.length > 0) setParcelas(recalcParcelas(parcelas, parseFloat(v) || 0));
+  };
+
+  const totalParcelas = useMemo(() => parcelas.reduce((s, p) => s + (Number(p.valor) || 0), 0), [parcelas]);
+  const valorNum = parseFloat(valor) || 0;
+  const diff = +(valorNum - totalParcelas).toFixed(2);
+
   const formatMesAno = (iso: string) => {
     if (!iso) return "";
     const [y, m] = iso.split("-");
@@ -125,6 +170,13 @@ export default function Adiantamentos() {
 
   const filtered = filterFunc ? adiantamentos.filter((a: any) => a.funcionario_id === filterFunc) : adiantamentos;
   const formatCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  const renderParcelasResumo = (a: any) => {
+    if (a.parcelas && Array.isArray(a.parcelas) && a.parcelas.length) {
+      return a.parcelas.map((p: Parcela) => `${formatMesAno(p.mes_ano)} (${formatCurrency(Number(p.valor))})`).join(", ");
+    }
+    return a.datas_pagamento_pretendidas?.map(formatMesAno).join(", ") || "—";
+  };
 
   return (
     <div className="space-y-4">
@@ -140,7 +192,7 @@ export default function Adiantamentos() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Valor</TableHead>
-            <TableHead>Mês/Ano Pagamento</TableHead><TableHead>Observações</TableHead>
+            <TableHead>Parcelas</TableHead><TableHead>Observações</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -151,7 +203,7 @@ export default function Adiantamentos() {
                 <TableCell>{a.data}</TableCell>
                 <TableCell className="font-medium">{a.rh_funcionarios?.nome_completo || "—"}</TableCell>
                 <TableCell>{formatCurrency(Number(a.valor))}</TableCell>
-                <TableCell>{a.datas_pagamento_pretendidas?.map(formatMesAno).join(", ") || "—"}</TableCell>
+                <TableCell className="max-w-[260px] truncate">{renderParcelasResumo(a)}</TableCell>
                 <TableCell className="max-w-[150px] truncate">{a.observacoes || "—"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -166,48 +218,62 @@ export default function Adiantamentos() {
       </CardContent></Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader><DialogTitle>{editingId ? "Editar Adiantamento" : "Novo Adiantamento"}</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-2">
+          <div className="space-y-4 py-2 max-h-[70vh] overflow-y-auto">
             <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
               <Combobox options={funcionarios.filter((f: any) => isActive(f.id)).map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
-              <div className="space-y-2"><label className="text-sm font-medium">Valor (R$) *</label><Input type="number" step="0.01" value={valor} onChange={(e) => setValor(e.target.value)} placeholder="0.00" /></div>
+              <div className="space-y-2"><label className="text-sm font-medium">Valor Total (R$) *</label><Input type="number" step="0.01" value={valor} onChange={(e) => onValorChange(e.target.value)} placeholder="0.00" /></div>
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Mês/Ano de Pagamento Pretendido</label>
-                <Button type="button" variant="outline" size="sm" onClick={addDataPagamento}>
-                  <Plus className="mr-1 h-3 w-3" /> Adicionar mês
+                <label className="text-sm font-medium">Parcelas</label>
+                <Button type="button" variant="outline" size="sm" onClick={addParcela}>
+                  <Plus className="mr-1 h-3 w-3" /> Adicionar parcela
                 </Button>
               </div>
-              {datasPagamento.map((dp, i) => {
-                const mes = dp ? dp.slice(5, 7) : "";
-                const ano = dp ? dp.slice(0, 4) : "";
+              {parcelas.length === 0 && (
+                <p className="text-xs text-muted-foreground">Nenhuma parcela. Clique em "Adicionar parcela" para dividir o valor por mês.</p>
+              )}
+              {parcelas.map((p, i) => {
+                const mes = p.mes_ano ? p.mes_ano.slice(5, 7) : "";
+                const ano = p.mes_ano ? p.mes_ano.slice(0, 4) : "";
                 const setMes = (m: string) => {
                   const a = ano || String(anoAtual);
-                  updateDataPagamento(i, m ? `${a}-${m}-01` : "");
+                  updateParcelaMes(i, m ? `${a}-${m}-01` : "");
                 };
                 const setAno = (a: string) => {
                   const m = mes || "01";
-                  updateDataPagamento(i, a ? `${a}-${m}-01` : "");
+                  updateParcelaMes(i, a ? `${a}-${m}-01` : "");
                 };
                 return (
                   <div key={i} className="flex items-center gap-2">
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <Combobox options={MESES_PT} value={mes} onValueChange={setMes} placeholder="Mês" />
                     </div>
-                    <div className="flex-1">
+                    <div className="w-24">
                       <Combobox options={ANOS_OPTS} value={ano} onValueChange={setAno} placeholder="Ano" />
                     </div>
-                    <Button type="button" variant="ghost" size="icon" onClick={() => removeDataPagamento(i)}>
+                    <div className="w-28">
+                      <Input type="number" step="0.01" value={p.valor || ""} onChange={(e) => updateParcelaValor(i, e.target.value)} placeholder="Valor" />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeParcela(i)}>
                       <X className="h-4 w-4" />
                     </Button>
                   </div>
                 );
               })}
+              {parcelas.length > 0 && (
+                <div className="flex justify-between text-xs pt-1">
+                  <span className="text-muted-foreground">Soma das parcelas: {formatCurrency(totalParcelas)}</span>
+                  <span className={diff === 0 ? "text-muted-foreground" : "text-destructive"}>
+                    {diff === 0 ? "✓ Bate com o valor total" : `Diferença: ${formatCurrency(diff)}`}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
           </div>

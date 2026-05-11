@@ -403,16 +403,52 @@ export default function FolhaMensal() {
           const { error } = await supabase.from("rh_folha_descontos").insert(rows);
           if (error) throw error;
         }
+
+        // Sincroniza lista de reembolsos (manual + automático do benefício de moradia)
+        await supabase.from("rh_folha_reembolsos").delete().eq("folha_id", folhaId);
+        const reembRows: any[] = reembolsosLista.map((d) => ({
+          folha_id: folhaId,
+          tipo: d.tipo,
+          valor: parseFloat(d.valor) || 0,
+          observacao: d.observacao || null,
+          origem: "manual",
+        }));
+        if (moradiaCalculada) {
+          if (moradiaCalculada.aluguel > 0) {
+            reembRows.push({
+              folha_id: folhaId,
+              tipo: "Reembolso de Aluguel",
+              valor: moradiaCalculada.aluguel,
+              observacao: "Aplicado automaticamente do benefício de moradia",
+              origem: "beneficio_moradia",
+            });
+          }
+          if (moradiaCalculada.auxilio > 0) {
+            reembRows.push({
+              folha_id: folhaId,
+              tipo: "Auxílio Moradia",
+              valor: moradiaCalculada.auxilio,
+              observacao: `${moradiaCalculada.perc}% sobre salário de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(moradiaCalculada.remun)}`,
+              origem: "beneficio_moradia",
+            });
+          }
+        }
+        if (reembRows.length > 0) {
+          const { error } = await supabase.from("rh_folha_reembolsos").insert(reembRows);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_folha_mensal"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_meses"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_detalhes"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_meses"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_detalhes"] });
       toast.success(editingId ? "Folha atualizada." : "Folha registrada.");
       closeDialog();
     },
-    onError: () => toast.error("Erro ao salvar folha."),
+    onError: (e: any) => toast.error("Erro ao salvar folha: " + (e?.message || "")),
   });
 
   const deleteMutation = useMutation({

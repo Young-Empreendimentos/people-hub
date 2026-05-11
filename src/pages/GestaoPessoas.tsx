@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users, UserPlus, FileText, Home } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX } from "lucide-react";
 
 const options = [
   {

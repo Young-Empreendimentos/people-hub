@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { ArrowLeft, Upload, Trash2, Download } from "lucide-react";
 import { useRef, useState } from "react";
+import BeneficiosMoradiaTab from "@/components/funcionario/BeneficiosMoradiaTab";
 
 export default function FuncionarioDetalhes() {
   const { id } = useParams<{ id: string }>();
@@ -213,6 +214,7 @@ export default function FuncionarioDetalhes() {
           <TabsTrigger value="historico">Histórico ({historico.length})</TabsTrigger>
           <TabsTrigger value="aditivos">Aditivos ({aditivos.length})</TabsTrigger>
           <TabsTrigger value="treinamentos">Treinamentos ({treinamentos.length})</TabsTrigger>
+          <TabsTrigger value="moradia">Benefícios de Moradia</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dados">
@@ -399,6 +401,13 @@ export default function FuncionarioDetalhes() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="moradia">
+          <BeneficiosMoradiaTab
+            funcionarioId={id!}
+            remuneracaoCargo={(func as any).rh_cargos?.remuneracao ?? null}
+          />
         </TabsContent>
       </Tabs>
     </div>

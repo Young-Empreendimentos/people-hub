@@ -27,6 +27,8 @@ import Estrutura from "./pages/Estrutura";
 import Financeiro from "./pages/Financeiro";
 import Descontos from "./pages/Descontos";
 import DescontosDetalhes from "./pages/DescontosDetalhes";
+import Reembolsos from "./pages/Reembolsos";
+import ReembolsosDetalhes from "./pages/ReembolsosDetalhes";
 import Advertencias from "./pages/Advertencias";
 import NotFound from "./pages/NotFound";
 
@@ -61,6 +63,8 @@ const App = () => (
               <Route path="/financeiro" element={<Financeiro />} />
               <Route path="/descontos" element={<Descontos />} />
               <Route path="/descontos/:mes" element={<DescontosDetalhes />} />
+              <Route path="/reembolsos" element={<Reembolsos />} />
+              <Route path="/reembolsos/:mes" element={<ReembolsosDetalhes />} />
               <Route path="/gestao-pessoas" element={<GestaoPessoas />} />
               <Route path="/gestao-pessoas/advertencias" element={<Advertencias />} />
               <Route path="/configuracoes" element={<Configuracoes />} />

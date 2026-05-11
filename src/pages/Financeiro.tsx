@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, Receipt } from "lucide-react";
+import { DollarSign, Receipt, HandCoins } from "lucide-react";
 
 const options = [
   {
@@ -14,6 +14,12 @@ const options = [
     description: "Veja por mês os descontos lançados nas folhas.",
     url: "/descontos",
     icon: Receipt,
+  },
+  {
+    title: "Reembolsos",
+    description: "Histórico de reembolsos e gratificações lançados nas folhas.",
+    url: "/reembolsos",
+    icon: HandCoins,
   },
 ];
 

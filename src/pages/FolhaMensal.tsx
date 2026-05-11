@@ -81,6 +81,28 @@ export default function FolhaMensal() {
     setDescontosLista((arr) => arr.filter((_, i) => i !== idx));
   };
 
+  // Lista de reembolsos manuais
+  const TIPOS_REEMBOLSO = ["Gratificação", "Reembolso de Aluguel", "Auxílio Moradia", "Outro"];
+  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string };
+  const [reembolsosLista, setReembolsosLista] = useState<ReembolsoItem[]>([]);
+  const [novoReembolsoTipo, setNovoReembolsoTipo] = useState("");
+  const [novoReembolsoValor, setNovoReembolsoValor] = useState("");
+  const [novoReembolsoObs, setNovoReembolsoObs] = useState("");
+  const addReembolsoItem = () => {
+    const v = parseFloat(novoReembolsoValor);
+    if (!novoReembolsoTipo || isNaN(v) || v <= 0) {
+      toast.error("Selecione o tipo e informe um valor válido.");
+      return;
+    }
+    setReembolsosLista((arr) => [...arr, { tipo: novoReembolsoTipo, valor: String(v), observacao: novoReembolsoObs }]);
+    setNovoReembolsoTipo("");
+    setNovoReembolsoValor("");
+    setNovoReembolsoObs("");
+  };
+  const removeReembolsoItem = (idx: number) => {
+    setReembolsosLista((arr) => arr.filter((_, i) => i !== idx));
+  };
+
   const VR_CLT_VALOR = 300;
 
   const { data: folhas = [], isLoading } = useQuery({
@@ -291,6 +313,37 @@ export default function FolhaMensal() {
     [adiantamentosPrevistos]
   );
 
+  // Benefício de moradia vigente para o funcionário no mês selecionado
+  const { data: beneficioMoradia = null } = useQuery({
+    queryKey: ["rh_beneficio_moradia_vigente", funcId, mesRef],
+    enabled: !!funcId && !!mesRef,
+    queryFn: async () => {
+      const [y, m] = mesRef.split("-").map(Number);
+      const ini = `${mesRef}-01`;
+      const fimDate = new Date(y, m, 0); // último dia do mês
+      const fim = format(fimDate, "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("rh_funcionario_beneficios_moradia")
+        .select("*")
+        .eq("funcionario_id", funcId)
+        .lte("data_inicio", fim)
+        .or(`data_fim.is.null,data_fim.gte.${ini}`)
+        .order("data_inicio", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data && data[0]) || null;
+    },
+  });
+
+  const moradiaCalculada = useMemo(() => {
+    if (!beneficioMoradia) return null;
+    const aluguel = Number((beneficioMoradia as any).valor_reembolso_aluguel) || 0;
+    const perc = Number((beneficioMoradia as any).percentual_auxilio_moradia) || 0;
+    const remun = selectedFuncCargo?.remuneracao ?? 0;
+    const auxilio = remun * (perc / 100);
+    return { aluguel, auxilio, perc, remun };
+  }, [beneficioMoradia, selectedFuncCargo]);
+
   // Sugere preencher o desconto quando há adiantamentos previstos e o campo está vazio
   useEffect(() => {
     if (!editingId && totalAdiantamentosPrevistos > 0 && (!descontos || parseFloat(descontos) === 0)) {
@@ -350,16 +403,52 @@ export default function FolhaMensal() {
           const { error } = await supabase.from("rh_folha_descontos").insert(rows);
           if (error) throw error;
         }
+
+        // Sincroniza lista de reembolsos (manual + automático do benefício de moradia)
+        await supabase.from("rh_folha_reembolsos").delete().eq("folha_id", folhaId);
+        const reembRows: any[] = reembolsosLista.map((d) => ({
+          folha_id: folhaId,
+          tipo: d.tipo,
+          valor: parseFloat(d.valor) || 0,
+          observacao: d.observacao || null,
+          origem: "manual",
+        }));
+        if (moradiaCalculada) {
+          if (moradiaCalculada.aluguel > 0) {
+            reembRows.push({
+              folha_id: folhaId,
+              tipo: "Reembolso de Aluguel",
+              valor: moradiaCalculada.aluguel,
+              observacao: "Aplicado automaticamente do benefício de moradia",
+              origem: "beneficio_moradia",
+            });
+          }
+          if (moradiaCalculada.auxilio > 0) {
+            reembRows.push({
+              folha_id: folhaId,
+              tipo: "Auxílio Moradia",
+              valor: moradiaCalculada.auxilio,
+              observacao: `${moradiaCalculada.perc}% sobre salário de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(moradiaCalculada.remun)}`,
+              origem: "beneficio_moradia",
+            });
+          }
+        }
+        if (reembRows.length > 0) {
+          const { error } = await supabase.from("rh_folha_reembolsos").insert(reembRows);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_folha_mensal"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_meses"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_detalhes"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_meses"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_detalhes"] });
       toast.success(editingId ? "Folha atualizada." : "Folha registrada.");
       closeDialog();
     },
-    onError: () => toast.error("Erro ao salvar folha."),
+    onError: (e: any) => toast.error("Erro ao salvar folha: " + (e?.message || "")),
   });
 
   const deleteMutation = useMutation({
@@ -378,6 +467,7 @@ export default function FolhaMensal() {
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
     setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
     setDescontosLista([]); setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
+    setReembolsosLista([]); setNovoReembolsoTipo(""); setNovoReembolsoValor(""); setNovoReembolsoObs("");
     setDialogOpen(true);
   };
 
@@ -393,11 +483,20 @@ export default function FolhaMensal() {
     setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
     setValorVr(String(f.valor_vr || 0));
     setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
+    setNovoReembolsoTipo(""); setNovoReembolsoValor(""); setNovoReembolsoObs("");
     const { data } = await supabase
       .from("rh_folha_descontos")
       .select("id, tipo, valor, observacao")
       .eq("folha_id", f.id);
     setDescontosLista((data || []).map((d: any) => ({
+      id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
+    })));
+    const { data: reembData } = await supabase
+      .from("rh_folha_reembolsos")
+      .select("id, tipo, valor, observacao, origem")
+      .eq("folha_id", f.id)
+      .eq("origem", "manual");
+    setReembolsosLista((reembData || []).map((d: any) => ({
       id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
     })));
     setDialogOpen(true);
@@ -721,6 +820,75 @@ export default function FolhaMensal() {
                   ))}
                   <p className="text-xs text-muted-foreground pt-1">
                     Total: {fmt(descontosLista.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0))}
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2 rounded-md border p-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Reembolsos</label>
+                {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
+                  <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
+                    Benefício de moradia aplicado automaticamente
+                  </span>
+                )}
+              </div>
+              {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
+                <div className="space-y-1">
+                  {moradiaCalculada.aluguel > 0 && (
+                    <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">Reembolso de Aluguel</span> — <span className="tabular-nums">{fmt(moradiaCalculada.aluguel)}</span>
+                        <span className="text-muted-foreground"> · automático (cadastro do funcionário)</span>
+                      </div>
+                    </div>
+                  )}
+                  {moradiaCalculada.auxilio > 0 && (
+                    <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">Auxílio Moradia</span> — <span className="tabular-nums">{fmt(moradiaCalculada.auxilio)}</span>
+                        <span className="text-muted-foreground"> · {moradiaCalculada.perc}% do salário</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <div className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-4">
+                  <Combobox
+                    options={TIPOS_REEMBOLSO.map((t) => ({ value: t, label: t }))}
+                    value={novoReembolsoTipo}
+                    onValueChange={setNovoReembolsoTipo}
+                    placeholder="Tipo de reembolso"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoReembolsoValor} onChange={(e) => setNovoReembolsoValor(e.target.value)} />
+                </div>
+                <div className="col-span-3">
+                  <Input placeholder="Observação" value={novoReembolsoObs} onChange={(e) => setNovoReembolsoObs(e.target.value)} />
+                </div>
+                <div className="col-span-2">
+                  <Button type="button" variant="outline" className="w-full" onClick={addReembolsoItem}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
+              </div>
+              {reembolsosLista.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  {reembolsosLista.map((d, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2 text-sm rounded bg-muted px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{fmt(parseFloat(d.valor) || 0)}</span>
+                        {d.observacao ? <span className="text-muted-foreground"> · {d.observacao}</span> : null}
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeReembolsoItem(idx)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Total manual: {fmt(reembolsosLista.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0))}
                   </p>
                 </div>
               )}

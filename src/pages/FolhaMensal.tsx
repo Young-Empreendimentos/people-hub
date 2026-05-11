@@ -800,8 +800,8 @@ export default function FolhaMensal() {
                   <Input placeholder="Observação" value={novoDescontoObs} onChange={(e) => setNovoDescontoObs(e.target.value)} />
                 </div>
                 <div className="md:col-span-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={addDescontoItem}>
-                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  <Button type="button" variant="outline" size="icon" aria-label="Adicionar desconto" onClick={addDescontoItem}>
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -869,8 +869,8 @@ export default function FolhaMensal() {
                   <Input placeholder="Observação" value={novoReembolsoObs} onChange={(e) => setNovoReembolsoObs(e.target.value)} />
                 </div>
                 <div className="md:col-span-2">
-                  <Button type="button" variant="outline" className="w-full" onClick={addReembolsoItem}>
-                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  <Button type="button" variant="outline" size="icon" aria-label="Adicionar reembolso" onClick={addReembolsoItem}>
+                    <Plus className="h-4 w-4" />
                   </Button>
                 </div>
               </div>

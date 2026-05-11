@@ -22,7 +22,6 @@ export default function GestaoPessoas() {
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Gestão de Pessoas</h1>
-        <p className="text-sm text-muted-foreground">Ferramentas de acompanhamento e disciplina.</p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {options.map((o) => (

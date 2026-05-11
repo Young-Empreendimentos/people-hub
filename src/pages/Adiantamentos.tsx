@@ -30,6 +30,9 @@ export default function Adiantamentos() {
   const [data, setData] = useState("");
   const [valor, setValor] = useState("");
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [numParcelas, setNumParcelas] = useState("");
+  const [mesInicial, setMesInicial] = useState("");
+  const [anoInicial, setAnoInicial] = useState("");
   const [obs, setObs] = useState("");
 
   const { data: adiantamentos = [], isLoading } = useQuery({
@@ -82,7 +85,7 @@ export default function Adiantamentos() {
     onError: () => toast.error("Erro ao excluir."),
   });
 
-  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setParcelas([]); setObs(""); setDialogOpen(true); };
+  const openNew = () => { setEditingId(null); setFuncId(""); setData(""); setValor(""); setParcelas([]); setNumParcelas(""); setMesInicial(""); setAnoInicial(""); setObs(""); setDialogOpen(true); };
 
   const openEdit = (a: any) => {
     setEditingId(a.id);
@@ -132,6 +135,22 @@ export default function Adiantamentos() {
     return list.map((p, i) => ({ ...p, valor: i === 0 ? +(base + resto).toFixed(2) : base }));
   };
 
+  const gerarParcelas = () => {
+    const n = parseInt(numParcelas);
+    const total = parseFloat(valor) || 0;
+    if (!n || n <= 0) { toast.error("Informe o número de parcelas."); return; }
+    if (total <= 0) { toast.error("Informe o valor total."); return; }
+    if (!mesInicial || !anoInicial) { toast.error("Informe o mês e ano inicial."); return; }
+    const startMes = parseInt(mesInicial);
+    const startAno = parseInt(anoInicial);
+    const lista: Parcela[] = Array.from({ length: n }, (_, i) => {
+      const mTotal = startMes - 1 + i;
+      const ano = startAno + Math.floor(mTotal / 12);
+      const mes = (mTotal % 12) + 1;
+      return { mes_ano: `${ano}-${String(mes).padStart(2, "0")}-01`, valor: 0 };
+    });
+    setParcelas(recalcParcelas(lista, total));
+  };
   const addParcela = () => {
     const total = parseFloat(valor) || 0;
     const next = [...parcelas, { mes_ano: "", valor: 0 }];
@@ -228,6 +247,17 @@ export default function Adiantamentos() {
               <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">Valor Total (R$) *</label><Input type="number" step="0.01" value={valor} onChange={(e) => onValorChange(e.target.value)} placeholder="0.00" /></div>
             </div>
+            <div className="space-y-2 rounded-md border p-3 bg-muted/30">
+              <label className="text-sm font-medium">Gerar parcelas automaticamente</label>
+              <div className="grid grid-cols-3 gap-2">
+                <Input type="number" min="1" placeholder="Nº parcelas" value={numParcelas} onChange={(e) => setNumParcelas(e.target.value)} />
+                <Combobox options={MESES_PT} value={mesInicial} onValueChange={setMesInicial} placeholder="Mês inicial" />
+                <Combobox options={ANOS_OPTS} value={anoInicial} onValueChange={setAnoInicial} placeholder="Ano inicial" />
+              </div>
+              <Button type="button" variant="secondary" size="sm" onClick={gerarParcelas} className="w-full">
+                Gerar {numParcelas && valor ? `${numParcelas}x de ${formatCurrency((parseFloat(valor) || 0) / (parseInt(numParcelas) || 1))}` : "parcelas"}
+              </Button>
+            </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium">Parcelas</label>
@@ -236,7 +266,7 @@ export default function Adiantamentos() {
                 </Button>
               </div>
               {parcelas.length === 0 && (
-                <p className="text-xs text-muted-foreground">Nenhuma parcela. Clique em "Adicionar parcela" para dividir o valor por mês.</p>
+                <p className="text-xs text-muted-foreground">Nenhuma parcela. Use "Gerar parcelas" acima ou clique em "Adicionar parcela" para inserir manualmente.</p>
               )}
               {parcelas.map((p, i) => {
                 const mes = p.mes_ano ? p.mes_ano.slice(5, 7) : "";

@@ -448,9 +448,15 @@ export default function FolhaMensal() {
                     <span className="font-medium text-muted-foreground">Tipo de Contrato:</span>{" "}
                     <span>{selectedFuncTipoContrato || "—"}</span>
                   </div>
-                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                    <span className="font-medium text-muted-foreground">Vale Refeição (VR):</span>{" "}
-                    <span className="tabular-nums">{fmt(vrCalculado)}</span>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Vale Refeição (VR) (R$)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={valorVr}
+                      onChange={(e) => setValorVr(e.target.value)}
+                      disabled={vrDesconsiderado}
+                    />
                   </div>
                 </div>
                 <div className="rounded-md border px-3 py-2 space-y-2">

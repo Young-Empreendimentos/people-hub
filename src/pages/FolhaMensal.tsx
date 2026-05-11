@@ -228,6 +228,7 @@ export default function FolhaMensal() {
     setEditingId(null); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
+    setVrDesconsiderado(false); setVrJustificativa("");
     setDialogOpen(true);
   };
 
@@ -238,6 +239,7 @@ export default function FolhaMensal() {
     setAuxilioEdu(f.auxilio_educacional); setDescontos(String(f.descontos_adiantamentos));
     setComissoes(String(f.valor_comissoes)); setPlr(String(f.valor_plr));
     setObs(f.observacoes || ""); setFile(null);
+    setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
     setDialogOpen(true);
   };
 

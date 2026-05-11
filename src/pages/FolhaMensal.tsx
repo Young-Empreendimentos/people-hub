@@ -67,7 +67,7 @@ export default function FolhaMensal() {
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id").order("nome_completo");
+      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato").order("nome_completo");
       return data || [];
     },
   });

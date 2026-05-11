@@ -21,7 +21,7 @@ const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 export default function Cargos() {
   const queryClient = useQueryClient();
-  const { canDelete } = useAuth();
+  const { canDelete, canManageCargos } = useAuth();
 
   const [trilhaDialogOpen, setTrilhaDialogOpen] = useState(false);
   const [editingTrilhaId, setEditingTrilhaId] = useState<string | null>(null);

@@ -544,8 +544,9 @@ export default function FolhaMensal() {
     setNovoReembolsoTipo(""); setNovoReembolsoValor(""); setNovoReembolsoObs("");
     const { data } = await supabase
       .from("rh_folha_descontos")
-      .select("id, tipo, valor, observacao")
-      .eq("folha_id", f.id);
+      .select("id, tipo, valor, observacao, origem")
+      .eq("folha_id", f.id)
+      .eq("origem", "manual");
     setDescontosLista((data || []).map((d: any) => ({
       id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
     })));

@@ -22,6 +22,7 @@ import { Plus, Pencil, Trash2, Upload } from "lucide-react";
 export default function Aditivos() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
+  const { isActive } = useActiveEmployees();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);

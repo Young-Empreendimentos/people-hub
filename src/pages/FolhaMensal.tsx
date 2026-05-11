@@ -548,32 +548,64 @@ export default function FolhaMensal() {
     return Date.now() - created <= 30 * 24 * 60 * 60 * 1000;
   };
 
-  const exportCSV = () => {
+  const exportCSV = async () => {
     if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
+    const ids = filtered.map((f: any) => f.id);
+    const [{ data: descData }, { data: reembData }] = await Promise.all([
+      supabase.from("rh_folha_descontos").select("folha_id, tipo, valor, observacao").in("folha_id", ids),
+      supabase.from("rh_folha_reembolsos").select("folha_id, tipo, valor, observacao, origem").in("folha_id", ids),
+    ]);
+    const descByFolha: Record<string, any[]> = {};
+    (descData || []).forEach((d: any) => { (descByFolha[d.folha_id] ||= []).push(d); });
+    const reembByFolha: Record<string, any[]> = {};
+    (reembData || []).forEach((d: any) => { (reembByFolha[d.folha_id] ||= []).push(d); });
+
+    const fmtNum = (n: number) => Number(n || 0).toFixed(2).replace(".", ",");
+    const joinList = (arr: any[]) =>
+      (arr || []).map((d) => `${d.tipo}: ${fmtNum(Number(d.valor))}${d.observacao ? ` (${d.observacao})` : ""}`).join(" | ");
+
     const headers = [
       "Mês","Funcionário","Empresa","Cargo","Nível","Salário Base",
-      "Horas Atraso/Faltas","Horas Extra","Plano Saúde","Desc. Título Parque",
-      "Auxílio Educacional","Descontos/Adiantamentos","Comissões","PLR","Observações","Criado em",
+      "Horas Atraso/Faltas","Horas Extra",
+      "Valor VR","VR Desconsiderado","Justificativa VR",
+      "Plano Saúde","Desc. Título Parque","Auxílio Educacional",
+      "Descontos/Adiantamentos","Descontos Detalhados","Total Descontos Detalhados",
+      "Reembolsos Detalhados","Total Reembolsos","Reembolsos Automáticos (Moradia)",
+      "Comissões","PLR","Observações","Anexo Holerite","Criado em",
     ];
     const rows = filtered.map((f: any) => {
       const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
       const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
+      const ds = descByFolha[f.id] || [];
+      const rs = reembByFolha[f.id] || [];
+      const totalDesc = ds.reduce((s, d) => s + Number(d.valor || 0), 0);
+      const totalReemb = rs.reduce((s, d) => s + Number(d.valor || 0), 0);
+      const autoReemb = rs.filter((d) => d.origem === "beneficio_moradia").reduce((s, d) => s + Number(d.valor || 0), 0);
       return [
         f.mes_referencia?.slice(0, 7) || "",
         f.rh_funcionarios?.nome_completo || "",
         getEmpresaNome(f.funcionario_id, f.mes_referencia),
         cargo?.nome || "",
         cargo?.nivel ?? "",
-        cargo ? cargo.remuneracao.toFixed(2).replace(".", ",") : "",
+        cargo ? fmtNum(cargo.remuneracao) : "",
         Number(f.horas_atraso_faltas || 0).toFixed(1).replace(".", ","),
         Number(f.horas_extra || 0).toFixed(1).replace(".", ","),
-        Number(f.plano_saude || 0).toFixed(2).replace(".", ","),
-        Number(f.desconto_titulo_parque || 0).toFixed(2).replace(".", ","),
+        fmtNum(Number(f.valor_vr || 0)),
+        f.vr_desconsiderado ? "Sim" : "Não",
+        (f.vr_justificativa || "").replace(/\r?\n/g, " "),
+        fmtNum(Number(f.plano_saude || 0)),
+        fmtNum(Number(f.desconto_titulo_parque || 0)),
         f.auxilio_educacional ? "Sim" : "Não",
-        Number(f.descontos_adiantamentos || 0).toFixed(2).replace(".", ","),
-        Number(f.valor_comissoes || 0).toFixed(2).replace(".", ","),
-        Number(f.valor_plr || 0).toFixed(2).replace(".", ","),
+        fmtNum(Number(f.descontos_adiantamentos || 0)),
+        joinList(ds),
+        fmtNum(totalDesc),
+        joinList(rs),
+        fmtNum(totalReemb),
+        fmtNum(autoReemb),
+        fmtNum(Number(f.valor_comissoes || 0)),
+        fmtNum(Number(f.valor_plr || 0)),
         (f.observacoes || "").replace(/\r?\n/g, " "),
+        f.anexo_holerite_path || "",
         f.created_at ? new Date(f.created_at).toLocaleString("pt-BR") : "",
       ];
     });

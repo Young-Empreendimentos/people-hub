@@ -883,7 +883,24 @@ export default function FolhaMensal() {
               <div className="space-y-2"><label className="text-sm font-medium">PLR (R$)</label><Input type="number" step="0.01" value={plr} onChange={(e) => setPlr(e.target.value)} /></div>
             </div>
             <div className="space-y-2 rounded-md border p-3">
-              <label className="text-sm font-medium">Descontos</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Descontos</label>
+                {planoSaudeCalculado && planoSaudeCalculado.desconto > 0 && (
+                  <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
+                    Plano de saúde aplicado automaticamente
+                  </span>
+                )}
+              </div>
+              {planoSaudeCalculado && planoSaudeCalculado.desconto > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
+                    <div className="flex-1 truncate">
+                      <span className="font-medium">Plano de Saúde</span> — <span className="tabular-nums">{fmt(planoSaudeCalculado.desconto)}</span>
+                      <span className="text-muted-foreground"> · 20% de {fmt(planoSaudeCalculado.total)} (cadastro do plano)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
                 <div className="md:col-span-4">
                   <Combobox

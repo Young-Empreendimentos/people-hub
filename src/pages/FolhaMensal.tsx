@@ -688,6 +688,48 @@ export default function FolhaMensal() {
               <div className="space-y-2"><label className="text-sm font-medium">Comissões (R$)</label><Input type="number" step="0.01" value={comissoes} onChange={(e) => setComissoes(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">PLR (R$)</label><Input type="number" step="0.01" value={plr} onChange={(e) => setPlr(e.target.value)} /></div>
             </div>
+            <div className="space-y-2 rounded-md border p-3">
+              <label className="text-sm font-medium">Descontos (lista)</label>
+              <div className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-4">
+                  <Combobox
+                    options={TIPOS_DESCONTO.map((t) => ({ value: t, label: t }))}
+                    value={novoDescontoTipo}
+                    onValueChange={setNovoDescontoTipo}
+                    placeholder="Tipo de desconto"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
+                </div>
+                <div className="col-span-3">
+                  <Input placeholder="Observação" value={novoDescontoObs} onChange={(e) => setNovoDescontoObs(e.target.value)} />
+                </div>
+                <div className="col-span-2">
+                  <Button type="button" variant="outline" className="w-full" onClick={addDescontoItem}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
+              </div>
+              {descontosLista.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  {descontosLista.map((d, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2 text-sm rounded bg-muted px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{fmt(parseFloat(d.valor) || 0)}</span>
+                        {d.observacao ? <span className="text-muted-foreground"> · {d.observacao}</span> : null}
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeDescontoItem(idx)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Total: {fmt(descontosLista.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0))}
+                  </p>
+                </div>
+              )}
+            </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
             <div className="space-y-2"><label className="text-sm font-medium">Holerite (anexo)</label>
               <div className="flex items-center gap-2">

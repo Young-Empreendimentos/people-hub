@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users, UserPlus, FileText } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText, Home } from "lucide-react";
 
 const options = [
   {
@@ -26,6 +26,12 @@ const options = [
     description: "Registre e acompanhe advertências verbais e formais dos funcionários.",
     url: "/gestao-pessoas/advertencias",
     icon: AlertTriangle,
+  },
+  {
+    title: "Benefícios de Moradia",
+    description: "Cadastre reembolso de aluguel e auxílio moradia dos funcionários.",
+    url: "/gestao-pessoas/beneficios-moradia",
+    icon: Home,
   },
 ];
 

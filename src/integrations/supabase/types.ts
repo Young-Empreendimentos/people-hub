@@ -4785,6 +4785,41 @@ export type Database = {
         }
         Relationships: []
       }
+      rh_folha_descontos: {
+        Row: {
+          created_at: string
+          folha_id: string
+          id: string
+          observacao: string | null
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          folha_id: string
+          id?: string
+          observacao?: string | null
+          tipo: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          folha_id?: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_folha_descontos_folha_id_fkey"
+            columns: ["folha_id"]
+            isOneToOne: false
+            referencedRelation: "rh_folha_mensal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_folha_mensal: {
         Row: {
           anexo_holerite_path: string | null

@@ -31,6 +31,7 @@ import Reembolsos from "./pages/Reembolsos";
 import ReembolsosDetalhes from "./pages/ReembolsosDetalhes";
 import Advertencias from "./pages/Advertencias";
 import BeneficiosMoradia from "./pages/BeneficiosMoradia";
+import Absenteismo from "./pages/Absenteismo";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();

@@ -153,7 +153,7 @@ export default function Funcionarios() {
   const openEdit = (f: any) => {
     setEditingId(f.id);
     setNomeCompleto(f.nome_completo);
-    setRg(f.rg || ""); setCpf(f.cpf || ""); setEndereco(f.endereco || "");
+    setRg(f.rg || ""); setCpf(f.cpf || ""); setEndereco(f.endereco || ""); setTelefone(f.telefone || "");
     setAniversario(f.aniversario || "");
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
     setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");

@@ -95,6 +95,20 @@ export default function Adiantamentos() {
 
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
 
+  const MESES_PT = [
+    { value: "01", label: "Janeiro" }, { value: "02", label: "Fevereiro" },
+    { value: "03", label: "Março" }, { value: "04", label: "Abril" },
+    { value: "05", label: "Maio" }, { value: "06", label: "Junho" },
+    { value: "07", label: "Julho" }, { value: "08", label: "Agosto" },
+    { value: "09", label: "Setembro" }, { value: "10", label: "Outubro" },
+    { value: "11", label: "Novembro" }, { value: "12", label: "Dezembro" },
+  ];
+  const anoAtual = new Date().getFullYear();
+  const ANOS_OPTS = Array.from({ length: 11 }, (_, i) => {
+    const a = String(anoAtual - 5 + i);
+    return { value: a, label: a };
+  });
+
   const addDataPagamento = () => setDatasPagamento([...datasPagamento, ""]);
   const updateDataPagamento = (index: number, value: string) => {
     const updated = [...datasPagamento];
@@ -103,6 +117,12 @@ export default function Adiantamentos() {
   };
   const removeDataPagamento = (index: number) => {
     setDatasPagamento(datasPagamento.filter((_, i) => i !== index));
+  };
+  const formatMesAno = (iso: string) => {
+    if (!iso) return "";
+    const [y, m] = iso.split("-");
+    const mes = MESES_PT.find((x) => x.value === m)?.label || m;
+    return `${mes}/${y}`;
   };
 
   const filtered = filterFunc ? adiantamentos.filter((a: any) => a.funcionario_id === filterFunc) : adiantamentos;
@@ -122,7 +142,7 @@ export default function Adiantamentos() {
         <Table>
           <TableHeader><TableRow>
             <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Valor</TableHead>
-            <TableHead>Datas Pagamento</TableHead><TableHead>Observações</TableHead>
+            <TableHead>Mês/Ano Pagamento</TableHead><TableHead>Observações</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
@@ -133,7 +153,7 @@ export default function Adiantamentos() {
                 <TableCell>{a.data}</TableCell>
                 <TableCell className="font-medium">{a.rh_funcionarios?.nome_completo || "—"}</TableCell>
                 <TableCell>{formatCurrency(Number(a.valor))}</TableCell>
-                <TableCell>{a.datas_pagamento_pretendidas?.join(", ") || "—"}</TableCell>
+                <TableCell>{a.datas_pagamento_pretendidas?.map(formatMesAno).join(", ") || "—"}</TableCell>
                 <TableCell className="max-w-[150px] truncate">{a.observacoes || "—"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
@@ -160,19 +180,36 @@ export default function Adiantamentos() {
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Datas de Pagamento Pretendidas</label>
+                <label className="text-sm font-medium">Mês/Ano de Pagamento Pretendido</label>
                 <Button type="button" variant="outline" size="sm" onClick={addDataPagamento}>
-                  <Plus className="mr-1 h-3 w-3" /> Adicionar data
+                  <Plus className="mr-1 h-3 w-3" /> Adicionar mês
                 </Button>
               </div>
-              {datasPagamento.map((dp, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <Input type="date" value={dp} onChange={(e) => updateDataPagamento(i, e.target.value)} />
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeDataPagamento(i)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+              {datasPagamento.map((dp, i) => {
+                const mes = dp ? dp.slice(5, 7) : "";
+                const ano = dp ? dp.slice(0, 4) : "";
+                const setMes = (m: string) => {
+                  const a = ano || String(anoAtual);
+                  updateDataPagamento(i, m ? `${a}-${m}-01` : "");
+                };
+                const setAno = (a: string) => {
+                  const m = mes || "01";
+                  updateDataPagamento(i, a ? `${a}-${m}-01` : "");
+                };
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <Combobox options={MESES_PT} value={mes} onValueChange={setMes} placeholder="Mês" />
+                    </div>
+                    <div className="flex-1">
+                      <Combobox options={ANOS_OPTS} value={ano} onValueChange={setAno} placeholder="Ano" />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeDataPagamento(i)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
           </div>

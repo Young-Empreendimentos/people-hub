@@ -113,6 +113,7 @@ export default function Admissoes() {
           equipe_id: equipeId || null,
           cargo_id: cargoId || null,
           data_contrato_vigente: dataContratoVigente || data || null,
+          tipo_contrato: tipoContrato || null,
         };
         const { data: newFunc, error: funcError } = await supabase
           .from("rh_funcionarios")

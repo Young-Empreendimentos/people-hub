@@ -21,7 +21,7 @@ const ROMAN = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"];
 
 export default function Cargos() {
   const queryClient = useQueryClient();
-  const { canDelete } = useAuth();
+  const { canDelete, canManageCargos } = useAuth();
 
   const [trilhaDialogOpen, setTrilhaDialogOpen] = useState(false);
   const [editingTrilhaId, setEditingTrilhaId] = useState<string | null>(null);
@@ -165,7 +165,7 @@ export default function Cargos() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button onClick={openNewTrilha}><Plus className="mr-2 h-4 w-4" /> Nova Trilha</Button>
+        {canManageCargos && <Button onClick={openNewTrilha}><Plus className="mr-2 h-4 w-4" /> Nova Trilha</Button>}
       </div>
 
       {loadingTrilhas ? (
@@ -187,17 +187,21 @@ export default function Cargos() {
                 <AccordionContent>
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEditTrilha(trilha)}>
-                        <Pencil className="mr-1 h-3 w-3" /> Editar Trilha
-                      </Button>
+                      {canManageCargos && (
+                        <Button size="sm" variant="outline" onClick={() => openEditTrilha(trilha)}>
+                          <Pencil className="mr-1 h-3 w-3" /> Editar Trilha
+                        </Button>
+                      )}
                       {canDelete && (
                         <Button size="sm" variant="outline" className="text-destructive" onClick={() => deleteTrilha.mutate(trilha.id)}>
                           <Trash2 className="mr-1 h-3 w-3" /> Excluir Trilha
                         </Button>
                       )}
-                      <Button size="sm" onClick={() => openNewCargo(trilha)}>
-                        <Plus className="mr-1 h-3 w-3" /> Novo Cargo
-                      </Button>
+                      {canManageCargos && (
+                        <Button size="sm" onClick={() => openNewCargo(trilha)}>
+                          <Plus className="mr-1 h-3 w-3" /> Novo Cargo
+                        </Button>
+                      )}
                     </div>
                     {trilhaCargos.length > 0 && (
                       <Table>
@@ -219,9 +223,11 @@ export default function Cargos() {
                               <TableCell className="text-muted-foreground text-sm">{cargo.adicionais || "—"}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" onClick={() => openEditCargo(cargo, trilha.nome)}>
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
+                                  {canManageCargos && (
+                                    <Button variant="ghost" size="icon" onClick={() => openEditCargo(cargo, trilha.nome)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                  )}
                                   {canDelete && (
                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => deleteCargo.mutate(cargo.id)}>
                                       <Trash2 className="h-4 w-4" />

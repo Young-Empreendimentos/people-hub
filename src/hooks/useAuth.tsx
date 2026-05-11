@@ -14,6 +14,9 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   canDelete: boolean;
   canConfig: boolean;
+  canManageCargos: boolean;
+  canManageBeneficiosMoradia: boolean;
+  canEditCargoSalario: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -73,9 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const canDelete = role === "admin" || role === "coordenador";
   const canConfig = role === "admin";
+  const canManageCargos = role === "admin" || role === "coordenador";
+  const canManageBeneficiosMoradia = role === "admin" || role === "coordenador";
+  const canEditCargoSalario = role === "admin" || role === "coordenador";
 
   return (
-    <AuthContext.Provider value={{ session, user, role, userName, loading, signIn, signOut, canDelete, canConfig }}>
+    <AuthContext.Provider value={{ session, user, role, userName, loading, signIn, signOut, canDelete, canConfig, canManageCargos, canManageBeneficiosMoradia, canEditCargoSalario }}>
       {children}
     </AuthContext.Provider>
   );

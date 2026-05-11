@@ -1,0 +1,1 @@
+ALTER TABLE public.rh_funcionarios ADD COLUMN IF NOT EXISTS telefone text;

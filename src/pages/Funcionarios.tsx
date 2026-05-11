@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { Pencil, Trash2, Search, Eye, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { maskCPF, maskRG, isValidCPF } from "@/lib/masks";
+import { maskCPF, maskRG, maskPhone, isValidCPF } from "@/lib/masks";
 
 export default function Funcionarios() {
   const queryClient = useQueryClient();
@@ -38,6 +38,7 @@ export default function Funcionarios() {
   const [rg, setRg] = useState("");
   const [cpf, setCpf] = useState("");
   const [endereco, setEndereco] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [aniversario, setAniversario] = useState("");
   const [empresaId, setEmpresaId] = useState("");
   const [equipeId, setEquipeId] = useState("");
@@ -112,6 +113,7 @@ export default function Funcionarios() {
         rg: rg || null,
         cpf: cpf || null,
         endereco: endereco || null,
+        telefone: telefone || null,
         aniversario: aniversario || null,
         empresa_id: empresaId || null,
         equipe_id: equipeId || null,
@@ -151,7 +153,7 @@ export default function Funcionarios() {
   const openEdit = (f: any) => {
     setEditingId(f.id);
     setNomeCompleto(f.nome_completo);
-    setRg(f.rg || ""); setCpf(f.cpf || ""); setEndereco(f.endereco || "");
+    setRg(f.rg || ""); setCpf(f.cpf || ""); setEndereco(f.endereco || ""); setTelefone(f.telefone || "");
     setAniversario(f.aniversario || "");
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
     setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
@@ -294,9 +296,15 @@ export default function Funcionarios() {
                 {cpfError && <p className="text-xs text-destructive">{cpfError}</p>}
               </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Endereço</label>
-              <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Endereço</label>
+                <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Telefone</label>
+                <Input value={telefone} onChange={(e) => setTelefone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" />
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">

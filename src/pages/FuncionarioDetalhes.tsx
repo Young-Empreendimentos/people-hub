@@ -223,6 +223,7 @@ export default function FuncionarioDetalhes() {
               <div><span className="font-medium text-muted-foreground">RG:</span> {(func as any).rg || "—"}</div>
               <div><span className="font-medium text-muted-foreground">CPF:</span> {(func as any).cpf || "—"}</div>
               <div className="col-span-2"><span className="font-medium text-muted-foreground">Endereço:</span> {(func as any).endereco || "—"}</div>
+              <div className="col-span-2"><span className="font-medium text-muted-foreground">Telefone:</span> {(func as any).telefone || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Aniversário:</span> {(func as any).aniversario || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Data de Admissão:</span> {dataAdmissao || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {(func as any).data_contrato_vigente || "—"}</div>

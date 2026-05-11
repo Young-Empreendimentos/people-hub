@@ -81,7 +81,14 @@ export default function FolhaMensal() {
   };
 
   // Lista de reembolsos manuais
-  const TIPOS_REEMBOLSO = ["Gratificação", "Reembolso de Aluguel", "Auxílio Moradia", "Outro"];
+  const TIPOS_REEMBOLSO = [
+    "Gratificação",
+    "Viagens Corporativas",
+    "Transporte e Mobilidade",
+    "Alimentação",
+    "Educação e Treinamento",
+    "Outro",
+  ];
   type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string };
   const [reembolsosLista, setReembolsosLista] = useState<ReembolsoItem[]>([]);
   const [novoReembolsoTipo, setNovoReembolsoTipo] = useState("");

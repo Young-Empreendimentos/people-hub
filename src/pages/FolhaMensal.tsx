@@ -616,18 +616,37 @@ export default function FolhaMensal() {
     (reembData || []).forEach((d: any) => { (reembByFolha[d.folha_id] ||= []).push(d); });
 
     const fmtNum = (n: number) => Number(n || 0).toFixed(2).replace(".", ",");
-    const joinList = (arr: any[]) =>
-      (arr || []).map((d) => `${d.tipo}: ${fmtNum(Number(d.valor))}${d.observacao ? ` (${d.observacao})` : ""}`).join(" | ");
+
+    // Normaliza nome do tipo (Adiantamentos -> Adiantamento)
+    const normTipo = (d: any) => {
+      if (d?.origem === "adiantamento" || /adiantamento/i.test(d?.tipo || "")) return "Adiantamento";
+      return (d?.tipo || "Outros").trim();
+    };
+
+    // Descobre todos os tipos únicos para criar colunas dinâmicas
+    const descTipos = new Set<string>();
+    const reembTipos = new Set<string>();
+    Object.values(descByFolha).forEach((arr: any) => arr.forEach((d: any) => descTipos.add(normTipo(d))));
+    Object.values(reembByFolha).forEach((arr: any) => arr.forEach((d: any) => reembTipos.add(normTipo(d))));
+    // Garante a coluna Adiantamento sempre presente
+    descTipos.add("Adiantamento");
+    const descTiposArr = Array.from(descTipos).sort((a, b) => (a === "Adiantamento" ? -1 : b === "Adiantamento" ? 1 : a.localeCompare(b)));
+    const reembTiposArr = Array.from(reembTipos).sort((a, b) => a.localeCompare(b));
 
     const headers = [
       "Mês","Funcionário","Empresa","Cargo","Nível","Salário Base",
       "Horas Extra",
       "Valor VR","VR Desconsiderado","Justificativa VR",
       "Plano Saúde",
-      "Descontos Detalhados","Total Descontos",
-      "Reembolsos Detalhados","Total Reembolsos",
+      ...descTiposArr.map((t) => `Desconto - ${t}`),
+      "Total Descontos",
+      ...reembTiposArr.map((t) => `Reembolso - ${t}`),
+      "Total Reembolsos",
       "Comissões","PLR","Observações","Anexo Holerite","Criado em",
     ];
+    const sumByTipo = (arr: any[], tipo: string) =>
+      (arr || []).filter((d) => normTipo(d) === tipo).reduce((s, d) => s + Number(d.valor || 0), 0);
+
     const rows = filtered.map((f: any) => {
       const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
       const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
@@ -647,9 +666,9 @@ export default function FolhaMensal() {
         f.vr_desconsiderado ? "Sim" : "Não",
         (f.vr_justificativa || "").replace(/\r?\n/g, " "),
         fmtNum(Number(f.plano_saude || 0)),
-        joinList(ds),
+        ...descTiposArr.map((t) => fmtNum(sumByTipo(ds, t))),
         fmtNum(totalDesc),
-        joinList(rs),
+        ...reembTiposArr.map((t) => fmtNum(sumByTipo(rs, t))),
         fmtNum(totalReemb),
         fmtNum(Number(f.valor_comissoes || 0)),
         fmtNum(Number(f.valor_plr || 0)),

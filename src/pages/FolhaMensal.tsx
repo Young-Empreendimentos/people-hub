@@ -65,18 +65,40 @@ export default function FolhaMensal() {
   const [novoDescontoTipo, setNovoDescontoTipo] = useState("");
   const [novoDescontoValor, setNovoDescontoValor] = useState("");
   const [novoDescontoObs, setNovoDescontoObs] = useState("");
+  const hhmmToHours = (s: string) => {
+    const m = /^(\d{1,3}):(\d{2})$/.exec(s.trim());
+    if (!m) return NaN;
+    return parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
+  };
+  const hoursToHHMM = (h: number) => {
+    if (!isFinite(h)) return "00:00";
+    const total = Math.round(h * 60);
+    const hh = Math.floor(total / 60);
+    const mm = total % 60;
+    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
   const addDescontoItem = () => {
     if (!novoDescontoTipo) {
       toast.error("Selecione o tipo do desconto.");
       return;
     }
     const isHorasFalta = novoDescontoTipo === "Horas Falta";
-    const v = parseFloat(novoDescontoValor);
-    if (!isHorasFalta && (isNaN(v) || v <= 0)) {
-      toast.error("Informe um valor válido.");
-      return;
+    let valorFinal: number;
+    if (isHorasFalta) {
+      const h = hhmmToHours(novoDescontoValor);
+      if (isNaN(h) || h <= 0) {
+        toast.error("Informe a duração no formato HH:MM (ex.: 21:00).");
+        return;
+      }
+      valorFinal = h;
+    } else {
+      const v = parseFloat(novoDescontoValor);
+      if (isNaN(v) || v <= 0) {
+        toast.error("Informe um valor válido.");
+        return;
+      }
+      valorFinal = v;
     }
-    const valorFinal = isNaN(v) ? 0 : v;
     setDescontosLista((arr) => [...arr, { tipo: novoDescontoTipo, valor: String(valorFinal), observacao: novoDescontoObs }]);
     setNovoDescontoTipo("");
     setNovoDescontoValor("");

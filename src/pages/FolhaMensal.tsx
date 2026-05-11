@@ -409,16 +409,50 @@ export default function FolhaMensal() {
               </div>
             </div>
             {funcId && (
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                  <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
-                  <span>{dialogEmpresa}</span>
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
+                    <span>{dialogEmpresa}</span>
+                  </div>
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}{selectedFuncCargo?.nivel != null ? ` - Nível ${selectedFuncCargo.nivel}` : ""}):</span>{" "}
+                    <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
+                  </div>
                 </div>
-                <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                  <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}{selectedFuncCargo?.nivel != null ? ` - Nível ${selectedFuncCargo.nivel}` : ""}):</span>{" "}
-                  <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Tipo de Contrato:</span>{" "}
+                    <span>{selectedFuncTipoContrato || "—"}</span>
+                  </div>
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                    <span className="font-medium text-muted-foreground">Vale Refeição (VR):</span>{" "}
+                    <span className="tabular-nums">{fmt(vrCalculado)}</span>
+                  </div>
                 </div>
-              </div>
+                <div className="rounded-md border px-3 py-2 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="vr-desc"
+                      checked={vrDesconsiderado}
+                      onChange={(e) => setVrDesconsiderado(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <label htmlFor="vr-desc" className="text-sm font-medium cursor-pointer">
+                      Desconsiderar VR nesta folha
+                    </label>
+                  </div>
+                  {vrDesconsiderado && (
+                    <Textarea
+                      placeholder="Justificativa para desconsiderar o VR"
+                      value={vrJustificativa}
+                      onChange={(e) => setVrJustificativa(e.target.value)}
+                      rows={2}
+                    />
+                  )}
+                </div>
+              </>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Horas Atraso/Faltas</label><Input type="number" step="0.1" value={horasAtraso} onChange={(e) => setHorasAtraso(e.target.value)} /></div>

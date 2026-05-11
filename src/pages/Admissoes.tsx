@@ -294,9 +294,15 @@ export default function Admissoes() {
                     {cpfError && <p className="text-xs text-destructive">{cpfError}</p>}
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Endereço</label>
-                  <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Endereço</label>
+                    <Input value={endereco} onChange={(e) => setEndereco(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Telefone</label>
+                    <Input value={telefone} onChange={(e) => setTelefone(maskPhone(e.target.value))} placeholder="(00) 00000-0000" />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

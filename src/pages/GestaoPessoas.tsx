@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText } from "lucide-react";
 
 const options = [
   {
@@ -8,6 +8,18 @@ const options = [
     description: "Gerencie os dados dos funcionários da empresa.",
     url: "/funcionarios",
     icon: Users,
+  },
+  {
+    title: "Admissões e Desligamentos",
+    description: "Controle as admissões e desligamentos dos funcionários.",
+    url: "/admissoes",
+    icon: UserPlus,
+  },
+  {
+    title: "Aditivos",
+    description: "Gerencie aditivos contratuais dos funcionários.",
+    url: "/aditivos",
+    icon: FileText,
   },
   {
     title: "Advertências",

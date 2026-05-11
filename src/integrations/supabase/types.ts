@@ -4565,6 +4565,47 @@ export type Database = {
           },
         ]
       }
+      rh_advertencias: {
+        Row: {
+          arquivo_url: string | null
+          created_at: string
+          data: string
+          funcionario_id: string
+          id: string
+          motivo: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          arquivo_url?: string | null
+          created_at?: string
+          data: string
+          funcionario_id: string
+          id?: string
+          motivo: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          arquivo_url?: string | null
+          created_at?: string
+          data?: string
+          funcionario_id?: string
+          id?: string
+          motivo?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_advertencias_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_atividades: {
         Row: {
           created_at: string

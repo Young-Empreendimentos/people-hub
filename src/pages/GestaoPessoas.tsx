@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX, HeartPulse } from "lucide-react";
 
 const options = [
   {
@@ -38,6 +38,12 @@ const options = [
     description: "Controle mensal de faltas e taxa de absenteísmo por funcionário.",
     url: "/gestao-pessoas/absenteismo",
     icon: CalendarX,
+  },
+  {
+    title: "Plano de Saúde",
+    description: "Registre mês a mês os valores de plano de saúde e odontológico.",
+    url: "/gestao-pessoas/plano-saude",
+    icon: HeartPulse,
   },
 ];
 

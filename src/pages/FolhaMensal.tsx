@@ -619,7 +619,7 @@ export default function FolhaMensal() {
         </div>
       )}
 
-      <Card><CardContent className="p-0">
+      <Card><CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
             <TableHead>Mês</TableHead><TableHead>Funcionário</TableHead>

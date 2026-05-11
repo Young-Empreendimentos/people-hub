@@ -673,7 +673,7 @@ export default function FolhaMensal() {
       const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
       const ds = descByFolha[f.id] || [];
       const rs = reembByFolha[f.id] || [];
-      const totalDesc = ds.reduce((s, d) => s + Number(d.valor || 0), 0);
+      const totalDesc = ds.filter((d: any) => normTipo(d) !== "Horas Falta").reduce((s, d) => s + Number(d.valor || 0), 0);
       const totalReemb = rs.reduce((s, d) => s + Number(d.valor || 0), 0);
       return [
         f.mes_referencia?.slice(0, 7) || "",
@@ -686,7 +686,7 @@ export default function FolhaMensal() {
         fmtNum(Number(f.valor_vr || 0)),
         f.vr_desconsiderado ? "Sim" : "Não",
         (f.vr_justificativa || "").replace(/\r?\n/g, " "),
-        ...descTiposArr.map((t) => fmtNum(sumByTipo(ds, t))),
+        ...descTiposArr.map((t) => t === "Horas Falta" ? hoursToHHMM(sumByTipo(ds, t)) : fmtNum(sumByTipo(ds, t))),
         fmtNum(totalDesc),
         ...reembTiposArr.map((t) => fmtNum(sumByTipo(rs, t))),
         fmtNum(totalReemb),

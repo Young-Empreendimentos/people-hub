@@ -29,11 +29,16 @@ export default function DescontosDetalhes() {
     queryKey: ["rh_folha_descontos_detalhes", mes],
     enabled: !!mes,
     queryFn: async () => {
+      const [y, m] = mes!.split("-").map(Number);
+      const ini = `${mes}-01`;
+      const nextY = m === 12 ? y + 1 : y;
+      const nextM = m === 12 ? 1 : m + 1;
+      const fim = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
       const { data, error } = await supabase
         .from("rh_folha_descontos")
         .select("id, tipo, valor, observacao, rh_folha_mensal!inner(mes_referencia, funcionario_id, rh_funcionarios(nome_completo, empresa_id))")
-        .gte("rh_folha_mensal.mes_referencia", `${mes}-01`)
-        .lte("rh_folha_mensal.mes_referencia", `${mes}-31`);
+        .gte("rh_folha_mensal.mes_referencia", ini)
+        .lt("rh_folha_mensal.mes_referencia", fim);
       if (error) throw error;
       return data || [];
     },

@@ -171,9 +171,8 @@ export default function Advertencias() {
               const isOpen = expanded[f.id];
               const list = advByFunc[f.id] || [];
               return (
-                <>
-                <>
-                  <TableRow key={f.id + "-row"}>
+                <React.Fragment key={f.id}>
+                  <TableRow>
                     <TableCell>
                       {count > 0 && (
                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded((p) => ({ ...p, [f.id]: !p[f.id] }))}>

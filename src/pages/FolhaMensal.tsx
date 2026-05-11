@@ -448,17 +448,27 @@ export default function FolhaMensal() {
         folhaId = data.id;
       }
 
-      // Sincroniza lista de descontos
+      // Sincroniza lista de descontos (manual + automático do plano de saúde)
       if (folhaId) {
         await supabase.from("rh_folha_descontos").delete().eq("folha_id", folhaId);
-        if (descontosLista.length > 0) {
-          const rows = descontosLista.map((d) => ({
+        const descRows: any[] = descontosLista.map((d) => ({
+          folha_id: folhaId,
+          tipo: d.tipo,
+          valor: parseFloat(d.valor) || 0,
+          observacao: d.observacao || null,
+          origem: "manual",
+        }));
+        if (planoSaudeCalculado && planoSaudeCalculado.desconto > 0) {
+          descRows.push({
             folha_id: folhaId,
-            tipo: d.tipo,
-            valor: parseFloat(d.valor) || 0,
-            observacao: d.observacao || null,
-          }));
-          const { error } = await supabase.from("rh_folha_descontos").insert(rows);
+            tipo: "Plano de Saúde",
+            valor: planoSaudeCalculado.desconto,
+            observacao: `20% de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.total)} (saúde + odonto + uso)`,
+            origem: "plano_saude",
+          });
+        }
+        if (descRows.length > 0) {
+          const { error } = await supabase.from("rh_folha_descontos").insert(descRows);
           if (error) throw error;
         }
 
@@ -544,8 +554,9 @@ export default function FolhaMensal() {
     setNovoReembolsoTipo(""); setNovoReembolsoValor(""); setNovoReembolsoObs("");
     const { data } = await supabase
       .from("rh_folha_descontos")
-      .select("id, tipo, valor, observacao")
-      .eq("folha_id", f.id);
+      .select("id, tipo, valor, observacao, origem")
+      .eq("folha_id", f.id)
+      .eq("origem", "manual");
     setDescontosLista((data || []).map((d: any) => ({
       id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
     })));
@@ -872,7 +883,24 @@ export default function FolhaMensal() {
               <div className="space-y-2"><label className="text-sm font-medium">PLR (R$)</label><Input type="number" step="0.01" value={plr} onChange={(e) => setPlr(e.target.value)} /></div>
             </div>
             <div className="space-y-2 rounded-md border p-3">
-              <label className="text-sm font-medium">Descontos</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Descontos</label>
+                {planoSaudeCalculado && planoSaudeCalculado.desconto > 0 && (
+                  <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
+                    Plano de saúde aplicado automaticamente
+                  </span>
+                )}
+              </div>
+              {planoSaudeCalculado && planoSaudeCalculado.desconto > 0 && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
+                    <div className="flex-1 truncate">
+                      <span className="font-medium">Plano de Saúde</span> — <span className="tabular-nums">{fmt(planoSaudeCalculado.desconto)}</span>
+                      <span className="text-muted-foreground"> · 20% de {fmt(planoSaudeCalculado.total)} (cadastro do plano)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
                 <div className="md:col-span-4">
                   <Combobox

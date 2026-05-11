@@ -32,6 +32,7 @@ import ReembolsosDetalhes from "./pages/ReembolsosDetalhes";
 import Advertencias from "./pages/Advertencias";
 import BeneficiosMoradia from "./pages/BeneficiosMoradia";
 import Absenteismo from "./pages/Absenteismo";
+import PlanoSaude from "./pages/PlanoSaude";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="/gestao-pessoas/advertencias" element={<Advertencias />} />
               <Route path="/gestao-pessoas/beneficios-moradia" element={<BeneficiosMoradia />} />
               <Route path="/gestao-pessoas/absenteismo" element={<Absenteismo />} />
+              <Route path="/gestao-pessoas/plano-saude" element={<PlanoSaude />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

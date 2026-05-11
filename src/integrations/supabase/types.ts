@@ -5176,6 +5176,50 @@ export type Database = {
           },
         ]
       }
+      rh_plano_saude: {
+        Row: {
+          created_at: string
+          funcionario_id: string
+          id: string
+          mes_referencia: string
+          observacoes: string | null
+          updated_at: string
+          uso_plano: number
+          valor_odonto: number
+          valor_saude: number
+        }
+        Insert: {
+          created_at?: string
+          funcionario_id: string
+          id?: string
+          mes_referencia: string
+          observacoes?: string | null
+          updated_at?: string
+          uso_plano?: number
+          valor_odonto?: number
+          valor_saude?: number
+        }
+        Update: {
+          created_at?: string
+          funcionario_id?: string
+          id?: string
+          mes_referencia?: string
+          observacoes?: string | null
+          updated_at?: string
+          uso_plano?: number
+          valor_odonto?: number
+          valor_saude?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_plano_saude_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_tipos_aditivo: {
         Row: {
           created_at: string

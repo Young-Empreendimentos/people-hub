@@ -249,7 +249,7 @@ export default function Aditivos() {
               <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={empresaFinalId} onValueChange={setEmpresaFinalId} placeholder="Selecione" />
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Cargo Final</label>
-              <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nome }))} value={cargoFinalId} onValueChange={setCargoFinalId} placeholder="Selecione" />
+              <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nivel != null ? `${c.nome} — Nível ${c.nivel}` : c.nome }))} value={cargoFinalId} onValueChange={setCargoFinalId} placeholder="Selecione" />
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Equipe Final</label>
               <Combobox options={equipes.map((e: any) => ({ value: e.id, label: e.nome }))} value={equipeFinalId} onValueChange={setEquipeFinalId} placeholder="Selecione" />

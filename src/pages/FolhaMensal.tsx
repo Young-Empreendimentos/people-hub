@@ -694,22 +694,22 @@ export default function FolhaMensal() {
             </div>
             {funcId && (
               <>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm min-w-0 break-words">
                     <span className="font-medium text-muted-foreground">Empresa:</span>{" "}
                     <span>{dialogEmpresa}</span>
                   </div>
-                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm min-w-0 break-words">
                     <span className="font-medium text-muted-foreground">Salário ({selectedFuncCargo?.nome || "—"}{selectedFuncCargo?.nivel != null ? ` - Nível ${selectedFuncCargo.nivel}` : ""}):</span>{" "}
                     <span className="tabular-nums">{selectedFuncCargo ? fmt(selectedFuncCargo.remuneracao) : "—"}</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-md bg-muted px-3 py-2 text-sm min-w-0 break-words">
                     <span className="font-medium text-muted-foreground">Tipo de Contrato:</span>{" "}
                     <span>{selectedFuncTipoContrato || "—"}</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <label className="text-sm font-medium">Vale Refeição (VR) (R$)</label>
                     <Input
                       type="number"

@@ -25,6 +25,8 @@ import Configuracoes from "./pages/Configuracoes";
 import GestaoPessoas from "./pages/GestaoPessoas";
 import Estrutura from "./pages/Estrutura";
 import Financeiro from "./pages/Financeiro";
+import Descontos from "./pages/Descontos";
+import DescontosDetalhes from "./pages/DescontosDetalhes";
 import Advertencias from "./pages/Advertencias";
 import NotFound from "./pages/NotFound";
 

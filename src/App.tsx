@@ -30,6 +30,7 @@ import DescontosDetalhes from "./pages/DescontosDetalhes";
 import Reembolsos from "./pages/Reembolsos";
 import ReembolsosDetalhes from "./pages/ReembolsosDetalhes";
 import Advertencias from "./pages/Advertencias";
+import BeneficiosMoradia from "./pages/BeneficiosMoradia";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/reembolsos/:mes" element={<ReembolsosDetalhes />} />
               <Route path="/gestao-pessoas" element={<GestaoPessoas />} />
               <Route path="/gestao-pessoas/advertencias" element={<Advertencias />} />
+              <Route path="/gestao-pessoas/beneficios-moradia" element={<BeneficiosMoradia />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

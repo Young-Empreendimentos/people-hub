@@ -396,6 +396,17 @@ export default function FolhaMensal() {
         const { error } = await supabase.from("rh_folha_mensal").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
+        // Verifica duplicidade: 1 folha por funcionário/mês
+        const { data: existente, error: errCheck } = await supabase
+          .from("rh_folha_mensal")
+          .select("id")
+          .eq("funcionario_id", funcId)
+          .eq("mes_referencia", mesRef + "-01")
+          .maybeSingle();
+        if (errCheck) throw errCheck;
+        if (existente) {
+          throw new Error("Esta folha já foi cadastrada");
+        }
         payload.anexo_holerite_path = anexo_holerite_path;
         const { data, error } = await supabase.from("rh_folha_mensal").insert(payload).select("id").single();
         if (error) throw error;

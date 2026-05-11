@@ -165,7 +165,7 @@ export default function Cargos() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <Button onClick={openNewTrilha}><Plus className="mr-2 h-4 w-4" /> Nova Trilha</Button>
+        {canManageCargos && <Button onClick={openNewTrilha}><Plus className="mr-2 h-4 w-4" /> Nova Trilha</Button>}
       </div>
 
       {loadingTrilhas ? (

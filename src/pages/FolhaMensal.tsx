@@ -467,6 +467,15 @@ export default function FolhaMensal() {
             origem: "plano_saude",
           });
         }
+        if (totalAdiantamentosPrevistos > 0) {
+          descRows.push({
+            folha_id: folhaId,
+            tipo: "Adiantamentos",
+            valor: totalAdiantamentosPrevistos,
+            observacao: "Aplicado automaticamente a partir do módulo Adiantamentos",
+            origem: "adiantamento",
+          });
+        }
         if (descRows.length > 0) {
           const { error } = await supabase.from("rh_folha_descontos").insert(descRows);
           if (error) throw error;

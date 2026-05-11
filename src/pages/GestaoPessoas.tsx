@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users, UserPlus, FileText, Home } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX } from "lucide-react";
 
 const options = [
   {
@@ -32,6 +32,12 @@ const options = [
     description: "Cadastre reembolso de aluguel e auxílio moradia dos funcionários.",
     url: "/gestao-pessoas/beneficios-moradia",
     icon: Home,
+  },
+  {
+    title: "Absenteísmo",
+    description: "Controle mensal de faltas e taxa de absenteísmo por funcionário.",
+    url: "/gestao-pessoas/absenteismo",
+    icon: CalendarX,
   },
 ];
 

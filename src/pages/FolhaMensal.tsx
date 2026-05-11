@@ -467,6 +467,7 @@ export default function FolhaMensal() {
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
     setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
     setDescontosLista([]); setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
+    setReembolsosLista([]); setNovoReembolsoTipo(""); setNovoReembolsoValor(""); setNovoReembolsoObs("");
     setDialogOpen(true);
   };
 
@@ -482,11 +483,20 @@ export default function FolhaMensal() {
     setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
     setValorVr(String(f.valor_vr || 0));
     setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
+    setNovoReembolsoTipo(""); setNovoReembolsoValor(""); setNovoReembolsoObs("");
     const { data } = await supabase
       .from("rh_folha_descontos")
       .select("id, tipo, valor, observacao")
       .eq("folha_id", f.id);
     setDescontosLista((data || []).map((d: any) => ({
+      id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
+    })));
+    const { data: reembData } = await supabase
+      .from("rh_folha_reembolsos")
+      .select("id, tipo, valor, observacao, origem")
+      .eq("folha_id", f.id)
+      .eq("origem", "manual");
+    setReembolsosLista((reembData || []).map((d: any) => ({
       id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
     })));
     setDialogOpen(true);

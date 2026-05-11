@@ -113,6 +113,7 @@ export default function Funcionarios() {
         rg: rg || null,
         cpf: cpf || null,
         endereco: endereco || null,
+        telefone: telefone || null,
         aniversario: aniversario || null,
         empresa_id: empresaId || null,
         equipe_id: equipeId || null,

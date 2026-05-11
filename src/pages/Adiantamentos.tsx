@@ -42,10 +42,7 @@ export default function Adiantamentos() {
     },
   });
 
-  const { data: funcionarios = [] } = useQuery({
-    queryKey: ["rh_funcionarios"],
-    queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
-  });
+  const { funcionarios, isActive } = useActiveEmployees();
 
   const saveMutation = useMutation({
     mutationFn: async () => {

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -232,7 +232,7 @@ export default function Advertencias() {
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               );
             })}
           </TableBody>

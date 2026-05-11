@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Receipt } from "lucide-react";
 
 const options = [
   {
@@ -8,6 +8,12 @@ const options = [
     description: "Gerencie os adiantamentos salariais dos funcionários.",
     url: "/adiantamentos",
     icon: DollarSign,
+  },
+  {
+    title: "Descontos",
+    description: "Veja por mês os descontos lançados nas folhas.",
+    url: "/descontos",
+    icon: Receipt,
   },
 ];
 

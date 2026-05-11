@@ -52,6 +52,35 @@ export default function FolhaMensal() {
   const [valorVr, setValorVr] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
+  // Lista de descontos (tipo + valor)
+  const TIPOS_DESCONTO = [
+    "Plano de Saúde",
+    "Parque da Guarda",
+    "Danos Patrimoniais",
+    "Horas Falta",
+    "Reembolso de Aluguel",
+    "Gastos no Cartão Corporativo",
+  ];
+  type DescontoItem = { id?: string; tipo: string; valor: string; observacao: string };
+  const [descontosLista, setDescontosLista] = useState<DescontoItem[]>([]);
+  const [novoDescontoTipo, setNovoDescontoTipo] = useState("");
+  const [novoDescontoValor, setNovoDescontoValor] = useState("");
+  const [novoDescontoObs, setNovoDescontoObs] = useState("");
+  const addDescontoItem = () => {
+    const v = parseFloat(novoDescontoValor);
+    if (!novoDescontoTipo || isNaN(v) || v <= 0) {
+      toast.error("Selecione o tipo e informe um valor válido.");
+      return;
+    }
+    setDescontosLista((arr) => [...arr, { tipo: novoDescontoTipo, valor: String(v), observacao: novoDescontoObs }]);
+    setNovoDescontoTipo("");
+    setNovoDescontoValor("");
+    setNovoDescontoObs("");
+  };
+  const removeDescontoItem = (idx: number) => {
+    setDescontosLista((arr) => arr.filter((_, i) => i !== idx));
+  };
+
   const VR_CLT_VALOR = 300;
 
   const { data: folhas = [], isLoading } = useQuery({
@@ -297,17 +326,36 @@ export default function FolhaMensal() {
       };
       if (file) payload.anexo_holerite_path = anexo_holerite_path;
 
+      let folhaId = editingId;
       if (editingId) {
         const { error } = await supabase.from("rh_folha_mensal").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
         payload.anexo_holerite_path = anexo_holerite_path;
-        const { error } = await supabase.from("rh_folha_mensal").insert(payload);
+        const { data, error } = await supabase.from("rh_folha_mensal").insert(payload).select("id").single();
         if (error) throw error;
+        folhaId = data.id;
+      }
+
+      // Sincroniza lista de descontos
+      if (folhaId) {
+        await supabase.from("rh_folha_descontos").delete().eq("folha_id", folhaId);
+        if (descontosLista.length > 0) {
+          const rows = descontosLista.map((d) => ({
+            folha_id: folhaId,
+            tipo: d.tipo,
+            valor: parseFloat(d.valor) || 0,
+            observacao: d.observacao || null,
+          }));
+          const { error } = await supabase.from("rh_folha_descontos").insert(rows);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_folha_mensal"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_meses"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_detalhes"] });
       toast.success(editingId ? "Folha atualizada." : "Folha registrada.");
       closeDialog();
     },
@@ -329,10 +377,11 @@ export default function FolhaMensal() {
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
     setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
+    setDescontosLista([]); setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
     setDialogOpen(true);
   };
 
-  const openEdit = (f: any) => {
+  const openEdit = async (f: any) => {
     setEditingId(f.id); setFuncId(f.funcionario_id); setMesRef(f.mes_referencia?.slice(0, 7) || "");
     const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
     setDialogEmpresaId(empAt || "");
@@ -343,6 +392,14 @@ export default function FolhaMensal() {
     setObs(f.observacoes || ""); setFile(null);
     setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
     setValorVr(String(f.valor_vr || 0));
+    setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
+    const { data } = await supabase
+      .from("rh_folha_descontos")
+      .select("id, tipo, valor, observacao")
+      .eq("folha_id", f.id);
+    setDescontosLista((data || []).map((d: any) => ({
+      id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
+    })));
     setDialogOpen(true);
   };
 
@@ -630,6 +687,48 @@ export default function FolhaMensal() {
               <div className="space-y-2"><label className="text-sm font-medium">Descontos/Adiant. (R$)</label><Input type="number" step="0.01" value={descontos} onChange={(e) => setDescontos(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">Comissões (R$)</label><Input type="number" step="0.01" value={comissoes} onChange={(e) => setComissoes(e.target.value)} /></div>
               <div className="space-y-2"><label className="text-sm font-medium">PLR (R$)</label><Input type="number" step="0.01" value={plr} onChange={(e) => setPlr(e.target.value)} /></div>
+            </div>
+            <div className="space-y-2 rounded-md border p-3">
+              <label className="text-sm font-medium">Descontos (lista)</label>
+              <div className="grid grid-cols-12 gap-2 items-end">
+                <div className="col-span-4">
+                  <Combobox
+                    options={TIPOS_DESCONTO.map((t) => ({ value: t, label: t }))}
+                    value={novoDescontoTipo}
+                    onValueChange={setNovoDescontoTipo}
+                    placeholder="Tipo de desconto"
+                  />
+                </div>
+                <div className="col-span-3">
+                  <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
+                </div>
+                <div className="col-span-3">
+                  <Input placeholder="Observação" value={novoDescontoObs} onChange={(e) => setNovoDescontoObs(e.target.value)} />
+                </div>
+                <div className="col-span-2">
+                  <Button type="button" variant="outline" className="w-full" onClick={addDescontoItem}>
+                    <Plus className="h-4 w-4 mr-1" /> Adicionar
+                  </Button>
+                </div>
+              </div>
+              {descontosLista.length > 0 && (
+                <div className="space-y-1 pt-2">
+                  {descontosLista.map((d, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2 text-sm rounded bg-muted px-2 py-1">
+                      <div className="flex-1 truncate">
+                        <span className="font-medium">{d.tipo}</span> — <span className="tabular-nums">{fmt(parseFloat(d.valor) || 0)}</span>
+                        {d.observacao ? <span className="text-muted-foreground"> · {d.observacao}</span> : null}
+                      </div>
+                      <Button type="button" variant="ghost" size="icon" onClick={() => removeDescontoItem(idx)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground pt-1">
+                    Total: {fmt(descontosLista.reduce((s, d) => s + (parseFloat(d.valor) || 0), 0))}
+                  </p>
+                </div>
+              )}
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Observações</label><Textarea value={obs} onChange={(e) => setObs(e.target.value)} /></div>
             <div className="space-y-2"><label className="text-sm font-medium">Holerite (anexo)</label>

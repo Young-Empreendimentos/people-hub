@@ -66,12 +66,18 @@ export default function FolhaMensal() {
   const [novoDescontoValor, setNovoDescontoValor] = useState("");
   const [novoDescontoObs, setNovoDescontoObs] = useState("");
   const addDescontoItem = () => {
-    const v = parseFloat(novoDescontoValor);
-    if (!novoDescontoTipo || isNaN(v) || v <= 0) {
-      toast.error("Selecione o tipo e informe um valor válido.");
+    if (!novoDescontoTipo) {
+      toast.error("Selecione o tipo do desconto.");
       return;
     }
-    setDescontosLista((arr) => [...arr, { tipo: novoDescontoTipo, valor: String(v), observacao: novoDescontoObs }]);
+    const isHorasFalta = novoDescontoTipo === "Horas Falta";
+    const v = parseFloat(novoDescontoValor);
+    if (!isHorasFalta && (isNaN(v) || v <= 0)) {
+      toast.error("Informe um valor válido.");
+      return;
+    }
+    const valorFinal = isNaN(v) ? 0 : v;
+    setDescontosLista((arr) => [...arr, { tipo: novoDescontoTipo, valor: String(valorFinal), observacao: novoDescontoObs }]);
     setNovoDescontoTipo("");
     setNovoDescontoValor("");
     setNovoDescontoObs("");

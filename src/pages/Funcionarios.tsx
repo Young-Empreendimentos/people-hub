@@ -38,6 +38,7 @@ export default function Funcionarios() {
   const [rg, setRg] = useState("");
   const [cpf, setCpf] = useState("");
   const [endereco, setEndereco] = useState("");
+  const [telefone, setTelefone] = useState("");
   const [aniversario, setAniversario] = useState("");
   const [empresaId, setEmpresaId] = useState("");
   const [equipeId, setEquipeId] = useState("");

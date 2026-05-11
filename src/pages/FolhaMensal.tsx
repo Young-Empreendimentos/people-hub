@@ -58,7 +58,6 @@ export default function FolhaMensal() {
     "Parque da Guarda",
     "Danos Patrimoniais",
     "Horas Falta",
-    "Reembolso de Aluguel",
     "Gastos no Cartão Corporativo",
   ];
   type DescontoItem = { id?: string; tipo: string; valor: string; observacao: string };
@@ -82,7 +81,14 @@ export default function FolhaMensal() {
   };
 
   // Lista de reembolsos manuais
-  const TIPOS_REEMBOLSO = ["Gratificação", "Reembolso de Aluguel", "Auxílio Moradia", "Outro"];
+  const TIPOS_REEMBOLSO = [
+    "Gratificação",
+    "Viagens Corporativas",
+    "Transporte e Mobilidade",
+    "Alimentação",
+    "Educação e Treinamento",
+    "Outro",
+  ];
   type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string };
   const [reembolsosLista, setReembolsosLista] = useState<ReembolsoItem[]>([]);
   const [novoReembolsoTipo, setNovoReembolsoTipo] = useState("");
@@ -775,7 +781,6 @@ export default function FolhaMensal() {
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Horas Extra</label><Input type="number" step="0.1" value={horasExtra} onChange={(e) => setHorasExtra(e.target.value)} /></div>
-              <div className="flex items-center gap-2 self-end pb-2"><Switch checked={auxilioEdu} onCheckedChange={setAuxilioEdu} /><label className="text-sm">Auxílio Educacional</label></div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Adiantamentos (R$)</label><Input type="number" step="0.01" value={descontos} onChange={(e) => setDescontos(e.target.value)} /></div>

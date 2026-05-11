@@ -326,17 +326,36 @@ export default function FolhaMensal() {
       };
       if (file) payload.anexo_holerite_path = anexo_holerite_path;
 
+      let folhaId = editingId;
       if (editingId) {
         const { error } = await supabase.from("rh_folha_mensal").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
         payload.anexo_holerite_path = anexo_holerite_path;
-        const { error } = await supabase.from("rh_folha_mensal").insert(payload);
+        const { data, error } = await supabase.from("rh_folha_mensal").insert(payload).select("id").single();
         if (error) throw error;
+        folhaId = data.id;
+      }
+
+      // Sincroniza lista de descontos
+      if (folhaId) {
+        await supabase.from("rh_folha_descontos").delete().eq("folha_id", folhaId);
+        if (descontosLista.length > 0) {
+          const rows = descontosLista.map((d) => ({
+            folha_id: folhaId,
+            tipo: d.tipo,
+            valor: parseFloat(d.valor) || 0,
+            observacao: d.observacao || null,
+          }));
+          const { error } = await supabase.from("rh_folha_descontos").insert(rows);
+          if (error) throw error;
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_folha_mensal"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_meses"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_detalhes"] });
       toast.success(editingId ? "Folha atualizada." : "Folha registrada.");
       closeDialog();
     },

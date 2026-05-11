@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -48,6 +48,7 @@ export default function FolhaMensal() {
   const [obs, setObs] = useState("");
   const [vrDesconsiderado, setVrDesconsiderado] = useState(false);
   const [vrJustificativa, setVrJustificativa] = useState("");
+  const [valorVr, setValorVr] = useState("");
   const [file, setFile] = useState<File | null>(null);
 
   const VR_CLT_VALOR = 300;
@@ -99,8 +100,29 @@ export default function FolhaMensal() {
 
   const vrCalculado = useMemo(() => {
     if (vrDesconsiderado) return 0;
+    const editado = parseFloat(valorVr);
+    if (!isNaN(editado)) return editado;
     return selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
-  }, [selectedFuncTipoContrato, vrDesconsiderado]);
+  }, [selectedFuncTipoContrato, vrDesconsiderado, valorVr]);
+
+  // Quando seleciona funcionário em nova folha, preenche VR padrão
+  useEffect(() => {
+    if (!editingId && funcId) {
+      const padrao = selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
+      setValorVr(String(padrao));
+    }
+  }, [funcId, selectedFuncTipoContrato, editingId]);
+
+  // Quando marca/desmarca desconsiderar VR, ajusta valor
+  useEffect(() => {
+    if (editingId) return;
+    if (vrDesconsiderado) {
+      setValorVr("0");
+    } else {
+      const padrao = selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
+      setValorVr(String(padrao));
+    }
+  }, [vrDesconsiderado, editingId, selectedFuncTipoContrato]);
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
@@ -191,7 +213,7 @@ export default function FolhaMensal() {
         valor_comissoes: parseFloat(comissoes) || 0,
         valor_plr: parseFloat(plr) || 0,
         observacoes: obs || null,
-        valor_vr: vrCalculado,
+        valor_vr: parseFloat(valorVr) || 0,
         vr_desconsiderado: vrDesconsiderado,
         vr_justificativa: vrDesconsiderado ? (vrJustificativa || null) : null,
       };
@@ -228,7 +250,7 @@ export default function FolhaMensal() {
     setEditingId(null); setFuncId(""); setMesRef(""); setHorasAtraso(""); setHorasExtra("");
     setPlanoSaude(""); setDescontoParque(""); setAuxilioEdu(false);
     setDescontos(""); setComissoes(""); setPlr(""); setObs(""); setFile(null);
-    setVrDesconsiderado(false); setVrJustificativa("");
+    setVrDesconsiderado(false); setVrJustificativa(""); setValorVr("");
     setDialogOpen(true);
   };
 
@@ -240,6 +262,7 @@ export default function FolhaMensal() {
     setComissoes(String(f.valor_comissoes)); setPlr(String(f.valor_plr));
     setObs(f.observacoes || ""); setFile(null);
     setVrDesconsiderado(!!f.vr_desconsiderado); setVrJustificativa(f.vr_justificativa || "");
+    setValorVr(String(f.valor_vr || 0));
     setDialogOpen(true);
   };
 
@@ -425,9 +448,15 @@ export default function FolhaMensal() {
                     <span className="font-medium text-muted-foreground">Tipo de Contrato:</span>{" "}
                     <span>{selectedFuncTipoContrato || "—"}</span>
                   </div>
-                  <div className="rounded-md bg-muted px-3 py-2 text-sm">
-                    <span className="font-medium text-muted-foreground">Vale Refeição (VR):</span>{" "}
-                    <span className="tabular-nums">{fmt(vrCalculado)}</span>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Vale Refeição (VR) (R$)</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={valorVr}
+                      onChange={(e) => setValorVr(e.target.value)}
+                      disabled={vrDesconsiderado}
+                    />
                   </div>
                 </div>
                 <div className="rounded-md border px-3 py-2 space-y-2">

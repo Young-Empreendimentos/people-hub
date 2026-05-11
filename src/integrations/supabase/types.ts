@@ -5025,6 +5025,7 @@ export type Database = {
           nome_completo: string
           rg: string | null
           seguro_vida: boolean
+          telefone: string | null
           tipo_contrato: string | null
           updated_at: string
         }
@@ -5044,6 +5045,7 @@ export type Database = {
           nome_completo: string
           rg?: string | null
           seguro_vida?: boolean
+          telefone?: string | null
           tipo_contrato?: string | null
           updated_at?: string
         }
@@ -5063,6 +5065,7 @@ export type Database = {
           nome_completo?: string
           rg?: string | null
           seguro_vida?: boolean
+          telefone?: string | null
           tipo_contrato?: string | null
           updated_at?: string
         }

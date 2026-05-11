@@ -313,6 +313,37 @@ export default function FolhaMensal() {
     [adiantamentosPrevistos]
   );
 
+  // Benefício de moradia vigente para o funcionário no mês selecionado
+  const { data: beneficioMoradia = null } = useQuery({
+    queryKey: ["rh_beneficio_moradia_vigente", funcId, mesRef],
+    enabled: !!funcId && !!mesRef,
+    queryFn: async () => {
+      const [y, m] = mesRef.split("-").map(Number);
+      const ini = `${mesRef}-01`;
+      const fimDate = new Date(y, m, 0); // último dia do mês
+      const fim = format(fimDate, "yyyy-MM-dd");
+      const { data, error } = await supabase
+        .from("rh_funcionario_beneficios_moradia")
+        .select("*")
+        .eq("funcionario_id", funcId)
+        .lte("data_inicio", fim)
+        .or(`data_fim.is.null,data_fim.gte.${ini}`)
+        .order("data_inicio", { ascending: false })
+        .limit(1);
+      if (error) throw error;
+      return (data && data[0]) || null;
+    },
+  });
+
+  const moradiaCalculada = useMemo(() => {
+    if (!beneficioMoradia) return null;
+    const aluguel = Number((beneficioMoradia as any).valor_reembolso_aluguel) || 0;
+    const perc = Number((beneficioMoradia as any).percentual_auxilio_moradia) || 0;
+    const remun = selectedFuncCargo?.remuneracao ?? 0;
+    const auxilio = remun * (perc / 100);
+    return { aluguel, auxilio, perc, remun };
+  }, [beneficioMoradia, selectedFuncCargo]);
+
   // Sugere preencher o desconto quando há adiantamentos previstos e o campo está vazio
   useEffect(() => {
     if (!editingId && totalAdiantamentosPrevistos > 0 && (!descontos || parseFloat(descontos) === 0)) {

@@ -719,23 +719,21 @@ export default function FolhaMensal() {
           <TableHeader><TableRow>
             <TableHead>Mês</TableHead><TableHead>Funcionário</TableHead>
             <TableHead>Empresa</TableHead>
-            <TableHead>H. Atraso</TableHead><TableHead>H. Extra</TableHead>
-            <TableHead>Pl. Saúde</TableHead><TableHead>Título Parque</TableHead>
+            <TableHead>H. Extra</TableHead>
+            <TableHead>Pl. Saúde</TableHead>
             <TableHead>Comissões</TableHead><TableHead>PLR</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+            {isLoading ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
             : filtered.map((f: any) => (
               <TableRow key={f.id}>
                 <TableCell>{f.mes_referencia?.slice(0, 7)}</TableCell>
                 <TableCell className="font-medium">{f.rh_funcionarios?.nome_completo || "—"}</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{getEmpresaNome(f.funcionario_id, f.mes_referencia)}</TableCell>
-                <TableCell>{Number(f.horas_atraso_faltas).toFixed(1)}h</TableCell>
                 <TableCell>{Number(f.horas_extra).toFixed(1)}h</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.plano_saude))}</TableCell>
-                <TableCell className="tabular-nums">{fmt(Number(f.desconto_titulo_parque))}</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.valor_comissoes))}</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.valor_plr))}</TableCell>
                 <TableCell className="text-right">

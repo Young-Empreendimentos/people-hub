@@ -75,6 +75,30 @@ export default function FolhaMensal() {
   });
   const funcionarios = useMemo(() => funcionariosAll.filter((f: any) => isActive(f.id)), [funcionariosAll, isActive]);
 
+  const MESES_PT = [
+    { value: "01", label: "Janeiro" }, { value: "02", label: "Fevereiro" },
+    { value: "03", label: "Março" }, { value: "04", label: "Abril" },
+    { value: "05", label: "Maio" }, { value: "06", label: "Junho" },
+    { value: "07", label: "Julho" }, { value: "08", label: "Agosto" },
+    { value: "09", label: "Setembro" }, { value: "10", label: "Outubro" },
+    { value: "11", label: "Novembro" }, { value: "12", label: "Dezembro" },
+  ];
+  const anoAtual = new Date().getFullYear();
+  const ANOS_OPTS = Array.from({ length: 11 }, (_, i) => {
+    const a = String(anoAtual - 5 + i);
+    return { value: a, label: a };
+  });
+  const mesPart = mesRef ? mesRef.slice(5, 7) : "";
+  const anoPart = mesRef ? mesRef.slice(0, 4) : "";
+  const setMesPart = (m: string) => {
+    const a = anoPart || String(anoAtual);
+    setMesRef(m ? `${a}-${m}` : "");
+  };
+  const setAnoPart = (a: string) => {
+    const m = mesPart || "01";
+    setMesRef(a ? `${a}-${m}` : "");
+  };
+
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos_folha"],
     queryFn: async () => {

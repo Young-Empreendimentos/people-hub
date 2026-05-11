@@ -4888,6 +4888,44 @@ export type Database = {
           },
         ]
       }
+      rh_folha_reembolsos: {
+        Row: {
+          created_at: string
+          folha_id: string
+          id: string
+          observacao: string | null
+          origem: string
+          tipo: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          folha_id: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          tipo: string
+          valor?: number
+        }
+        Update: {
+          created_at?: string
+          folha_id?: string
+          id?: string
+          observacao?: string | null
+          origem?: string
+          tipo?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_folha_reembolsos_folha_id_fkey"
+            columns: ["folha_id"]
+            isOneToOne: false
+            referencedRelation: "rh_folha_mensal"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_funcionario_anexos: {
         Row: {
           created_at: string
@@ -4916,6 +4954,53 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "rh_funcionario_anexos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_funcionario_beneficios_moradia: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string
+          funcionario_id: string
+          id: string
+          observacao: string | null
+          percentual_auxilio_moradia: number
+          updated_at: string
+          valor_reembolso_aluguel: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          funcionario_id: string
+          id?: string
+          observacao?: string | null
+          percentual_auxilio_moradia?: number
+          updated_at?: string
+          valor_reembolso_aluguel?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          funcionario_id?: string
+          id?: string
+          observacao?: string | null
+          percentual_auxilio_moradia?: number
+          updated_at?: string
+          valor_reembolso_aluguel?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_funcionario_beneficios_moradia_funcionario_id_fkey"
             columns: ["funcionario_id"]
             isOneToOne: false
             referencedRelation: "rh_funcionarios"

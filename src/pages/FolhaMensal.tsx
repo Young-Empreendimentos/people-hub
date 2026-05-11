@@ -191,6 +191,9 @@ export default function FolhaMensal() {
         valor_comissoes: parseFloat(comissoes) || 0,
         valor_plr: parseFloat(plr) || 0,
         observacoes: obs || null,
+        valor_vr: vrCalculado,
+        vr_desconsiderado: vrDesconsiderado,
+        vr_justificativa: vrDesconsiderado ? (vrJustificativa || null) : null,
       };
       if (file) payload.anexo_holerite_path = anexo_holerite_path;
 

@@ -448,17 +448,27 @@ export default function FolhaMensal() {
         folhaId = data.id;
       }
 
-      // Sincroniza lista de descontos
+      // Sincroniza lista de descontos (manual + automático do plano de saúde)
       if (folhaId) {
         await supabase.from("rh_folha_descontos").delete().eq("folha_id", folhaId);
-        if (descontosLista.length > 0) {
-          const rows = descontosLista.map((d) => ({
+        const descRows: any[] = descontosLista.map((d) => ({
+          folha_id: folhaId,
+          tipo: d.tipo,
+          valor: parseFloat(d.valor) || 0,
+          observacao: d.observacao || null,
+          origem: "manual",
+        }));
+        if (planoSaudeCalculado && planoSaudeCalculado.desconto > 0) {
+          descRows.push({
             folha_id: folhaId,
-            tipo: d.tipo,
-            valor: parseFloat(d.valor) || 0,
-            observacao: d.observacao || null,
-          }));
-          const { error } = await supabase.from("rh_folha_descontos").insert(rows);
+            tipo: "Plano de Saúde",
+            valor: planoSaudeCalculado.desconto,
+            observacao: `20% de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.total)} (saúde + odonto + uso)`,
+            origem: "plano_saude",
+          });
+        }
+        if (descRows.length > 0) {
+          const { error } = await supabase.from("rh_folha_descontos").insert(descRows);
           if (error) throw error;
         }
 

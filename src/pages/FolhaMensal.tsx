@@ -81,6 +81,28 @@ export default function FolhaMensal() {
     setDescontosLista((arr) => arr.filter((_, i) => i !== idx));
   };
 
+  // Lista de reembolsos manuais
+  const TIPOS_REEMBOLSO = ["Gratificação", "Reembolso de Aluguel", "Auxílio Moradia", "Outro"];
+  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string };
+  const [reembolsosLista, setReembolsosLista] = useState<ReembolsoItem[]>([]);
+  const [novoReembolsoTipo, setNovoReembolsoTipo] = useState("");
+  const [novoReembolsoValor, setNovoReembolsoValor] = useState("");
+  const [novoReembolsoObs, setNovoReembolsoObs] = useState("");
+  const addReembolsoItem = () => {
+    const v = parseFloat(novoReembolsoValor);
+    if (!novoReembolsoTipo || isNaN(v) || v <= 0) {
+      toast.error("Selecione o tipo e informe um valor válido.");
+      return;
+    }
+    setReembolsosLista((arr) => [...arr, { tipo: novoReembolsoTipo, valor: String(v), observacao: novoReembolsoObs }]);
+    setNovoReembolsoTipo("");
+    setNovoReembolsoValor("");
+    setNovoReembolsoObs("");
+  };
+  const removeReembolsoItem = (idx: number) => {
+    setReembolsosLista((arr) => arr.filter((_, i) => i !== idx));
+  };
+
   const VR_CLT_VALOR = 300;
 
   const { data: folhas = [], isLoading } = useQuery({

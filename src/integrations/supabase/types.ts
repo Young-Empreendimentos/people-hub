@@ -4838,6 +4838,7 @@ export type Database = {
           folha_id: string
           id: string
           observacao: string | null
+          origem: string
           tipo: string
           valor: number
         }
@@ -4846,6 +4847,7 @@ export type Database = {
           folha_id: string
           id?: string
           observacao?: string | null
+          origem?: string
           tipo: string
           valor?: number
         }
@@ -4854,6 +4856,7 @@ export type Database = {
           folha_id?: string
           id?: string
           observacao?: string | null
+          origem?: string
           tipo?: string
           valor?: number
         }

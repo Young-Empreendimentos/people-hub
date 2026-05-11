@@ -1,0 +1,1 @@
+ALTER TABLE public.rh_folha_descontos ADD COLUMN IF NOT EXISTS origem text NOT NULL DEFAULT 'manual';

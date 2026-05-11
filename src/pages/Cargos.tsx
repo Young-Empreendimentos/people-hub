@@ -187,17 +187,21 @@ export default function Cargos() {
                 <AccordionContent>
                   <div className="space-y-3">
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => openEditTrilha(trilha)}>
-                        <Pencil className="mr-1 h-3 w-3" /> Editar Trilha
-                      </Button>
+                      {canManageCargos && (
+                        <Button size="sm" variant="outline" onClick={() => openEditTrilha(trilha)}>
+                          <Pencil className="mr-1 h-3 w-3" /> Editar Trilha
+                        </Button>
+                      )}
                       {canDelete && (
                         <Button size="sm" variant="outline" className="text-destructive" onClick={() => deleteTrilha.mutate(trilha.id)}>
                           <Trash2 className="mr-1 h-3 w-3" /> Excluir Trilha
                         </Button>
                       )}
-                      <Button size="sm" onClick={() => openNewCargo(trilha)}>
-                        <Plus className="mr-1 h-3 w-3" /> Novo Cargo
-                      </Button>
+                      {canManageCargos && (
+                        <Button size="sm" onClick={() => openNewCargo(trilha)}>
+                          <Plus className="mr-1 h-3 w-3" /> Novo Cargo
+                        </Button>
+                      )}
                     </div>
                     {trilhaCargos.length > 0 && (
                       <Table>

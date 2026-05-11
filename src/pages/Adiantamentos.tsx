@@ -30,6 +30,9 @@ export default function Adiantamentos() {
   const [data, setData] = useState("");
   const [valor, setValor] = useState("");
   const [parcelas, setParcelas] = useState<Parcela[]>([]);
+  const [numParcelas, setNumParcelas] = useState("");
+  const [mesInicial, setMesInicial] = useState("");
+  const [anoInicial, setAnoInicial] = useState("");
   const [obs, setObs] = useState("");
 
   const { data: adiantamentos = [], isLoading } = useQuery({

@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 
 const mainItems = [
   { title: "Início", url: "/", icon: Home },
-  { title: "Funcionários", url: "/funcionarios", icon: Users },
   { title: "Organograma", url: "/organograma", icon: Network },
   { title: "Aniversários", url: "/aniversarios", icon: Cake },
   { title: "Equipes", url: "/equipes", icon: Building2 },

@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Users } from "lucide-react";
 
 const options = [
+  {
+    title: "Funcionários",
+    description: "Cadastre e gerencie os funcionários da empresa.",
+    url: "/funcionarios",
+    icon: Users,
+  },
   {
     title: "Advertências",
     description: "Registre e acompanhe advertências verbais e formais dos funcionários.",

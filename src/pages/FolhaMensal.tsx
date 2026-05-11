@@ -105,6 +105,25 @@ export default function FolhaMensal() {
     return selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
   }, [selectedFuncTipoContrato, vrDesconsiderado, valorVr]);
 
+  // Quando seleciona funcionário em nova folha, preenche VR padrão
+  useEffect(() => {
+    if (!editingId && funcId) {
+      const padrao = selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
+      setValorVr(String(padrao));
+    }
+  }, [funcId, selectedFuncTipoContrato, editingId]);
+
+  // Quando marca/desmarca desconsiderar VR, ajusta valor
+  useEffect(() => {
+    if (editingId) return;
+    if (vrDesconsiderado) {
+      setValorVr("0");
+    } else {
+      const padrao = selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
+      setValorVr(String(padrao));
+    }
+  }, [vrDesconsiderado, editingId, selectedFuncTipoContrato]);
+
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
     queryFn: async () => {

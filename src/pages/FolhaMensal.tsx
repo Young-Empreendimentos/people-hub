@@ -364,6 +364,32 @@ export default function FolhaMensal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalAdiantamentosPrevistos, editingId]);
 
+  // Auto-preenche o Plano de Saúde com o desconto mensal (20% do total) lançado no módulo Plano de Saúde
+  useEffect(() => {
+    if (!dialogOpen || !funcId || !mesRef) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("rh_plano_saude")
+        .select("valor_saude, valor_odonto, uso_plano")
+        .eq("funcionario_id", funcId)
+        .eq("mes_referencia", mesRef + "-01")
+        .maybeSingle();
+      if (cancelled) return;
+      if (data) {
+        const total = Number(data.valor_saude || 0) + Number(data.valor_odonto || 0) + Number(data.uso_plano || 0);
+        const desconto = +(total * 0.2).toFixed(2);
+        if (!editingId || !planoSaude || parseFloat(planoSaude) === 0) {
+          setPlanoSaude(desconto.toFixed(2));
+        }
+      } else if (!editingId) {
+        setPlanoSaude("");
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [funcId, mesRef, dialogOpen, editingId]);
+
   const saveMutation = useMutation({
     mutationFn: async () => {
       let anexo_holerite_path: string | null = null;

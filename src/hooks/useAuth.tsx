@@ -14,6 +14,9 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   canDelete: boolean;
   canConfig: boolean;
+  canManageCargos: boolean;
+  canManageBeneficiosMoradia: boolean;
+  canEditCargoSalario: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -364,31 +364,40 @@ export default function FolhaMensal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalAdiantamentosPrevistos, editingId]);
 
-  // Auto-preenche o Plano de Saúde com o desconto mensal (20% do total) lançado no módulo Plano de Saúde
-  useEffect(() => {
-    if (!dialogOpen || !funcId || !mesRef) return;
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
+  // Plano de Saúde lançado no módulo "Plano de Saúde" para o funcionário no mês de referência
+  const { data: planoSaudeMes = null } = useQuery({
+    queryKey: ["rh_plano_saude_mes", funcId, mesRef],
+    enabled: !!funcId && !!mesRef,
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from("rh_plano_saude")
         .select("valor_saude, valor_odonto, uso_plano")
         .eq("funcionario_id", funcId)
         .eq("mes_referencia", mesRef + "-01")
-        .maybeSingle();
-      if (cancelled) return;
-      if (data) {
-        const total = Number(data.valor_saude || 0) + Number(data.valor_odonto || 0) + Number(data.uso_plano || 0);
-        const desconto = +(total * 0.2).toFixed(2);
-        if (!editingId || !planoSaude || parseFloat(planoSaude) === 0) {
-          setPlanoSaude(desconto.toFixed(2));
-        }
-      } else if (!editingId) {
-        setPlanoSaude("");
-      }
-    })();
-    return () => { cancelled = true; };
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (error) { console.error("[plano_saude]", error); return null; }
+      return (data && data[0]) || null;
+    },
+  });
+
+  const planoSaudeCalculado = useMemo(() => {
+    if (!planoSaudeMes) return null;
+    const total = Number((planoSaudeMes as any).valor_saude || 0)
+      + Number((planoSaudeMes as any).valor_odonto || 0)
+      + Number((planoSaudeMes as any).uso_plano || 0);
+    const desconto = +(total * 0.2).toFixed(2);
+    return { total, desconto };
+  }, [planoSaudeMes]);
+
+  // Auto-preenche o campo Plano de Saúde com o desconto mensal (20% do total)
+  useEffect(() => {
+    if (!dialogOpen || !funcId || !mesRef) return;
+    if (!planoSaudeCalculado) return;
+    if (editingId && planoSaude && parseFloat(planoSaude) > 0) return;
+    setPlanoSaude(planoSaudeCalculado.desconto.toFixed(2));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [funcId, mesRef, dialogOpen, editingId]);
+  }, [planoSaudeCalculado, funcId, mesRef, dialogOpen, editingId]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {

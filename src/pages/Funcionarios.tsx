@@ -175,6 +175,7 @@ export default function Funcionarios() {
     if (statusFilter === "inativos" && isActive(f.id)) return false;
     if (filterEmpresaId && f.empresa_id !== filterEmpresaId) return false;
     if (filterEquipeId && f.equipe_id !== filterEquipeId) return false;
+    if (filterTipoContrato && f.tipo_contrato !== filterTipoContrato) return false;
     return f.nome_completo.toLowerCase().includes(search.toLowerCase());
   });
 

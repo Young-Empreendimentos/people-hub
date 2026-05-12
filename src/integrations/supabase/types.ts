@@ -2313,8 +2313,10 @@ export type Database = {
           numero_logradouro: string | null
           numero_lote: string | null
           ordem_kanban: number
+          payload_raw: Json | null
           preco_lote: number | null
           qualificacao: Database["public"]["Enums"]["crm_qualificacao"]
+          rd_deal_id: string | null
           renda_familiar: string | null
           responsavel_id: string | null
           responsavel_venda_imobiliaria_id: string | null
@@ -2326,6 +2328,9 @@ export type Database = {
           status: Database["public"]["Enums"]["crm_deal_status"]
           tipo_residencia: string | null
           updated_at: string
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
           valor_entrada: number | null
           versao_tabela: string | null
         }
@@ -2353,8 +2358,10 @@ export type Database = {
           numero_logradouro?: string | null
           numero_lote?: string | null
           ordem_kanban?: number
+          payload_raw?: Json | null
           preco_lote?: number | null
           qualificacao?: Database["public"]["Enums"]["crm_qualificacao"]
+          rd_deal_id?: string | null
           renda_familiar?: string | null
           responsavel_id?: string | null
           responsavel_venda_imobiliaria_id?: string | null
@@ -2366,6 +2373,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["crm_deal_status"]
           tipo_residencia?: string | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           valor_entrada?: number | null
           versao_tabela?: string | null
         }
@@ -2393,8 +2403,10 @@ export type Database = {
           numero_logradouro?: string | null
           numero_lote?: string | null
           ordem_kanban?: number
+          payload_raw?: Json | null
           preco_lote?: number | null
           qualificacao?: Database["public"]["Enums"]["crm_qualificacao"]
+          rd_deal_id?: string | null
           renda_familiar?: string | null
           responsavel_id?: string | null
           responsavel_venda_imobiliaria_id?: string | null
@@ -2406,6 +2418,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["crm_deal_status"]
           tipo_residencia?: string | null
           updated_at?: string
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
           valor_entrada?: number | null
           versao_tabela?: string | null
         }
@@ -2443,6 +2458,47 @@ export type Database = {
             columns: ["responsavel_venda_imobiliaria_id"]
             isOneToOne: false
             referencedRelation: "imobiliarias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_deals_checklist: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          label: string
+          ordem: number
+          rd_custom_field_id: string | null
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          label: string
+          ordem?: number
+          rd_custom_field_id?: string | null
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          label?: string
+          ordem?: number
+          rd_custom_field_id?: string | null
+          updated_at?: string
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_deals_checklist_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "crm_deals"
             referencedColumns: ["id"]
           },
         ]
@@ -2515,6 +2571,44 @@ export type Database = {
           nome?: string
         }
         Relationships: []
+      }
+      crm_rd_user_map: {
+        Row: {
+          ativo: boolean
+          consultor_id: string
+          created_at: string
+          rd_user_email: string | null
+          rd_user_id: string
+          rd_user_name: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          consultor_id: string
+          created_at?: string
+          rd_user_email?: string | null
+          rd_user_id: string
+          rd_user_name: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          consultor_id?: string
+          created_at?: string
+          rd_user_email?: string | null
+          rd_user_id?: string
+          rd_user_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_rd_user_map_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "crm_consultores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crm_task_images: {
         Row: {
@@ -3555,6 +3649,33 @@ export type Database = {
           nome?: string
           telefone?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      indices_monetarios: {
+        Row: {
+          ano: number
+          fonte: string
+          mes: number
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ano: number
+          fonte?: string
+          mes: number
+          tipo: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          ano?: number
+          fonte?: string
+          mes?: number
+          tipo?: string
+          updated_at?: string
+          valor?: number
         }
         Relationships: []
       }
@@ -6905,6 +7026,22 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vw_parcelas_mora_calculada: {
+        Row: {
+          bill_id: number | null
+          client_id: number | null
+          corrected_balance_amount: number | null
+          dias_atraso: number | null
+          due_date: string | null
+          indexer_name: string | null
+          installment_id: number | null
+          juros: number | null
+          multa: number | null
+          pro_rata: number | null
+          total_a_receber: number | null
+        }
+        Relationships: []
       }
     }
     Functions: {

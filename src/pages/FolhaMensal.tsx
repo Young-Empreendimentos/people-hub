@@ -667,6 +667,15 @@ export default function FolhaMensal() {
   const exportCSV = async () => {
     if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
     const ids = filtered.map((f: any) => f.id);
+    const { count: pendCount } = await supabase
+      .from("rh_folha_reembolsos")
+      .select("id", { count: "exact", head: true })
+      .in("folha_id", ids)
+      .eq("status", "pendente");
+    if ((pendCount || 0) > 0) {
+      toast.error(`Existem ${pendCount} reembolso(s) pendente(s) de aprovação. O relatório só pode ser emitido após a aprovação.`);
+      return;
+    }
     const [{ data: descData }, { data: reembData }] = await Promise.all([
       supabase.from("rh_folha_descontos").select("folha_id, tipo, valor, observacao").in("folha_id", ids),
       supabase.from("rh_folha_reembolsos").select("folha_id, tipo, valor, observacao, origem").in("folha_id", ids),

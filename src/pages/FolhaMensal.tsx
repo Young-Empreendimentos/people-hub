@@ -112,8 +112,8 @@ export default function FolhaMensal() {
   // Lista de reembolsos manuais
   const TIPOS_REEMBOLSO = [
     "Gratificação",
-    "Viagens Corporativas",
-    "Transporte e Mobilidade",
+    "Quilometragem",
+    "Transporte",
     "Alimentação",
     "Educação e Treinamento",
     "Outro",

@@ -33,6 +33,7 @@ export default function Funcionarios() {
   const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
   const [filterEmpresaId, setFilterEmpresaId] = useState("");
   const [filterEquipeId, setFilterEquipeId] = useState("");
+  const [filterTipoContrato, setFilterTipoContrato] = useState("");
 
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [rg, setRg] = useState("");

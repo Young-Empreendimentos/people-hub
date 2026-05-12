@@ -351,16 +351,32 @@ export default function FolhaMensal() {
       const alvo = mesRef + "-01";
       const { data, error } = await supabase
         .from("rh_adiantamentos")
-        .select("id, data, valor, datas_pagamento_pretendidas, observacoes")
+        .select("id, data, valor, datas_pagamento_pretendidas, parcelas, observacoes")
         .eq("funcionario_id", funcId)
         .contains("datas_pagamento_pretendidas", [alvo]);
       if (error) throw error;
-      return data || [];
+      // Calcula o valor referente ao mês selecionado (por parcela), em vez do total do adiantamento
+      return (data || []).map((a: any) => {
+        const parcelasArr = Array.isArray(a.parcelas) ? a.parcelas : [];
+        let valorMes = 0;
+        if (parcelasArr.length > 0) {
+          valorMes = parcelasArr
+            .filter((p: any) => p?.mes_ano === alvo)
+            .reduce((s: number, p: any) => s + Number(p?.valor || 0), 0);
+        } else if (Array.isArray(a.datas_pagamento_pretendidas) && a.datas_pagamento_pretendidas.length > 0) {
+          // Fallback: divide igualmente entre as datas previstas
+          const ocorrencias = a.datas_pagamento_pretendidas.filter((d: string) => d === alvo).length;
+          valorMes = (Number(a.valor) || 0) * (ocorrencias / a.datas_pagamento_pretendidas.length);
+        } else {
+          valorMes = Number(a.valor) || 0;
+        }
+        return { ...a, valor_mes: valorMes };
+      });
     },
   });
 
   const totalAdiantamentosPrevistos = useMemo(
-    () => (adiantamentosPrevistos as any[]).reduce((s, a) => s + Number(a.valor || 0), 0),
+    () => (adiantamentosPrevistos as any[]).reduce((s, a) => s + Number(a.valor_mes || 0), 0),
     [adiantamentosPrevistos]
   );
 

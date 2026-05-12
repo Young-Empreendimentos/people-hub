@@ -171,15 +171,21 @@ export default function ReembolsosDetalhes() {
             <TableHead>Funcionário</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Origem</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Observação</TableHead>
             <TableHead className="text-right">Valor</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum reembolso.</TableCell></TableRow>
-            ) : filtered.map((d: any) => (
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum reembolso.</TableCell></TableRow>
+            ) : filtered.map((d: any) => {
+              const isPend = d.status === "pendente";
+              const aprovadoNome = d.aprovado_por ? (userNames as any)[d.aprovado_por] : null;
+              const criadoNome = d.criado_por ? (userNames as any)[d.criado_por] : null;
+              return (
               <TableRow key={d.id}>
                 <TableCell className="font-medium">{d.rh_folha_mensal?.rh_funcionarios?.nome_completo || "—"}</TableCell>
                 <TableCell>{d.tipo}</TableCell>
@@ -187,17 +193,40 @@ export default function ReembolsosDetalhes() {
                   {d.origem === "beneficio_moradia" ? (
                     <Badge variant="secondary">automático</Badge>
                   ) : (
-                    <Badge variant="outline">manual</Badge>
+                    <Badge variant="outline">manual{criadoNome ? ` · ${criadoNome}` : ""}</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {isPend ? (
+                    <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Pendente</Badge>
+                  ) : (
+                    <div className="flex flex-col">
+                      <Badge variant="default" className="w-fit">Aprovado</Badge>
+                      {aprovadoNome && (
+                        <span className="text-[11px] text-muted-foreground mt-1">
+                          por {aprovadoNome}{d.aprovado_em ? ` em ${new Date(d.aprovado_em).toLocaleDateString("pt-BR")}` : ""}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{d.observacao || "—"}</TableCell>
                 <TableCell className="text-right tabular-nums">{fmt(Number(d.valor))}</TableCell>
+                <TableCell className="text-right">
+                  {isPend && canApprove && (
+                    <Button size="sm" onClick={() => approveMutation.mutate(d.id)} disabled={approveMutation.isPending}>
+                      <Check className="mr-1 h-3 w-3" /> Aprovar
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
             {filtered.length > 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="font-semibold text-right">Total</TableCell>
+                <TableCell colSpan={5} className="font-semibold text-right">Total</TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">{fmt(total)}</TableCell>
+                <TableCell />
               </TableRow>
             )}
           </TableBody>

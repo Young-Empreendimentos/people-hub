@@ -127,6 +127,7 @@ export default function Aditivos() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_aditivos"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_funcionarios"] });
       toast.success(editingId ? "Aditivo atualizado." : "Aditivo salvo.");
       closeDialog();
     },

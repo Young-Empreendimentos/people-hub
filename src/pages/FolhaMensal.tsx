@@ -1008,7 +1008,7 @@ export default function FolhaMensal() {
                 <ul className="text-xs space-y-0.5">
                   {(adiantamentosPrevistos as any[]).map((a) => (
                     <li key={a.id}>
-                      Em {format(new Date(a.data + "T00:00:00"), "dd/MM/yyyy")} — {fmt(Number(a.valor))}
+                      Em {format(new Date(a.data + "T00:00:00"), "dd/MM/yyyy")} — Parcela do mês: {fmt(Number(a.valor_mes))} (total {fmt(Number(a.valor))})
                       {a.observacoes ? ` — ${a.observacoes}` : ""}
                     </li>
                   ))}

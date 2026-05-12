@@ -776,12 +776,22 @@ export default function FolhaMensal() {
     URL.revokeObjectURL(url);
   };
 
+  const totalPendentes = pendencias.length;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Nova Folha</Button>
         <Button variant="outline" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Exportar relatório</Button>
       </div>
+
+      {totalPendentes > 0 && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-sm dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-800">
+          <strong>{totalPendentes}</strong> reembolso(s) aguardando aprovação. {role === "usuario"
+            ? "Aguarde a aprovação da coordenação para que o relatório possa ser emitido."
+            : <>Acesse <Link to="/reembolsos" className="underline font-medium">Reembolsos</Link> para revisar e aprovar.</>}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Combobox

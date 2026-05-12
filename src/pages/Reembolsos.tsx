@@ -11,17 +11,6 @@ export default function Reembolsos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_folha_reembolsos")
-        .select("valor, rh_folha_mensal!inner(mes_referencia)");
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: reembolsos = [], isLoading } = useQuery({
-    queryKey: ["rh_folha_reembolsos_meses"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rh_folha_reembolsos")
         .select("valor, status, rh_folha_mensal!inner(mes_referencia)");
       if (error) throw error;
       return data || [];

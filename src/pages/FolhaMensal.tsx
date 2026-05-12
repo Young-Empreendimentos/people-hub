@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
-  const { canDelete, role } = useAuth();
+  const { canDelete, role, user } = useAuth();
   const { isActive } = useActiveEmployees();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);

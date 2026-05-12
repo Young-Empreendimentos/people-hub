@@ -5061,29 +5061,41 @@ export type Database = {
       }
       rh_folha_reembolsos: {
         Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
           created_at: string
+          criado_por: string | null
           folha_id: string
           id: string
           observacao: string | null
           origem: string
+          status: string
           tipo: string
           valor: number
         }
         Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string
+          criado_por?: string | null
           folha_id: string
           id?: string
           observacao?: string | null
           origem?: string
+          status?: string
           tipo: string
           valor?: number
         }
         Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           created_at?: string
+          criado_por?: string | null
           folha_id?: string
           id?: string
           observacao?: string | null
           origem?: string
+          status?: string
           tipo?: string
           valor?: number
         }
@@ -7037,8 +7049,11 @@ export type Database = {
           indexer_name: string | null
           installment_id: number | null
           juros: number | null
+          juros_taxa_mes: number | null
+          juros_tipo: string | null
           multa: number | null
           pro_rata: number | null
+          tipo_indice: string | null
           total_a_receber: number | null
         }
         Relationships: []
@@ -7071,6 +7086,25 @@ export type Database = {
         }[]
       }
       financeiro_fn_refresh_inadimplentes: { Args: never; Returns: undefined }
+      fn_parcelas_mora_calculada: {
+        Args: { _data_calculo?: string }
+        Returns: {
+          bill_id: number
+          client_id: number
+          corrected_balance_amount: number
+          dias_atraso: number
+          due_date: string
+          indexer_name: string
+          installment_id: number
+          juros: number
+          juros_taxa_mes: number
+          juros_tipo: string
+          multa: number
+          pro_rata: number
+          tipo_indice: string
+          total_a_receber: number
+        }[]
+      }
       get_all_users_with_roles: {
         Args: never
         Returns: {

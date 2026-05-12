@@ -22,6 +22,9 @@ export const TIPOS_REEMBOLSO = [
 
 export default function ReembolsosDetalhes() {
   const { mes } = useParams<{ mes: string }>();
+  const queryClient = useQueryClient();
+  const { user, role } = useAuth();
+  const canApprove = role === "admin" || role === "coordenador";
   const [filterFunc, setFilterFunc] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState("");
   const [filterTipo, setFilterTipo] = useState("");
@@ -37,12 +40,48 @@ export default function ReembolsosDetalhes() {
       const fim = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
       const { data, error } = await supabase
         .from("rh_folha_reembolsos")
-        .select("id, tipo, valor, observacao, origem, rh_folha_mensal!inner(mes_referencia, funcionario_id, rh_funcionarios(nome_completo, empresa_id))")
+        .select("id, tipo, valor, observacao, origem, status, criado_por, aprovado_por, aprovado_em, rh_folha_mensal!inner(mes_referencia, funcionario_id, rh_funcionarios(nome_completo, empresa_id))")
         .gte("rh_folha_mensal.mes_referencia", ini)
         .lt("rh_folha_mensal.mes_referencia", fim);
       if (error) throw error;
       return data || [];
     },
+  });
+
+  // Carrega nomes dos usuários (criador / aprovador)
+  const userIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of reembolsos as any[]) {
+      if (r.criado_por) s.add(r.criado_por);
+      if (r.aprovado_por) s.add(r.aprovado_por);
+    }
+    return Array.from(s);
+  }, [reembolsos]);
+  const { data: userNames = {} } = useQuery({
+    queryKey: ["rh_user_names", userIds],
+    enabled: userIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_user_profiles").select("user_id, nome").in("user_id", userIds);
+      const m: Record<string, string> = {};
+      (data || []).forEach((u: any) => { m[u.user_id] = u.nome || ""; });
+      return m;
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("rh_folha_reembolsos")
+        .update({ status: "aprovado", aprovado_por: user?.id, aprovado_em: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Reembolso aprovado.");
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_detalhes", mes] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_pendentes"] });
+    },
+    onError: (e: any) => toast.error("Erro ao aprovar: " + (e?.message || "")),
   });
 
   const { data: funcionarios = [] } = useQuery({

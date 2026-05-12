@@ -151,7 +151,21 @@ export default function FolhaMensal() {
     },
   });
 
-  const { data: funcionariosAll = [] } = useQuery({
+  const { data: pendencias = [] } = useQuery({
+    queryKey: ["rh_folha_reembolsos_pendentes"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rh_folha_reembolsos")
+        .select("id, folha_id, tipo, valor, criado_por")
+        .eq("status", "pendente");
+      return data || [];
+    },
+  });
+  const pendByFolha = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const p of pendencias as any[]) m[p.folha_id] = (m[p.folha_id] || 0) + 1;
+    return m;
+  }, [pendencias]);
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
       const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato").order("nome_completo");

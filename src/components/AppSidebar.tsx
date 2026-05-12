@@ -1,5 +1,5 @@
 import {
-  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, Cake, GraduationCap, ShieldAlert, LayoutGrid, Wallet,
+  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 const mainItems = [
   { title: "Início", url: "/", icon: Home },
   { title: "Estrutura", url: "/estrutura", icon: LayoutGrid },
-  { title: "Aniversários", url: "/aniversarios", icon: Cake },
   { title: "Financeiro", url: "/financeiro", icon: Wallet },
   { title: "Treinamentos", url: "/treinamentos", icon: GraduationCap },
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },

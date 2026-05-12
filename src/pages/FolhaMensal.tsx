@@ -504,36 +504,75 @@ export default function FolhaMensal() {
         }
 
         // Sincroniza lista de reembolsos (manual + automático do benefício de moradia)
-        await supabase.from("rh_folha_reembolsos").delete().eq("folha_id", folhaId);
-        const reembRows: any[] = reembolsosLista.map((d) => ({
-          folha_id: folhaId,
-          tipo: d.tipo,
-          valor: parseFloat(d.valor) || 0,
-          observacao: d.observacao || null,
-          origem: "manual",
-        }));
+        // Preserva reembolsos manuais existentes para manter status/histórico de aprovação
+        const { data: existingReemb } = await supabase
+          .from("rh_folha_reembolsos")
+          .select("id, tipo, valor, observacao, origem, status, criado_por, aprovado_por, aprovado_em")
+          .eq("folha_id", folhaId);
+        const existingManual = (existingReemb || []).filter((r: any) => r.origem === "manual");
+        const keepIds = reembolsosLista.map((d) => d.id).filter(Boolean) as string[];
+        const toDelete = (existingReemb || [])
+          .filter((r: any) => r.origem !== "manual" || !keepIds.includes(r.id))
+          .map((r: any) => r.id);
+        if (toDelete.length > 0) {
+          await supabase.from("rh_folha_reembolsos").delete().in("id", toDelete);
+        }
+
+        const isUsuario = role === "usuario";
+        const novoStatus = isUsuario ? "pendente" : "aprovado";
+        const reembRowsInsert: any[] = reembolsosLista
+          .filter((d) => !d.id) // só novos
+          .map((d) => ({
+            folha_id: folhaId,
+            tipo: d.tipo,
+            valor: parseFloat(d.valor) || 0,
+            observacao: d.observacao || null,
+            origem: "manual",
+            status: novoStatus,
+            criado_por: user?.id || null,
+            aprovado_por: isUsuario ? null : (user?.id || null),
+            aprovado_em: isUsuario ? null : new Date().toISOString(),
+          }));
+        // Atualiza valores/observação dos manuais existentes (mantém status)
+        for (const d of reembolsosLista.filter((x) => x.id)) {
+          const prev = existingManual.find((r: any) => r.id === d.id);
+          const novoValor = parseFloat(d.valor) || 0;
+          const novaObs = d.observacao || null;
+          if (!prev || (Number(prev.valor) === novoValor && (prev.observacao || null) === novaObs && prev.tipo === d.tipo)) continue;
+          await supabase.from("rh_folha_reembolsos").update({
+            tipo: d.tipo, valor: novoValor, observacao: novaObs,
+          }).eq("id", d.id);
+        }
         if (moradiaCalculada) {
           if (moradiaCalculada.aluguel > 0) {
-            reembRows.push({
+            reembRowsInsert.push({
               folha_id: folhaId,
               tipo: "Reembolso de Aluguel",
               valor: moradiaCalculada.aluguel,
               observacao: "Aplicado automaticamente do benefício de moradia",
               origem: "beneficio_moradia",
+              status: "aprovado",
+              criado_por: user?.id || null,
+              aprovado_por: user?.id || null,
+              aprovado_em: new Date().toISOString(),
             });
           }
           if (moradiaCalculada.auxilio > 0) {
-            reembRows.push({
+            reembRowsInsert.push({
               folha_id: folhaId,
               tipo: "Auxílio Moradia",
               valor: moradiaCalculada.auxilio,
               observacao: `${moradiaCalculada.perc}% sobre salário de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(moradiaCalculada.remun)}`,
               origem: "beneficio_moradia",
+              status: "aprovado",
+              criado_por: user?.id || null,
+              aprovado_por: user?.id || null,
+              aprovado_em: new Date().toISOString(),
             });
           }
         }
-        if (reembRows.length > 0) {
-          const { error } = await supabase.from("rh_folha_reembolsos").insert(reembRows);
+        if (reembRowsInsert.length > 0) {
+          const { error } = await supabase.from("rh_folha_reembolsos").insert(reembRowsInsert);
           if (error) throw error;
         }
       }

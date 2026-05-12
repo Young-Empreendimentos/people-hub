@@ -854,7 +854,16 @@ export default function FolhaMensal() {
             : filtered.map((f: any) => (
               <TableRow key={f.id}>
                 <TableCell>{f.mes_referencia?.slice(0, 7)}</TableCell>
-                <TableCell className="font-medium">{f.rh_funcionarios?.nome_completo || "—"}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <span>{f.rh_funcionarios?.nome_completo || "—"}</span>
+                    {pendByFolha[f.id] > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-100 px-2 py-0.5 text-[10px] font-medium">
+                        {pendByFolha[f.id]} pendente{pendByFolha[f.id] > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-muted-foreground text-xs">{getEmpresaNome(f.funcionario_id, f.mes_referencia)}</TableCell>
                 <TableCell>{Number(f.horas_extra).toFixed(1)}h</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.plano_saude))}</TableCell>

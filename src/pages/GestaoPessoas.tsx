@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX, HeartPulse } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX, HeartPulse, Cake } from "lucide-react";
 
 const options = [
   {
@@ -20,6 +20,12 @@ const options = [
     description: "Gerencie aditivos contratuais dos funcionários.",
     url: "/aditivos",
     icon: FileText,
+  },
+  {
+    title: "Aniversários",
+    description: "Visualize os aniversários dos funcionários.",
+    url: "/aniversarios",
+    icon: Cake,
   },
   {
     title: "Advertências",

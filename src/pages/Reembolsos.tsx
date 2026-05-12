@@ -17,14 +17,26 @@ export default function Reembolsos() {
     },
   });
 
+  const { data: reembolsos = [], isLoading } = useQuery({
+    queryKey: ["rh_folha_reembolsos_meses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rh_folha_reembolsos")
+        .select("valor, status, rh_folha_mensal!inner(mes_referencia)");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const meses = useMemo(() => {
-    const map: Record<string, { total: number; qtd: number }> = {};
+    const map: Record<string, { total: number; qtd: number; pend: number }> = {};
     for (const d of reembolsos as any[]) {
       const mes = d.rh_folha_mensal?.mes_referencia?.slice(0, 7);
       if (!mes) continue;
-      if (!map[mes]) map[mes] = { total: 0, qtd: 0 };
+      if (!map[mes]) map[mes] = { total: 0, qtd: 0, pend: 0 };
       map[mes].total += Number(d.valor || 0);
       map[mes].qtd += 1;
+      if (d.status === "pendente") map[mes].pend += 1;
     }
     return Object.entries(map)
       .map(([mes, v]) => ({ mes, ...v }))

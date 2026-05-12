@@ -221,6 +221,13 @@ export default function Funcionarios() {
             {equipes.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={filterTipoContrato} onValueChange={(v) => setFilterTipoContrato(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Todos os contratos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os contratos</SelectItem>
+            {TIPO_CONTRATO_OPTIONS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
 
       <Card>

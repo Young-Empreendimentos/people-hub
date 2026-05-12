@@ -599,6 +599,7 @@ export default function FolhaMensal() {
       queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_detalhes"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_meses"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_detalhes"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_pendentes"] });
       toast.success(editingId ? "Folha atualizada." : "Folha registrada.");
       closeDialog();
     },

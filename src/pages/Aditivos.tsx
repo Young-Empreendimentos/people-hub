@@ -111,6 +111,19 @@ export default function Aditivos() {
           .insert(junctionRows);
         if (insertError) throw insertError;
       }
+
+      // Propaga valores finais para o cadastro do funcionário
+      const funcUpdate: any = {};
+      if (empresaFinalId) funcUpdate.empresa_id = empresaFinalId;
+      if (equipeFinalId) funcUpdate.equipe_id = equipeFinalId;
+      if (cargoFinalId && canEditCargoSalario) funcUpdate.cargo_id = cargoFinalId;
+      if (Object.keys(funcUpdate).length > 0) {
+        const { error: updErr } = await supabase
+          .from("rh_funcionarios")
+          .update(funcUpdate)
+          .eq("id", funcId);
+        if (updErr) throw updErr;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_aditivos"] });

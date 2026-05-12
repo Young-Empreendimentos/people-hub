@@ -1,4 +1,5 @@
 import { useState, useRef, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +26,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
-  const { canDelete, role } = useAuth();
+  const { canDelete, role, user } = useAuth();
   const { isActive } = useActiveEmployees();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -150,6 +151,22 @@ export default function FolhaMensal() {
       return data;
     },
   });
+
+  const { data: pendencias = [] } = useQuery({
+    queryKey: ["rh_folha_reembolsos_pendentes"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rh_folha_reembolsos")
+        .select("id, folha_id, tipo, valor, criado_por")
+        .eq("status", "pendente");
+      return data || [];
+    },
+  });
+  const pendByFolha = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const p of pendencias as any[]) m[p.folha_id] = (m[p.folha_id] || 0) + 1;
+    return m;
+  }, [pendencias]);
 
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
@@ -504,36 +521,75 @@ export default function FolhaMensal() {
         }
 
         // Sincroniza lista de reembolsos (manual + automático do benefício de moradia)
-        await supabase.from("rh_folha_reembolsos").delete().eq("folha_id", folhaId);
-        const reembRows: any[] = reembolsosLista.map((d) => ({
-          folha_id: folhaId,
-          tipo: d.tipo,
-          valor: parseFloat(d.valor) || 0,
-          observacao: d.observacao || null,
-          origem: "manual",
-        }));
+        // Preserva reembolsos manuais existentes para manter status/histórico de aprovação
+        const { data: existingReemb } = await supabase
+          .from("rh_folha_reembolsos")
+          .select("id, tipo, valor, observacao, origem, status, criado_por, aprovado_por, aprovado_em")
+          .eq("folha_id", folhaId);
+        const existingManual = (existingReemb || []).filter((r: any) => r.origem === "manual");
+        const keepIds = reembolsosLista.map((d) => d.id).filter(Boolean) as string[];
+        const toDelete = (existingReemb || [])
+          .filter((r: any) => r.origem !== "manual" || !keepIds.includes(r.id))
+          .map((r: any) => r.id);
+        if (toDelete.length > 0) {
+          await supabase.from("rh_folha_reembolsos").delete().in("id", toDelete);
+        }
+
+        const isUsuario = role === "usuario";
+        const novoStatus = isUsuario ? "pendente" : "aprovado";
+        const reembRowsInsert: any[] = reembolsosLista
+          .filter((d) => !d.id) // só novos
+          .map((d) => ({
+            folha_id: folhaId,
+            tipo: d.tipo,
+            valor: parseFloat(d.valor) || 0,
+            observacao: d.observacao || null,
+            origem: "manual",
+            status: novoStatus,
+            criado_por: user?.id || null,
+            aprovado_por: isUsuario ? null : (user?.id || null),
+            aprovado_em: isUsuario ? null : new Date().toISOString(),
+          }));
+        // Atualiza valores/observação dos manuais existentes (mantém status)
+        for (const d of reembolsosLista.filter((x) => x.id)) {
+          const prev = existingManual.find((r: any) => r.id === d.id);
+          const novoValor = parseFloat(d.valor) || 0;
+          const novaObs = d.observacao || null;
+          if (!prev || (Number(prev.valor) === novoValor && (prev.observacao || null) === novaObs && prev.tipo === d.tipo)) continue;
+          await supabase.from("rh_folha_reembolsos").update({
+            tipo: d.tipo, valor: novoValor, observacao: novaObs,
+          }).eq("id", d.id);
+        }
         if (moradiaCalculada) {
           if (moradiaCalculada.aluguel > 0) {
-            reembRows.push({
+            reembRowsInsert.push({
               folha_id: folhaId,
               tipo: "Reembolso de Aluguel",
               valor: moradiaCalculada.aluguel,
               observacao: "Aplicado automaticamente do benefício de moradia",
               origem: "beneficio_moradia",
+              status: "aprovado",
+              criado_por: user?.id || null,
+              aprovado_por: user?.id || null,
+              aprovado_em: new Date().toISOString(),
             });
           }
           if (moradiaCalculada.auxilio > 0) {
-            reembRows.push({
+            reembRowsInsert.push({
               folha_id: folhaId,
               tipo: "Auxílio Moradia",
               valor: moradiaCalculada.auxilio,
               observacao: `${moradiaCalculada.perc}% sobre salário de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(moradiaCalculada.remun)}`,
               origem: "beneficio_moradia",
+              status: "aprovado",
+              criado_por: user?.id || null,
+              aprovado_por: user?.id || null,
+              aprovado_em: new Date().toISOString(),
             });
           }
         }
-        if (reembRows.length > 0) {
-          const { error } = await supabase.from("rh_folha_reembolsos").insert(reembRows);
+        if (reembRowsInsert.length > 0) {
+          const { error } = await supabase.from("rh_folha_reembolsos").insert(reembRowsInsert);
           if (error) throw error;
         }
       }
@@ -544,6 +600,7 @@ export default function FolhaMensal() {
       queryClient.invalidateQueries({ queryKey: ["rh_folha_descontos_detalhes"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_meses"] });
       queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_detalhes"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_pendentes"] });
       toast.success(editingId ? "Folha atualizada." : "Folha registrada.");
       closeDialog();
     },
@@ -628,6 +685,15 @@ export default function FolhaMensal() {
   const exportCSV = async () => {
     if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
     const ids = filtered.map((f: any) => f.id);
+    const { count: pendCount } = await supabase
+      .from("rh_folha_reembolsos")
+      .select("id", { count: "exact", head: true })
+      .in("folha_id", ids)
+      .eq("status", "pendente");
+    if ((pendCount || 0) > 0) {
+      toast.error(`Existem ${pendCount} reembolso(s) pendente(s) de aprovação. O relatório só pode ser emitido após a aprovação.`);
+      return;
+    }
     const [{ data: descData }, { data: reembData }] = await Promise.all([
       supabase.from("rh_folha_descontos").select("folha_id, tipo, valor, observacao").in("folha_id", ids),
       supabase.from("rh_folha_reembolsos").select("folha_id, tipo, valor, observacao, origem").in("folha_id", ids),
@@ -711,12 +777,22 @@ export default function FolhaMensal() {
     URL.revokeObjectURL(url);
   };
 
+  const totalPendentes = pendencias.length;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Nova Folha</Button>
         <Button variant="outline" onClick={exportCSV}><Download className="mr-2 h-4 w-4" /> Exportar relatório</Button>
       </div>
+
+      {totalPendentes > 0 && (
+        <div className="rounded-md border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-sm dark:bg-amber-950/40 dark:text-amber-100 dark:border-amber-800">
+          <strong>{totalPendentes}</strong> reembolso(s) aguardando aprovação. {role === "usuario"
+            ? "Aguarde a aprovação da coordenação para que o relatório possa ser emitido."
+            : <>Acesse <Link to="/reembolsos" className="underline font-medium">Reembolsos</Link> para revisar e aprovar.</>}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Combobox
@@ -778,7 +854,16 @@ export default function FolhaMensal() {
             : filtered.map((f: any) => (
               <TableRow key={f.id}>
                 <TableCell>{f.mes_referencia?.slice(0, 7)}</TableCell>
-                <TableCell className="font-medium">{f.rh_funcionarios?.nome_completo || "—"}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <span>{f.rh_funcionarios?.nome_completo || "—"}</span>
+                    {pendByFolha[f.id] > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-100 px-2 py-0.5 text-[10px] font-medium">
+                        {pendByFolha[f.id]} pendente{pendByFolha[f.id] > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell className="text-muted-foreground text-xs">{getEmpresaNome(f.funcionario_id, f.mes_referencia)}</TableCell>
                 <TableCell>{Number(f.horas_extra).toFixed(1)}h</TableCell>
                 <TableCell className="tabular-nums">{fmt(Number(f.plano_saude))}</TableCell>

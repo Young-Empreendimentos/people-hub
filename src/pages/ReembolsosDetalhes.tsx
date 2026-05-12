@@ -1,15 +1,17 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Check } from "lucide-react";
 
 export const TIPOS_REEMBOLSO = [
   "Gratificação",
@@ -20,6 +22,9 @@ export const TIPOS_REEMBOLSO = [
 
 export default function ReembolsosDetalhes() {
   const { mes } = useParams<{ mes: string }>();
+  const queryClient = useQueryClient();
+  const { user, role } = useAuth();
+  const canApprove = role === "admin" || role === "coordenador";
   const [filterFunc, setFilterFunc] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState("");
   const [filterTipo, setFilterTipo] = useState("");
@@ -35,12 +40,48 @@ export default function ReembolsosDetalhes() {
       const fim = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
       const { data, error } = await supabase
         .from("rh_folha_reembolsos")
-        .select("id, tipo, valor, observacao, origem, rh_folha_mensal!inner(mes_referencia, funcionario_id, rh_funcionarios(nome_completo, empresa_id))")
+        .select("id, tipo, valor, observacao, origem, status, criado_por, aprovado_por, aprovado_em, rh_folha_mensal!inner(mes_referencia, funcionario_id, rh_funcionarios(nome_completo, empresa_id))")
         .gte("rh_folha_mensal.mes_referencia", ini)
         .lt("rh_folha_mensal.mes_referencia", fim);
       if (error) throw error;
       return data || [];
     },
+  });
+
+  // Carrega nomes dos usuários (criador / aprovador)
+  const userIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const r of reembolsos as any[]) {
+      if (r.criado_por) s.add(r.criado_por);
+      if (r.aprovado_por) s.add(r.aprovado_por);
+    }
+    return Array.from(s);
+  }, [reembolsos]);
+  const { data: userNames = {} } = useQuery({
+    queryKey: ["rh_user_names", userIds],
+    enabled: userIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_user_profiles").select("user_id, nome").in("user_id", userIds);
+      const m: Record<string, string> = {};
+      (data || []).forEach((u: any) => { m[u.user_id] = u.nome || ""; });
+      return m;
+    },
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("rh_folha_reembolsos")
+        .update({ status: "aprovado", aprovado_por: user?.id, aprovado_em: new Date().toISOString() })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Reembolso aprovado.");
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_detalhes", mes] });
+      queryClient.invalidateQueries({ queryKey: ["rh_folha_reembolsos_pendentes"] });
+    },
+    onError: (e: any) => toast.error("Erro ao aprovar: " + (e?.message || "")),
   });
 
   const { data: funcionarios = [] } = useQuery({
@@ -130,15 +171,21 @@ export default function ReembolsosDetalhes() {
             <TableHead>Funcionário</TableHead>
             <TableHead>Tipo</TableHead>
             <TableHead>Origem</TableHead>
+            <TableHead>Status</TableHead>
             <TableHead>Observação</TableHead>
             <TableHead className="text-right">Valor</TableHead>
+            <TableHead className="text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum reembolso.</TableCell></TableRow>
-            ) : filtered.map((d: any) => (
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum reembolso.</TableCell></TableRow>
+            ) : filtered.map((d: any) => {
+              const isPend = d.status === "pendente";
+              const aprovadoNome = d.aprovado_por ? (userNames as any)[d.aprovado_por] : null;
+              const criadoNome = d.criado_por ? (userNames as any)[d.criado_por] : null;
+              return (
               <TableRow key={d.id}>
                 <TableCell className="font-medium">{d.rh_folha_mensal?.rh_funcionarios?.nome_completo || "—"}</TableCell>
                 <TableCell>{d.tipo}</TableCell>
@@ -146,17 +193,40 @@ export default function ReembolsosDetalhes() {
                   {d.origem === "beneficio_moradia" ? (
                     <Badge variant="secondary">automático</Badge>
                   ) : (
-                    <Badge variant="outline">manual</Badge>
+                    <Badge variant="outline">manual{criadoNome ? ` · ${criadoNome}` : ""}</Badge>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {isPend ? (
+                    <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Pendente</Badge>
+                  ) : (
+                    <div className="flex flex-col">
+                      <Badge variant="default" className="w-fit">Aprovado</Badge>
+                      {aprovadoNome && (
+                        <span className="text-[11px] text-muted-foreground mt-1">
+                          por {aprovadoNome}{d.aprovado_em ? ` em ${new Date(d.aprovado_em).toLocaleDateString("pt-BR")}` : ""}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-sm">{d.observacao || "—"}</TableCell>
                 <TableCell className="text-right tabular-nums">{fmt(Number(d.valor))}</TableCell>
+                <TableCell className="text-right">
+                  {isPend && canApprove && (
+                    <Button size="sm" onClick={() => approveMutation.mutate(d.id)} disabled={approveMutation.isPending}>
+                      <Check className="mr-1 h-3 w-3" /> Aprovar
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
             {filtered.length > 0 && (
               <TableRow>
-                <TableCell colSpan={4} className="font-semibold text-right">Total</TableCell>
+                <TableCell colSpan={5} className="font-semibold text-right">Total</TableCell>
                 <TableCell className="text-right font-semibold tabular-nums">{fmt(total)}</TableCell>
+                <TableCell />
               </TableRow>
             )}
           </TableBody>

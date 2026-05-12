@@ -11,20 +11,21 @@ export default function Reembolsos() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_folha_reembolsos")
-        .select("valor, rh_folha_mensal!inner(mes_referencia)");
+        .select("valor, status, rh_folha_mensal!inner(mes_referencia)");
       if (error) throw error;
       return data || [];
     },
   });
 
   const meses = useMemo(() => {
-    const map: Record<string, { total: number; qtd: number }> = {};
+    const map: Record<string, { total: number; qtd: number; pend: number }> = {};
     for (const d of reembolsos as any[]) {
       const mes = d.rh_folha_mensal?.mes_referencia?.slice(0, 7);
       if (!mes) continue;
-      if (!map[mes]) map[mes] = { total: 0, qtd: 0 };
+      if (!map[mes]) map[mes] = { total: 0, qtd: 0, pend: 0 };
       map[mes].total += Number(d.valor || 0);
       map[mes].qtd += 1;
+      if (d.status === "pendente") map[mes].pend += 1;
     }
     return Object.entries(map)
       .map(([mes, v]) => ({ mes, ...v }))
@@ -62,9 +63,16 @@ export default function Reembolsos() {
             <Link key={m.mes} to={`/reembolsos/${m.mes}`}>
               <Card className="hover:border-primary transition-colors cursor-pointer h-full">
                 <CardContent className="p-5 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays className="h-5 w-5 text-primary" />
-                    <h2 className="font-semibold">{formatMes(m.mes)}</h2>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-5 w-5 text-primary" />
+                      <h2 className="font-semibold">{formatMes(m.mes)}</h2>
+                    </div>
+                    {m.pend > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-amber-100 text-amber-900 dark:bg-amber-950/60 dark:text-amber-100 px-2 py-0.5 text-[11px] font-medium">
+                        {m.pend} pendente{m.pend > 1 ? "s" : ""}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground">
                     {m.qtd} lançamento{m.qtd !== 1 ? "s" : ""}

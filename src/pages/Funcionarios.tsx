@@ -33,6 +33,7 @@ export default function Funcionarios() {
   const [statusFilter, setStatusFilter] = useState<"ativos" | "inativos" | "todos">("ativos");
   const [filterEmpresaId, setFilterEmpresaId] = useState("");
   const [filterEquipeId, setFilterEquipeId] = useState("");
+  const [filterTipoContrato, setFilterTipoContrato] = useState("");
 
   const [nomeCompleto, setNomeCompleto] = useState("");
   const [rg, setRg] = useState("");
@@ -174,6 +175,7 @@ export default function Funcionarios() {
     if (statusFilter === "inativos" && isActive(f.id)) return false;
     if (filterEmpresaId && f.empresa_id !== filterEmpresaId) return false;
     if (filterEquipeId && f.equipe_id !== filterEquipeId) return false;
+    if (filterTipoContrato && f.tipo_contrato !== filterTipoContrato) return false;
     return f.nome_completo.toLowerCase().includes(search.toLowerCase());
   });
 
@@ -217,6 +219,13 @@ export default function Funcionarios() {
           <SelectContent>
             <SelectItem value="all">Todas as equipes</SelectItem>
             {equipes.map((e: any) => <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterTipoContrato} onValueChange={(v) => setFilterTipoContrato(v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Todos os contratos" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os contratos</SelectItem>
+            {TIPO_CONTRATO_OPTIONS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>

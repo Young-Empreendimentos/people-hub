@@ -166,6 +166,8 @@ export default function FolhaMensal() {
     for (const p of pendencias as any[]) m[p.folha_id] = (m[p.folha_id] || 0) + 1;
     return m;
   }, [pendencias]);
+
+  const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
       const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato").order("nome_completo");

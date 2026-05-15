@@ -6302,18 +6302,32 @@ export type Database = {
       }
       sienge_parcelas_receber: {
         Row: {
+          annual_correction: boolean | null
           balance_amount: number | null
+          base_date: string | null
           bearer_id: number | null
+          bill_correction_date: string | null
           bill_date: string | null
+          bill_document: string | null
+          bill_emission_date: string | null
           bill_id: number
+          bill_last_renegotiation_date: string | null
+          bill_oldest_installment_date: string | null
+          bill_private_area: number | null
+          bill_revoked_date: string | null
           business_area_id: number | null
           business_area_name: string | null
+          calculation_date: string | null
           client_id: number | null
           client_name: string | null
           company_id: number | null
           company_name: string | null
           corrected_balance_amount: number | null
           correction_type: string | null
+          cost_center_id: number | null
+          cost_center_name: string | null
+          current_balance: number | null
+          current_balance_with_addition: number | null
           defaulter_situation: string | null
           discount_amount: number | null
           document_forecast: string | null
@@ -6323,11 +6337,13 @@ export type Database = {
           due_date: string | null
           embedded_interest_amount: number | null
           first_payment_date: string | null
+          generated_billet: boolean | null
           indexer_id: number | null
           indexer_name: string | null
           installment_base_date: string | null
           installment_id: number
           installment_number: string | null
+          installment_situation: string | null
           interest_base_date: string | null
           interest_rate: number | null
           interest_type: string | null
@@ -6344,24 +6360,40 @@ export type Database = {
           receipts: Json | null
           receipts_categories: Json | null
           receipts_count: number | null
+          sent_to_scriptural_charge: boolean | null
           sub_judicie: string | null
           synced_at: string | null
           tax_amount: number | null
           total_paid_net: number | null
+          units: Json | null
         }
         Insert: {
+          annual_correction?: boolean | null
           balance_amount?: number | null
+          base_date?: string | null
           bearer_id?: number | null
+          bill_correction_date?: string | null
           bill_date?: string | null
+          bill_document?: string | null
+          bill_emission_date?: string | null
           bill_id: number
+          bill_last_renegotiation_date?: string | null
+          bill_oldest_installment_date?: string | null
+          bill_private_area?: number | null
+          bill_revoked_date?: string | null
           business_area_id?: number | null
           business_area_name?: string | null
+          calculation_date?: string | null
           client_id?: number | null
           client_name?: string | null
           company_id?: number | null
           company_name?: string | null
           corrected_balance_amount?: number | null
           correction_type?: string | null
+          cost_center_id?: number | null
+          cost_center_name?: string | null
+          current_balance?: number | null
+          current_balance_with_addition?: number | null
           defaulter_situation?: string | null
           discount_amount?: number | null
           document_forecast?: string | null
@@ -6371,11 +6403,13 @@ export type Database = {
           due_date?: string | null
           embedded_interest_amount?: number | null
           first_payment_date?: string | null
+          generated_billet?: boolean | null
           indexer_id?: number | null
           indexer_name?: string | null
           installment_base_date?: string | null
           installment_id: number
           installment_number?: string | null
+          installment_situation?: string | null
           interest_base_date?: string | null
           interest_rate?: number | null
           interest_type?: string | null
@@ -6392,24 +6426,40 @@ export type Database = {
           receipts?: Json | null
           receipts_categories?: Json | null
           receipts_count?: number | null
+          sent_to_scriptural_charge?: boolean | null
           sub_judicie?: string | null
           synced_at?: string | null
           tax_amount?: number | null
           total_paid_net?: number | null
+          units?: Json | null
         }
         Update: {
+          annual_correction?: boolean | null
           balance_amount?: number | null
+          base_date?: string | null
           bearer_id?: number | null
+          bill_correction_date?: string | null
           bill_date?: string | null
+          bill_document?: string | null
+          bill_emission_date?: string | null
           bill_id?: number
+          bill_last_renegotiation_date?: string | null
+          bill_oldest_installment_date?: string | null
+          bill_private_area?: number | null
+          bill_revoked_date?: string | null
           business_area_id?: number | null
           business_area_name?: string | null
+          calculation_date?: string | null
           client_id?: number | null
           client_name?: string | null
           company_id?: number | null
           company_name?: string | null
           corrected_balance_amount?: number | null
           correction_type?: string | null
+          cost_center_id?: number | null
+          cost_center_name?: string | null
+          current_balance?: number | null
+          current_balance_with_addition?: number | null
           defaulter_situation?: string | null
           discount_amount?: number | null
           document_forecast?: string | null
@@ -6419,11 +6469,13 @@ export type Database = {
           due_date?: string | null
           embedded_interest_amount?: number | null
           first_payment_date?: string | null
+          generated_billet?: boolean | null
           indexer_id?: number | null
           indexer_name?: string | null
           installment_base_date?: string | null
           installment_id?: number
           installment_number?: string | null
+          installment_situation?: string | null
           interest_base_date?: string | null
           interest_rate?: number | null
           interest_type?: string | null
@@ -6440,10 +6492,12 @@ export type Database = {
           receipts?: Json | null
           receipts_categories?: Json | null
           receipts_count?: number | null
+          sent_to_scriptural_charge?: boolean | null
           sub_judicie?: string | null
           synced_at?: string | null
           tax_amount?: number | null
           total_paid_net?: number | null
+          units?: Json | null
         }
         Relationships: []
       }

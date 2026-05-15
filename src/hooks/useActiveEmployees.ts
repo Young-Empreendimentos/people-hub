@@ -23,10 +23,23 @@ export function useActiveEmployees() {
         .order("data", { ascending: false });
       const statusMap: Record<string, string> = {};
       const admissaoMap: Record<string, string> = {};
+      // Group rows per funcionario
+      const byFunc: Record<string, Array<{ tipo: string; data: string }>> = {};
       for (const row of data || []) {
         if (!statusMap[row.funcionario_id]) statusMap[row.funcionario_id] = row.tipo;
-        // Keep the earliest admissao date per employee
-        if (row.tipo === "admissao") admissaoMap[row.funcionario_id] = row.data;
+        (byFunc[row.funcionario_id] ||= []).push({ tipo: row.tipo, data: row.data });
+      }
+      // For each funcionario: take earliest admissao after the most recent desligamento.
+      // If there is no desligamento (only transferências entre CNPJs), take the earliest admissao overall.
+      for (const [funcId, rows] of Object.entries(byFunc)) {
+        const asc = [...rows].sort((a, b) => a.data.localeCompare(b.data));
+        let lastDesligamentoIdx = -1;
+        for (let i = asc.length - 1; i >= 0; i--) {
+          if (asc[i].tipo === "desligamento") { lastDesligamentoIdx = i; break; }
+        }
+        const pool = lastDesligamentoIdx >= 0 ? asc.slice(lastDesligamentoIdx + 1) : asc;
+        const firstAdm = pool.find((r) => r.tipo === "admissao");
+        if (firstAdm) admissaoMap[funcId] = firstAdm.data;
       }
       return { statusMap, admissaoMap };
     },

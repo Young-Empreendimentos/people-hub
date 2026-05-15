@@ -294,6 +294,40 @@ export default function PlanoSaude() {
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h1 className="text-2xl font-bold tracking-tight">Plano de Saúde</h1>
         <div className="flex items-center gap-2 flex-wrap">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="w-52 justify-between font-normal">
+                <span className="flex items-center gap-2 truncate">
+                  <Building2 className="h-4 w-4 opacity-60" />
+                  <span className="truncate">{empresasLabel}</span>
+                </span>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64 p-2 z-[60]" align="start">
+              <div className="flex items-center justify-between px-2 py-1">
+                <span className="text-xs font-medium text-muted-foreground">Empresas</span>
+                {filterEmpresas.length > 0 && (
+                  <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setFilterEmpresas([])}>
+                    Limpar
+                  </Button>
+                )}
+              </div>
+              <div className="max-h-64 overflow-auto space-y-1">
+                {empresas.length === 0 ? (
+                  <div className="px-2 py-2 text-sm text-muted-foreground">Nenhuma empresa.</div>
+                ) : empresas.map((e) => (
+                  <label key={e.id} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer">
+                    <Checkbox
+                      checked={filterEmpresas.includes(e.id)}
+                      onCheckedChange={() => toggleEmpresa(e.id)}
+                    />
+                    <span className="text-sm">{e.nome}</span>
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <div className="w-44">
             <Combobox
               options={[{ value: "", label: "Todos os funcionários" }, ...funcionariosComPlano]}
@@ -310,6 +344,12 @@ export default function PlanoSaude() {
               placeholder="Filtrar por mês"
             />
           </div>
+          <Button variant="outline" onClick={exportXLSX}>
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Planilha
+          </Button>
+          <Button variant="outline" onClick={exportPDF}>
+            <FileText className="mr-2 h-4 w-4" /> PDF
+          </Button>
           <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Lançamento</Button>
         </div>
       </div>

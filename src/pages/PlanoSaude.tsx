@@ -171,9 +171,13 @@ export default function PlanoSaude() {
     return registros.filter((r) => {
       if (filterMes && !r.mes_referencia.startsWith(filterMes)) return false;
       if (filterFunc && r.funcionario_id !== filterFunc) return false;
+      if (filterEmpresas.length > 0) {
+        const empId = r.rh_funcionarios?.empresa_id;
+        if (!empId || !filterEmpresas.includes(empId)) return false;
+      }
       return true;
     });
-  }, [registros, filterMes, filterFunc]);
+  }, [registros, filterMes, filterFunc, filterEmpresas]);
 
   const mesesDisponiveis = useMemo(() => {
     const set = new Set(registros.map((r) => r.mes_referencia.slice(0, 7)));
@@ -185,6 +189,101 @@ export default function PlanoSaude() {
     return funcionarios.filter((f: any) => ids.has(f.id))
       .map((f: any) => ({ value: f.id, label: f.nome_completo }));
   }, [registros, funcionarios]);
+
+  const toggleEmpresa = (id: string) => {
+    setFilterEmpresas((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
+  const empresasLabel = filterEmpresas.length === 0
+    ? "Todas as empresas"
+    : filterEmpresas.length === 1
+      ? empresas.find((e) => e.id === filterEmpresas[0])?.nome || "1 empresa"
+      : `${filterEmpresas.length} empresas`;
+
+  const totals = useMemo(() => {
+    return filtered.reduce((acc, r) => {
+      const s = Number(r.valor_saude) || 0;
+      const o = Number(r.valor_odonto) || 0;
+      const u = Number(r.uso_plano) || 0;
+      const t = s + o + u;
+      acc.saude += s; acc.odonto += o; acc.uso += u;
+      acc.total += t; acc.desconto += t * 0.2;
+      return acc;
+    }, { saude: 0, odonto: 0, uso: 0, total: 0, desconto: 0 });
+  }, [filtered]);
+
+  const exportXLSX = () => {
+    if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
+    const rows: any[] = filtered.map((r) => {
+      const tot = Number(r.valor_saude) + Number(r.valor_odonto) + Number(r.uso_plano);
+      return {
+        "Mês": formatMesAno(r.mes_referencia),
+        "Empresa": r.rh_funcionarios?.rh_empresas?.nome || "—",
+        "Funcionário": r.rh_funcionarios?.nome_completo || "—",
+        "Idade": calcIdade(r.rh_funcionarios?.aniversario) ?? "—",
+        "Valor Saúde": Number(r.valor_saude),
+        "Valor Odonto": Number(r.valor_odonto),
+        "Uso do Plano": Number(r.uso_plano),
+        "Total": tot,
+        "Desconto Mensal (20%)": tot * 0.2,
+        "Observações": r.observacoes || "",
+      };
+    });
+    rows.push({
+      "Mês": "TOTAL", "Empresa": "", "Funcionário": "", "Idade": "",
+      "Valor Saúde": totals.saude, "Valor Odonto": totals.odonto, "Uso do Plano": totals.uso,
+      "Total": totals.total, "Desconto Mensal (20%)": totals.desconto, "Observações": "",
+    });
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plano de Saúde");
+    XLSX.writeFile(wb, `plano_saude_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const exportPDF = () => {
+    if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(14);
+    doc.text("Plano de Saúde - Relatório", 14, 15);
+    doc.setFontSize(9);
+    const filtros: string[] = [];
+    if (filterEmpresas.length > 0) filtros.push(`Empresas: ${empresasLabel}`);
+    if (filterMes) filtros.push(`Mês: ${formatMesAno(filterMes + "-01")}`);
+    if (filterFunc) {
+      const f = funcionariosComPlano.find((x) => x.value === filterFunc);
+      if (f) filtros.push(`Funcionário: ${f.label}`);
+    }
+    doc.text(filtros.length ? filtros.join("  |  ") : "Sem filtros", 14, 21);
+
+    autoTable(doc, {
+      startY: 26,
+      head: [["Mês", "Empresa", "Funcionário", "Idade", "Saúde", "Odonto", "Uso", "Total", "Desconto (20%)"]],
+      body: filtered.map((r) => {
+        const tot = Number(r.valor_saude) + Number(r.valor_odonto) + Number(r.uso_plano);
+        return [
+          formatMesAno(r.mes_referencia),
+          r.rh_funcionarios?.rh_empresas?.nome || "—",
+          r.rh_funcionarios?.nome_completo || "—",
+          String(calcIdade(r.rh_funcionarios?.aniversario) ?? "—"),
+          fmtBRL(Number(r.valor_saude)),
+          fmtBRL(Number(r.valor_odonto)),
+          fmtBRL(Number(r.uso_plano)),
+          fmtBRL(tot),
+          fmtBRL(tot * 0.2),
+        ];
+      }),
+      foot: [[
+        "TOTAL", "", "", "",
+        fmtBRL(totals.saude), fmtBRL(totals.odonto), fmtBRL(totals.uso),
+        fmtBRL(totals.total), fmtBRL(totals.desconto),
+      ]],
+      styles: { fontSize: 8 },
+      headStyles: { fillColor: [30, 41, 59] },
+      footStyles: { fillColor: [226, 232, 240], textColor: [15, 23, 42], fontStyle: "bold" },
+    });
+
+    doc.save(`plano_saude_${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
 
   // Preview no dialog
   const total = (parseFloat(valorSaude) || 0) + (parseFloat(valorOdonto) || 0) + (parseFloat(usoPlano) || 0);

@@ -84,16 +84,26 @@ export default function PlanoSaude() {
 
   const [filterMes, setFilterMes] = useState("");
   const [filterFunc, setFilterFunc] = useState("");
+  const [filterEmpresas, setFilterEmpresas] = useState<string[]>([]);
 
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["rh_plano_saude"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_plano_saude")
-        .select("*, rh_funcionarios(nome_completo, aniversario, rh_empresas(nome))")
+        .select("*, rh_funcionarios(nome_completo, aniversario, empresa_id, rh_empresas(nome))")
         .order("mes_referencia", { ascending: false });
       if (error) throw error;
       return data as Registro[];
+    },
+  });
+
+  const { data: empresas = [] } = useQuery({
+    queryKey: ["rh_empresas_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rh_empresas").select("id, nome").order("nome");
+      if (error) throw error;
+      return data as { id: string; nome: string }[];
     },
   });
 

@@ -32,6 +32,7 @@ type Registro = {
   rh_funcionarios?: {
     nome_completo: string;
     aniversario: string | null;
+    empresa_id?: string | null;
     rh_empresas?: { nome: string } | null;
   };
 };

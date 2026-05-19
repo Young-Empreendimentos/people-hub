@@ -326,7 +326,7 @@ export default function FuncionarioDetalhes() {
                   <TableBody>
                     {historico.map((h) => (
                       <TableRow key={h.id}>
-                        <TableCell>{h.data}</TableCell>
+                        <TableCell>{fmtDate(h.data)}</TableCell>
                         <TableCell>
                           <Badge variant={h.tipo === "admissao" ? "default" : "destructive"}>
                             {h.tipo === "admissao" ? "Admissão" : "Desligamento"}

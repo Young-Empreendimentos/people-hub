@@ -392,7 +392,7 @@ export default function FuncionarioDetalhes() {
                   <TableBody>
                     {treinamentos.map((t: any) => (
                       <TableRow key={t.id}>
-                        <TableCell>{t.data}</TableCell>
+                        <TableCell>{fmtDate(t.data)}</TableCell>
                         <TableCell className="font-medium">{(t.rh_tipos_treinamento as any)?.nome || "—"}</TableCell>
                         <TableCell className="text-muted-foreground">{t.observacoes || "—"}</TableCell>
                       </TableRow>

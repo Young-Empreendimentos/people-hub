@@ -187,6 +187,13 @@ export default function FuncionarioDetalhes() {
     contrato: "Contrato de Trabalho",
   };
 
+  const fmtDate = (d?: string | null) => {
+    if (!d) return "—";
+    const s = String(d).slice(0, 10);
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+  };
+
   if (!func) return <p className="text-muted-foreground p-6">Carregando...</p>;
 
   return (

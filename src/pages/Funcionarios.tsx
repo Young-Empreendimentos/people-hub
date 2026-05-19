@@ -91,10 +91,11 @@ export default function Funcionarios() {
   const cargoMap = Object.fromEntries(cargos.map((c: any) => [c.id, c]));
 
   const getSalario = (f: any): number | null => {
-    const aditivoCargoId = (ultimoAditivoPorFunc as Record<string, string>)[f.id];
-    const cargoId = aditivoCargoId || f.cargo_id;
-    if (!cargoId) return null;
-    return cargoMap[cargoId]?.remuneracao ?? null;
+    // Sempre usa o cargo atual do funcionário como fonte do salário.
+    // O cargo_id é atualizado quando o cargo muda (ex.: promoção a Diretor),
+    // então a remuneração deve refletir o cargo vigente, não o último aditivo.
+    if (!f.cargo_id) return null;
+    return cargoMap[f.cargo_id]?.remuneracao ?? null;
   };
 
   const formatCurrency = (v: number) =>

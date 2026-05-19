@@ -261,15 +261,15 @@ export default function Admissoes() {
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2"><label className="text-sm font-medium">Tipo *</label>
-                <Combobox options={[{ value: "admissao", label: "Admissão" }, { value: "desligamento", label: "Desligamento" }]} value={tipo} onValueChange={setTipo} />
+                <Combobox options={[{ value: "admissao", label: "Admissão" }, { value: "desligamento", label: "Desligamento" }]} value={tipo} onValueChange={setTipo} disabled={!!editingId} />
               </div>
-              <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} /></div>
+              <div className="space-y-2"><label className="text-sm font-medium">Data *</label><Input type="date" value={data} onChange={(e) => setData(e.target.value)} disabled={!!editingId} readOnly={!!editingId} /></div>
             </div>
 
             {/* For editing or desligamento, select existing employee */}
             {(editingId || tipo === "desligamento") && (
               <div className="space-y-2"><label className="text-sm font-medium">Funcionário *</label>
-                <Combobox options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione o funcionário" />
+                <Combobox options={funcionarios.map((f) => ({ value: f.id, label: f.nome_completo }))} value={funcId} onValueChange={setFuncId} placeholder="Selecione o funcionário" disabled={!!editingId} />
               </div>
             )}
 

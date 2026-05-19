@@ -235,7 +235,7 @@ export default function Admissoes() {
             : filtered.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
             : filtered.map((r: any) => (
               <TableRow key={r.id}>
-                <TableCell>{r.data}</TableCell>
+                <TableCell>{r.data ? r.data.split("-").reverse().join("/") : "—"}</TableCell>
                 <TableCell className="font-medium">{r.rh_funcionarios?.nome_completo || "—"}</TableCell>
                 <TableCell className="max-w-[200px] truncate">{r.observacoes || "—"}</TableCell>
                 <TableCell>{r.anexo_name || "—"}</TableCell>

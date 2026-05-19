@@ -232,13 +232,6 @@ export default function FuncionarioDetalhes() {
               <div className="col-span-2 border-t pt-4 mt-2 flex gap-8">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Switch
-                    checked={!!(func as any).seguro_vida}
-                    onCheckedChange={() => handleToggle("seguro_vida", !!(func as any).seguro_vida)}
-                  />
-                  <span className="font-medium text-sm">Seguro de Vida</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <Switch
                     checked={!!(func as any).kit_onboarding}
                     onCheckedChange={() => handleToggle("kit_onboarding", !!(func as any).kit_onboarding)}
                   />

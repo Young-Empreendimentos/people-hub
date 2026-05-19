@@ -187,6 +187,13 @@ export default function FuncionarioDetalhes() {
     contrato: "Contrato de Trabalho",
   };
 
+  const fmtDate = (d?: string | null) => {
+    if (!d) return "—";
+    const s = String(d).slice(0, 10);
+    const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+  };
+
   if (!func) return <p className="text-muted-foreground p-6">Carregando...</p>;
 
   return (
@@ -224,9 +231,9 @@ export default function FuncionarioDetalhes() {
               <div><span className="font-medium text-muted-foreground">CPF:</span> {(func as any).cpf || "—"}</div>
               <div className="col-span-2"><span className="font-medium text-muted-foreground">Endereço:</span> {(func as any).endereco || "—"}</div>
               <div className="col-span-2"><span className="font-medium text-muted-foreground">Telefone:</span> {(func as any).telefone || "—"}</div>
-              <div><span className="font-medium text-muted-foreground">Aniversário:</span> {(func as any).aniversario || "—"}</div>
-              <div><span className="font-medium text-muted-foreground">Data de Admissão:</span> {dataAdmissao || "—"}</div>
-              <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {(func as any).data_contrato_vigente || "—"}</div>
+              <div><span className="font-medium text-muted-foreground">Aniversário:</span> {fmtDate((func as any).aniversario)}</div>
+              <div><span className="font-medium text-muted-foreground">Data de Admissão:</span> {fmtDate(dataAdmissao)}</div>
+              <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {fmtDate((func as any).data_contrato_vigente)}</div>
               <div><span className="font-medium text-muted-foreground">Empresa:</span> {(func as any).rh_empresas?.nome || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Equipe:</span> {(func as any).rh_equipes?.nome || "—"}</div>
               <div className="col-span-2 border-t pt-4 mt-2 flex gap-8">
@@ -319,7 +326,7 @@ export default function FuncionarioDetalhes() {
                   <TableBody>
                     {historico.map((h) => (
                       <TableRow key={h.id}>
-                        <TableCell>{h.data}</TableCell>
+                        <TableCell>{fmtDate(h.data)}</TableCell>
                         <TableCell>
                           <Badge variant={h.tipo === "admissao" ? "default" : "destructive"}>
                             {h.tipo === "admissao" ? "Admissão" : "Desligamento"}
@@ -354,7 +361,7 @@ export default function FuncionarioDetalhes() {
                   <TableBody>
                     {aditivos.map((a: any) => (
                       <TableRow key={a.id}>
-                        <TableCell>{a.data}</TableCell>
+                        <TableCell>{fmtDate(a.data)}</TableCell>
                         <TableCell>{a.rh_tipos_aditivo?.nome || "—"}</TableCell>
                         <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
                         <TableCell>{a.rh_cargos?.nome || "—"}</TableCell>
@@ -385,7 +392,7 @@ export default function FuncionarioDetalhes() {
                   <TableBody>
                     {treinamentos.map((t: any) => (
                       <TableRow key={t.id}>
-                        <TableCell>{t.data}</TableCell>
+                        <TableCell>{fmtDate(t.data)}</TableCell>
                         <TableCell className="font-medium">{(t.rh_tipos_treinamento as any)?.nome || "—"}</TableCell>
                         <TableCell className="text-muted-foreground">{t.observacoes || "—"}</TableCell>
                       </TableRow>

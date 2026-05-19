@@ -231,9 +231,9 @@ export default function FuncionarioDetalhes() {
               <div><span className="font-medium text-muted-foreground">CPF:</span> {(func as any).cpf || "—"}</div>
               <div className="col-span-2"><span className="font-medium text-muted-foreground">Endereço:</span> {(func as any).endereco || "—"}</div>
               <div className="col-span-2"><span className="font-medium text-muted-foreground">Telefone:</span> {(func as any).telefone || "—"}</div>
-              <div><span className="font-medium text-muted-foreground">Aniversário:</span> {(func as any).aniversario || "—"}</div>
-              <div><span className="font-medium text-muted-foreground">Data de Admissão:</span> {dataAdmissao || "—"}</div>
-              <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {(func as any).data_contrato_vigente || "—"}</div>
+              <div><span className="font-medium text-muted-foreground">Aniversário:</span> {fmtDate((func as any).aniversario)}</div>
+              <div><span className="font-medium text-muted-foreground">Data de Admissão:</span> {fmtDate(dataAdmissao)}</div>
+              <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {fmtDate((func as any).data_contrato_vigente)}</div>
               <div><span className="font-medium text-muted-foreground">Empresa:</span> {(func as any).rh_empresas?.nome || "—"}</div>
               <div><span className="font-medium text-muted-foreground">Equipe:</span> {(func as any).rh_equipes?.nome || "—"}</div>
               <div className="col-span-2 border-t pt-4 mt-2 flex gap-8">

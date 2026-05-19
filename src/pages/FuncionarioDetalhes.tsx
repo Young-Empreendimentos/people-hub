@@ -361,7 +361,7 @@ export default function FuncionarioDetalhes() {
                   <TableBody>
                     {aditivos.map((a: any) => (
                       <TableRow key={a.id}>
-                        <TableCell>{a.data}</TableCell>
+                        <TableCell>{fmtDate(a.data)}</TableCell>
                         <TableCell>{a.rh_tipos_aditivo?.nome || "—"}</TableCell>
                         <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
                         <TableCell>{a.rh_cargos?.nome || "—"}</TableCell>

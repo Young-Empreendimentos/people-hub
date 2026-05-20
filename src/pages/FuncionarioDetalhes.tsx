@@ -433,7 +433,7 @@ export default function FuncionarioDetalhes() {
         <TabsContent value="moradia">
           <BeneficiosMoradiaTab
             funcionarioId={id!}
-            remuneracaoCargo={(func as any).rh_cargos?.remuneracao ?? null}
+            remuneracaoCargo={efetivo.cargo.remuneracao}
           />
         </TabsContent>
       </Tabs>

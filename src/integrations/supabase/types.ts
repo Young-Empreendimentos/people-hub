@@ -8535,6 +8535,87 @@ export type Database = {
           },
         ]
       }
+      vw_parcelas_abertas: {
+        Row: {
+          bill_document: string | null
+          bill_id: number | null
+          business_area_name: string | null
+          client_id: number | null
+          client_name: string | null
+          company_id: number | null
+          company_name: string | null
+          corrected_balance_amount: number | null
+          current_balance: number | null
+          current_balance_with_addition: number | null
+          discount_amount: number | null
+          document_identification_id: string | null
+          document_identification_name: string | null
+          due_date: string | null
+          indexer_name: string | null
+          installment_number: string | null
+          installment_situation: string | null
+          issue_date: string | null
+          last_payment_date: string | null
+          main_unit: string | null
+          original_amount: number | null
+          payment_status: string | null
+          payment_term_description: string | null
+          total_paid_net: number | null
+        }
+        Insert: {
+          bill_document?: string | null
+          bill_id?: number | null
+          business_area_name?: string | null
+          client_id?: number | null
+          client_name?: string | null
+          company_id?: number | null
+          company_name?: string | null
+          corrected_balance_amount?: number | null
+          current_balance?: number | null
+          current_balance_with_addition?: number | null
+          discount_amount?: number | null
+          document_identification_id?: string | null
+          document_identification_name?: string | null
+          due_date?: string | null
+          indexer_name?: string | null
+          installment_number?: string | null
+          installment_situation?: string | null
+          issue_date?: string | null
+          last_payment_date?: string | null
+          main_unit?: string | null
+          original_amount?: number | null
+          payment_status?: string | null
+          payment_term_description?: string | null
+          total_paid_net?: number | null
+        }
+        Update: {
+          bill_document?: string | null
+          bill_id?: number | null
+          business_area_name?: string | null
+          client_id?: number | null
+          client_name?: string | null
+          company_id?: number | null
+          company_name?: string | null
+          corrected_balance_amount?: number | null
+          current_balance?: number | null
+          current_balance_with_addition?: number | null
+          discount_amount?: number | null
+          document_identification_id?: string | null
+          document_identification_name?: string | null
+          due_date?: string | null
+          indexer_name?: string | null
+          installment_number?: string | null
+          installment_situation?: string | null
+          issue_date?: string | null
+          last_payment_date?: string | null
+          main_unit?: string | null
+          original_amount?: number | null
+          payment_status?: string | null
+          payment_term_description?: string | null
+          total_paid_net?: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       esquadro_has_role: {

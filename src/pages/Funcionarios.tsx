@@ -266,13 +266,15 @@ export default function Funcionarios() {
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum funcionário encontrado.</TableCell></TableRow>
-              ) : filtered.map((f: any) => (
+              ) : filtered.map((f: any) => {
+                const eff = getEffective(f);
+                return (
                 <TableRow key={f.id}>
                   <TableCell className="font-medium">{f.nome_completo}</TableCell>
                   <TableCell>{f.cpf || "—"}</TableCell>
-                  <TableCell>{f.rh_empresas?.nome || "—"}</TableCell>
-                  <TableCell>{f.rh_equipes?.nome || "—"}</TableCell>
-                  <TableCell>{f.rh_cargos?.nome || "—"}</TableCell>
+                  <TableCell>{eff.empresa_id ? (empresaMap[eff.empresa_id]?.nome || "—") : "—"}</TableCell>
+                  <TableCell>{eff.equipe_id ? (equipeMap[eff.equipe_id]?.nome || "—") : "—"}</TableCell>
+                  <TableCell>{eff.cargo_id ? (cargoMap[eff.cargo_id]?.nome || "—") : "—"}</TableCell>
                   <TableCell className="tabular-nums">{(() => { const s = getSalario(f); return s != null ? formatCurrency(s) : "—"; })()}</TableCell>
                   <TableCell>{getStatusBadge(f.id)}</TableCell>
                   <TableCell className="text-right">

@@ -71,9 +71,10 @@ export default function FuncionarioDetalhes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_aditivos")
-        .select("*, rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome, remuneracao), rh_equipes(nome)")
+        .select("*, rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome, nivel, remuneracao), rh_equipes(nome)")
         .eq("funcionario_id", id!)
-        .order("data", { ascending: false });
+        .order("data", { ascending: false })
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
@@ -88,11 +89,12 @@ export default function FuncionarioDetalhes() {
     let cargo = {
       id: f.cargo_id,
       nome: f.rh_cargos?.nome,
+      nivel: f.rh_cargos?.nivel,
       remuneracao: f.rh_cargos?.remuneracao ?? null,
     };
     // aditivos vem ordenado data DESC; pega o primeiro valor não-nulo de cada campo
     for (const a of aditivos as any[]) {
-      if (!cargo.id && a.cargo_final_id) cargo = { id: a.cargo_final_id, nome: a.rh_cargos?.nome, remuneracao: null };
+      if (!cargo.id && a.cargo_final_id) cargo = { id: a.cargo_final_id, nome: a.rh_cargos?.nome, nivel: a.rh_cargos?.nivel, remuneracao: a.rh_cargos?.remuneracao ?? null };
       if (!empresa.id && a.empresa_final_id) empresa = { id: a.empresa_final_id, nome: a.rh_empresas?.nome };
       if (!equipe.id && a.equipe_final_id) equipe = { id: a.equipe_final_id, nome: a.rh_equipes?.nome };
     }
@@ -100,7 +102,7 @@ export default function FuncionarioDetalhes() {
     const cargoLatest = (aditivos as any[]).find((a) => a.cargo_final_id);
     const empresaLatest = (aditivos as any[]).find((a) => a.empresa_final_id);
     const equipeLatest = (aditivos as any[]).find((a) => a.equipe_final_id);
-    if (cargoLatest) cargo = { id: cargoLatest.cargo_final_id, nome: cargoLatest.rh_cargos?.nome, remuneracao: cargoLatest.rh_cargos?.remuneracao ?? null };
+    if (cargoLatest) cargo = { id: cargoLatest.cargo_final_id, nome: cargoLatest.rh_cargos?.nome, nivel: cargoLatest.rh_cargos?.nivel, remuneracao: cargoLatest.rh_cargos?.remuneracao ?? null };
     if (empresaLatest) empresa = { id: empresaLatest.empresa_final_id, nome: empresaLatest.rh_empresas?.nome };
     if (equipeLatest) equipe = { id: equipeLatest.equipe_final_id, nome: equipeLatest.rh_equipes?.nome };
     return { empresa, equipe, cargo };
@@ -220,6 +222,11 @@ export default function FuncionarioDetalhes() {
     return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
   };
 
+  const formatCargoLabel = (cargo: any) => {
+    if (!cargo?.nome) return "—";
+    return cargo.nivel ? `${cargo.nome} (Nível ${cargo.nivel})` : cargo.nome;
+  };
+
   if (!func) return <p className="text-muted-foreground p-6">Carregando...</p>;
 
   return (
@@ -235,7 +242,7 @@ export default function FuncionarioDetalhes() {
               {status}
             </Badge>
             {efetivo.equipe.nome && <span className="text-sm text-muted-foreground">{efetivo.equipe.nome}</span>}
-            {efetivo.cargo.nome && <span className="text-sm text-muted-foreground">• {efetivo.cargo.nome}</span>}
+            {efetivo.cargo.nome && <span className="text-sm text-muted-foreground">• {formatCargoLabel(efetivo.cargo)}</span>}
           </div>
         </div>
       </div>
@@ -390,7 +397,7 @@ export default function FuncionarioDetalhes() {
                         <TableCell>{fmtDate(a.data)}</TableCell>
                         <TableCell>{a.rh_tipos_aditivo?.nome || "—"}</TableCell>
                         <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
-                        <TableCell>{a.rh_cargos?.nome || "—"}</TableCell>
+                        <TableCell>{formatCargoLabel(a.rh_cargos)}</TableCell>
                         <TableCell>{a.rh_equipes?.nome || "—"}</TableCell>
                       </TableRow>
                     ))}

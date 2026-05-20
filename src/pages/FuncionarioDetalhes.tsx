@@ -71,7 +71,7 @@ export default function FuncionarioDetalhes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_aditivos")
-        .select("*, rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
+        .select("*, rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome, remuneracao), rh_equipes(nome)")
         .eq("funcionario_id", id!)
         .order("data", { ascending: false });
       if (error) throw error;

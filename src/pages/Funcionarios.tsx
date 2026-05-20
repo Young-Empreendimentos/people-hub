@@ -73,29 +73,43 @@ export default function Funcionarios() {
   });
 
   const { data: ultimoAditivoPorFunc = {} } = useQuery({
-    queryKey: ["rh_aditivos_ultimo_cargo"],
+    queryKey: ["rh_aditivos_ultimo"],
     queryFn: async () => {
       const { data } = await supabase
         .from("rh_aditivos")
-        .select("funcionario_id, cargo_final_id, data")
-        .not("cargo_final_id", "is", null)
+        .select("funcionario_id, cargo_final_id, empresa_final_id, equipe_final_id, data")
         .order("data", { ascending: false });
-      const map: Record<string, string> = {};
+      const map: Record<string, { cargo_final_id: string | null; empresa_final_id: string | null; equipe_final_id: string | null }> = {};
       for (const row of data || []) {
-        if (!map[row.funcionario_id]) map[row.funcionario_id] = row.cargo_final_id!;
+        const cur = map[row.funcionario_id] || { cargo_final_id: null, empresa_final_id: null, equipe_final_id: null };
+        // pega o mais recente de cada campo (data desc)
+        if (cur.cargo_final_id == null && row.cargo_final_id) cur.cargo_final_id = row.cargo_final_id;
+        if (cur.empresa_final_id == null && row.empresa_final_id) cur.empresa_final_id = row.empresa_final_id;
+        if (cur.equipe_final_id == null && row.equipe_final_id) cur.equipe_final_id = row.equipe_final_id;
+        map[row.funcionario_id] = cur;
       }
       return map;
     },
   });
 
   const cargoMap = Object.fromEntries(cargos.map((c: any) => [c.id, c]));
+  const empresaMap = Object.fromEntries(empresas.map((e: any) => [e.id, e]));
+  const equipeMap = Object.fromEntries(equipes.map((e: any) => [e.id, e]));
+
+  // Aditivo é a fonte de verdade. Cai para o cadastro do funcionário se não houver.
+  const getEffective = (f: any) => {
+    const ad = (ultimoAditivoPorFunc as any)[f.id] || {};
+    return {
+      cargo_id: ad.cargo_final_id || f.cargo_id || null,
+      empresa_id: ad.empresa_final_id || f.empresa_id || null,
+      equipe_id: ad.equipe_final_id || f.equipe_id || null,
+    };
+  };
 
   const getSalario = (f: any): number | null => {
-    // Sempre usa o cargo atual do funcionário como fonte do salário.
-    // O cargo_id é atualizado quando o cargo muda (ex.: promoção a Diretor),
-    // então a remuneração deve refletir o cargo vigente, não o último aditivo.
-    if (!f.cargo_id) return null;
-    return cargoMap[f.cargo_id]?.remuneracao ?? null;
+    const { cargo_id } = getEffective(f);
+    if (!cargo_id) return null;
+    return cargoMap[cargo_id]?.remuneracao ?? null;
   };
 
   const formatCurrency = (v: number) =>

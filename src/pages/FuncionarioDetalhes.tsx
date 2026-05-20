@@ -234,8 +234,8 @@ export default function FuncionarioDetalhes() {
             <Badge className={status === "Ativo" ? "bg-emerald-600" : status === "Desligado" ? "bg-destructive" : ""} variant={status === "Sem registro" ? "secondary" : "default"}>
               {status}
             </Badge>
-            {(func as any).rh_equipes?.nome && <span className="text-sm text-muted-foreground">{(func as any).rh_equipes.nome}</span>}
-            {(func as any).rh_cargos?.nome && <span className="text-sm text-muted-foreground">• {(func as any).rh_cargos.nome}</span>}
+            {efetivo.equipe.nome && <span className="text-sm text-muted-foreground">{efetivo.equipe.nome}</span>}
+            {efetivo.cargo.nome && <span className="text-sm text-muted-foreground">• {efetivo.cargo.nome}</span>}
           </div>
         </div>
       </div>

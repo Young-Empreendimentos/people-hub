@@ -78,7 +78,8 @@ export default function Funcionarios() {
       const { data } = await supabase
         .from("rh_aditivos")
         .select("funcionario_id, cargo_final_id, empresa_final_id, equipe_final_id, data")
-        .order("data", { ascending: false });
+        .order("data", { ascending: false })
+        .order("created_at", { ascending: false });
       const map: Record<string, { cargo_final_id: string | null; empresa_final_id: string | null; equipe_final_id: string | null }> = {};
       for (const row of data || []) {
         const cur = map[row.funcionario_id] || { cargo_final_id: null, empresa_final_id: null, equipe_final_id: null };
@@ -110,6 +111,11 @@ export default function Funcionarios() {
     const { cargo_id } = getEffective(f);
     if (!cargo_id) return null;
     return cargoMap[cargo_id]?.remuneracao ?? null;
+  };
+
+  const formatCargoLabel = (cargo: any) => {
+    if (!cargo?.nome) return "—";
+    return cargo.nivel ? `${cargo.nome} (Nível ${cargo.nivel})` : cargo.nome;
   };
 
   const formatCurrency = (v: number) =>
@@ -274,7 +280,7 @@ export default function Funcionarios() {
                   <TableCell>{f.cpf || "—"}</TableCell>
                   <TableCell>{eff.empresa_id ? (empresaMap[eff.empresa_id]?.nome || "—") : "—"}</TableCell>
                   <TableCell>{eff.equipe_id ? (equipeMap[eff.equipe_id]?.nome || "—") : "—"}</TableCell>
-                  <TableCell>{eff.cargo_id ? (cargoMap[eff.cargo_id]?.nome || "—") : "—"}</TableCell>
+                  <TableCell>{eff.cargo_id ? formatCargoLabel(cargoMap[eff.cargo_id]) : "—"}</TableCell>
                   <TableCell className="tabular-nums">{(() => { const s = getSalario(f); return s != null ? formatCurrency(s) : "—"; })()}</TableCell>
                   <TableCell>{getStatusBadge(f.id)}</TableCell>
                   <TableCell className="text-right">

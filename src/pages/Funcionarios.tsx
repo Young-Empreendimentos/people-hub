@@ -293,7 +293,8 @@ export default function Funcionarios() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>

@@ -1054,7 +1054,11 @@ export default function FolhaMensal() {
                 </div>
                 <div className="md:col-span-3">
                   {novoDescontoTipo === "Horas Falta" ? (
-                    <Input type="time" placeholder="HH:MM" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
+                    <Input type="text" inputMode="numeric" placeholder="HH:MM (ex.: 120:30)" value={novoDescontoValor} onChange={(e) => {
+                      const raw = e.target.value.replace(/[^\d:]/g, "");
+                      setNovoDescontoValor(raw);
+                    }} />
+
                   ) : (
                     <Input type="number" step="0.01" placeholder="Valor (R$)" value={novoDescontoValor} onChange={(e) => setNovoDescontoValor(e.target.value)} />
                   )}

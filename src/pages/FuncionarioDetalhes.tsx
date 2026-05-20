@@ -71,7 +71,7 @@ export default function FuncionarioDetalhes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_aditivos")
-        .select("*, rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
+        .select("*, rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome, remuneracao), rh_equipes(nome)")
         .eq("funcionario_id", id!)
         .order("data", { ascending: false });
       if (error) throw error;
@@ -79,6 +79,32 @@ export default function FuncionarioDetalhes() {
     },
     enabled: !!id,
   });
+
+  // Efetivo: aditivo é fonte de verdade; cai pro cadastro quando não há.
+  const efetivo = (() => {
+    const f: any = func || {};
+    let empresa = { id: f.empresa_id, nome: f.rh_empresas?.nome };
+    let equipe = { id: f.equipe_id, nome: f.rh_equipes?.nome };
+    let cargo = {
+      id: f.cargo_id,
+      nome: f.rh_cargos?.nome,
+      remuneracao: f.rh_cargos?.remuneracao ?? null,
+    };
+    // aditivos vem ordenado data DESC; pega o primeiro valor não-nulo de cada campo
+    for (const a of aditivos as any[]) {
+      if (!cargo.id && a.cargo_final_id) cargo = { id: a.cargo_final_id, nome: a.rh_cargos?.nome, remuneracao: null };
+      if (!empresa.id && a.empresa_final_id) empresa = { id: a.empresa_final_id, nome: a.rh_empresas?.nome };
+      if (!equipe.id && a.equipe_final_id) equipe = { id: a.equipe_final_id, nome: a.rh_equipes?.nome };
+    }
+    // Sobrescreve com o mais recente (já que aditivos[0] é o último, percorre de baixo p/ cima)
+    const cargoLatest = (aditivos as any[]).find((a) => a.cargo_final_id);
+    const empresaLatest = (aditivos as any[]).find((a) => a.empresa_final_id);
+    const equipeLatest = (aditivos as any[]).find((a) => a.equipe_final_id);
+    if (cargoLatest) cargo = { id: cargoLatest.cargo_final_id, nome: cargoLatest.rh_cargos?.nome, remuneracao: cargoLatest.rh_cargos?.remuneracao ?? null };
+    if (empresaLatest) empresa = { id: empresaLatest.empresa_final_id, nome: empresaLatest.rh_empresas?.nome };
+    if (equipeLatest) equipe = { id: equipeLatest.equipe_final_id, nome: equipeLatest.rh_equipes?.nome };
+    return { empresa, equipe, cargo };
+  })();
 
   const { data: treinamentos = [] } = useQuery({
     queryKey: ["rh_treinamentos_funcionario", id],
@@ -208,8 +234,8 @@ export default function FuncionarioDetalhes() {
             <Badge className={status === "Ativo" ? "bg-emerald-600" : status === "Desligado" ? "bg-destructive" : ""} variant={status === "Sem registro" ? "secondary" : "default"}>
               {status}
             </Badge>
-            {(func as any).rh_equipes?.nome && <span className="text-sm text-muted-foreground">{(func as any).rh_equipes.nome}</span>}
-            {(func as any).rh_cargos?.nome && <span className="text-sm text-muted-foreground">• {(func as any).rh_cargos.nome}</span>}
+            {efetivo.equipe.nome && <span className="text-sm text-muted-foreground">{efetivo.equipe.nome}</span>}
+            {efetivo.cargo.nome && <span className="text-sm text-muted-foreground">• {efetivo.cargo.nome}</span>}
           </div>
         </div>
       </div>
@@ -234,8 +260,8 @@ export default function FuncionarioDetalhes() {
               <div><span className="font-medium text-muted-foreground">Aniversário:</span> {fmtDate((func as any).aniversario)}</div>
               <div><span className="font-medium text-muted-foreground">Data de Admissão:</span> {fmtDate(dataAdmissao)}</div>
               <div><span className="font-medium text-muted-foreground">Data Contrato:</span> {fmtDate((func as any).data_contrato_vigente)}</div>
-              <div><span className="font-medium text-muted-foreground">Empresa:</span> {(func as any).rh_empresas?.nome || "—"}</div>
-              <div><span className="font-medium text-muted-foreground">Equipe:</span> {(func as any).rh_equipes?.nome || "—"}</div>
+              <div><span className="font-medium text-muted-foreground">Empresa:</span> {efetivo.empresa.nome || "—"}</div>
+              <div><span className="font-medium text-muted-foreground">Equipe:</span> {efetivo.equipe.nome || "—"}</div>
               <div className="col-span-2 border-t pt-4 mt-2 flex gap-8">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Switch
@@ -407,7 +433,7 @@ export default function FuncionarioDetalhes() {
         <TabsContent value="moradia">
           <BeneficiosMoradiaTab
             funcionarioId={id!}
-            remuneracaoCargo={(func as any).rh_cargos?.remuneracao ?? null}
+            remuneracaoCargo={efetivo.cargo.remuneracao}
           />
         </TabsContent>
       </Tabs>

@@ -186,10 +186,11 @@ export default function Funcionarios() {
   };
 
   const filtered = funcionarios.filter((f: any) => {
+    const eff = getEffective(f);
     if (statusFilter === "ativos" && !isActive(f.id)) return false;
     if (statusFilter === "inativos" && isActive(f.id)) return false;
-    if (filterEmpresaId && f.empresa_id !== filterEmpresaId) return false;
-    if (filterEquipeId && f.equipe_id !== filterEquipeId) return false;
+    if (filterEmpresaId && eff.empresa_id !== filterEmpresaId) return false;
+    if (filterEquipeId && eff.equipe_id !== filterEquipeId) return false;
     if (filterTipoContrato && f.tipo_contrato !== filterTipoContrato) return false;
     return f.nome_completo.toLowerCase().includes(search.toLowerCase());
   });

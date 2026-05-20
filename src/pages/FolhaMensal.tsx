@@ -288,27 +288,20 @@ export default function FolhaMensal() {
   }, [aditivos]);
 
   const getEmpresaAtDate = (funcIdVal: string, dateStr: string): string | null => {
-    // Find the employee's current empresa (source of truth on rh_funcionarios)
+    // Aditivo é sempre a fonte de verdade. Se não houver aditivo aplicável,
+    // cai para o cadastro atual do funcionário.
     const func = funcionariosAll.find((f: any) => f.id === funcIdVal) as any;
     const currentEmpresaId = func?.empresa_id || null;
 
     const timeline = aditivosByFunc[funcIdVal];
     if (!timeline || timeline.length === 0) return currentEmpresaId;
 
-    // Aditivos posteriores à data consultada: usa último aditivo <= dateStr
-    const hasFutureAditivo = timeline.some((e) => e.data > dateStr);
-    if (hasFutureAditivo) {
-      let empresaId = currentEmpresaId;
-      for (const entry of timeline) {
-        if (entry.data <= dateStr) empresaId = entry.empresa_final_id;
-        else break;
-      }
-      return empresaId;
+    let empresaId: string | null = null;
+    for (const entry of timeline) {
+      if (entry.data <= dateStr) empresaId = entry.empresa_final_id;
+      else break;
     }
-
-    // Sem aditivos futuros: confia no cadastro atual do funcionário
-    // (evita que aditivos antigos sobrescrevam alterações manuais posteriores)
-    return currentEmpresaId;
+    return empresaId ?? currentEmpresaId;
   };
 
   const getEmpresaNome = (funcIdVal: string, dateStr: string): string => {

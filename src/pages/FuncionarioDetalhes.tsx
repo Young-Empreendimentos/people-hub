@@ -80,6 +80,32 @@ export default function FuncionarioDetalhes() {
     enabled: !!id,
   });
 
+  // Efetivo: aditivo é fonte de verdade; cai pro cadastro quando não há.
+  const efetivo = (() => {
+    const f: any = func || {};
+    let empresa = { id: f.empresa_id, nome: f.rh_empresas?.nome };
+    let equipe = { id: f.equipe_id, nome: f.rh_equipes?.nome };
+    let cargo = {
+      id: f.cargo_id,
+      nome: f.rh_cargos?.nome,
+      remuneracao: f.rh_cargos?.remuneracao ?? null,
+    };
+    // aditivos vem ordenado data DESC; pega o primeiro valor não-nulo de cada campo
+    for (const a of aditivos as any[]) {
+      if (!cargo.id && a.cargo_final_id) cargo = { id: a.cargo_final_id, nome: a.rh_cargos?.nome, remuneracao: null };
+      if (!empresa.id && a.empresa_final_id) empresa = { id: a.empresa_final_id, nome: a.rh_empresas?.nome };
+      if (!equipe.id && a.equipe_final_id) equipe = { id: a.equipe_final_id, nome: a.rh_equipes?.nome };
+    }
+    // Sobrescreve com o mais recente (já que aditivos[0] é o último, percorre de baixo p/ cima)
+    const cargoLatest = (aditivos as any[]).find((a) => a.cargo_final_id);
+    const empresaLatest = (aditivos as any[]).find((a) => a.empresa_final_id);
+    const equipeLatest = (aditivos as any[]).find((a) => a.equipe_final_id);
+    if (cargoLatest) cargo = { id: cargoLatest.cargo_final_id, nome: cargoLatest.rh_cargos?.nome, remuneracao: cargoLatest.rh_cargos?.remuneracao ?? null };
+    if (empresaLatest) empresa = { id: empresaLatest.empresa_final_id, nome: empresaLatest.rh_empresas?.nome };
+    if (equipeLatest) equipe = { id: equipeLatest.equipe_final_id, nome: equipeLatest.rh_equipes?.nome };
+    return { empresa, equipe, cargo };
+  })();
+
   const { data: treinamentos = [] } = useQuery({
     queryKey: ["rh_treinamentos_funcionario", id],
     queryFn: async () => {

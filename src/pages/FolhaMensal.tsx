@@ -409,13 +409,16 @@ export default function FolhaMensal() {
     return { aluguel, auxilio, perc, remun };
   }, [beneficioMoradia, selectedFuncCargo]);
 
-  // Sugere preencher o desconto quando há adiantamentos previstos e o campo está vazio
+  // Sempre sincroniza o desconto de adiantamentos com a soma dos adiantamentos previstos do mês
   useEffect(() => {
-    if (!editingId && totalAdiantamentosPrevistos > 0 && (!descontos || parseFloat(descontos) === 0)) {
-      setDescontos(totalAdiantamentosPrevistos.toFixed(2));
+    if (totalAdiantamentosPrevistos > 0) {
+      const atual = parseFloat(descontos || "0") || 0;
+      if (Math.abs(atual - totalAdiantamentosPrevistos) > 0.005) {
+        setDescontos(totalAdiantamentosPrevistos.toFixed(2));
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [totalAdiantamentosPrevistos, editingId]);
+  }, [totalAdiantamentosPrevistos]);
 
   // Plano de Saúde lançado no módulo "Plano de Saúde" para o funcionário no mês de referência
   const { data: planoSaudeMes = null } = useQuery({

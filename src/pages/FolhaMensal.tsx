@@ -60,6 +60,7 @@ export default function FolhaMensal() {
     "Danos Patrimoniais",
     "Horas Falta",
     "Gastos no Cartão Corporativo",
+    "Outros",
   ];
   type DescontoItem = { id?: string; tipo: string; valor: string; observacao: string };
   const [descontosLista, setDescontosLista] = useState<DescontoItem[]>([]);

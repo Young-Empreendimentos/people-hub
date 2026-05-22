@@ -188,7 +188,7 @@ export default function Aniversarios() {
 
     items.sort((a, b) => a.daysUntil - b.daysUntil);
     return items;
-  }, [funcionarios, isActive, today]);
+  }, [funcionarios, isActive, admissaoMap, today]);
 
   if (isLoading) {
     return <p className="text-muted-foreground py-8 text-center">Carregando...</p>;

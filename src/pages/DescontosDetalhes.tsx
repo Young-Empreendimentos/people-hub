@@ -17,6 +17,7 @@ export const TIPOS_DESCONTO = [
   "Horas Falta",
   "Reembolso de Aluguel",
   "Gastos no Cartão Corporativo",
+  "Outros",
 ];
 
 export default function DescontosDetalhes() {

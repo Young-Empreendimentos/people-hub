@@ -8486,6 +8486,13 @@ export type Database = {
         }
         Relationships: []
       }
+      mv_empresas: {
+        Row: {
+          company_id: number | null
+          company_name: string | null
+        }
+        Relationships: []
+      }
       vw_contrato_partes: {
         Row: {
           address_number: string | null
@@ -8654,11 +8661,25 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
+      get_dados_contrato: { Args: { p_bill_id: number }; Returns: Json }
       get_eap_avanco_sums: {
         Args: { p_obra_id?: string }
         Returns: {
           eap_item_id: string
           sum_quantidade_dia: number
+        }[]
+      }
+      get_empreendimentos: {
+        Args: never
+        Returns: {
+          enterprise_name: string
+        }[]
+      }
+      get_empresas_abertas: {
+        Args: never
+        Returns: {
+          company_id: number
+          company_name: string
         }[]
       }
       get_user_emails: {

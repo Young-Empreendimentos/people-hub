@@ -182,7 +182,6 @@ export default function Aniversarios() {
             milestone: formatMilestone(m),
             fullDate: formatDate(milestoneDate.getMonth() + 1, milestoneDate.getDate()),
           });
-          break; // Only next milestone per employee
         }
       }
     }

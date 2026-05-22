@@ -146,11 +146,10 @@ export default function Aniversarios() {
   // Milestones: 3 months, 6 months, then yearly (12, 24, 36, ...)
   const companyAnniversaries = useMemo(() => {
     const items: AnniversaryItem[] = [];
-    const admMap = admissaoMap as Record<string, string>;
 
     for (const f of funcionarios as any[]) {
       if (!isActive(f.id)) continue;
-      const admDate = admMap[f.id];
+      const admDate = f.data_contrato_vigente;
       if (!admDate) continue;
 
       const [yearStr, monthStr, dayStr] = admDate.split("-");
@@ -189,7 +188,7 @@ export default function Aniversarios() {
 
     items.sort((a, b) => a.daysUntil - b.daysUntil);
     return items;
-  }, [funcionarios, isActive, admissaoMap, today]);
+  }, [funcionarios, isActive, today]);
 
   if (isLoading) {
     return <p className="text-muted-foreground py-8 text-center">Carregando...</p>;

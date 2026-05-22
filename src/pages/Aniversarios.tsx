@@ -110,6 +110,7 @@ function AnniversaryList({ items, emptyMessage }: { items: AnniversaryItem[]; em
 
 export default function Aniversarios() {
   const { funcionarios, isActive, admissaoMap, isLoading } = useActiveEmployees();
+  void admissaoMap;
   const [tab, setTab] = useState<"pessoal" | "empresa">("pessoal");
 
   const today = useMemo(() => {

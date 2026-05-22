@@ -164,7 +164,8 @@ export default function Aniversarios() {
 
       for (const m of milestoneMonths) {
         const milestoneDate = new Date(admYear, admMonth + m, admDay);
-        if (milestoneDate <= today) continue;
+        milestoneDate.setHours(0, 0, 0, 0);
+        if (milestoneDate < today) continue;
 
         const diffMs = milestoneDate.getTime() - today.getTime();
         const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));

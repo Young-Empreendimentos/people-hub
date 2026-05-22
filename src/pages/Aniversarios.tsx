@@ -149,7 +149,7 @@ export default function Aniversarios() {
 
     for (const f of funcionarios as any[]) {
       if (!isActive(f.id)) continue;
-      const admDate = f.data_contrato_vigente;
+      const admDate = f.data_contrato_vigente || admissaoMap[f.id];
       if (!admDate) continue;
 
       const [yearStr, monthStr, dayStr] = admDate.split("-");
@@ -188,7 +188,7 @@ export default function Aniversarios() {
 
     items.sort((a, b) => a.daysUntil - b.daysUntil);
     return items;
-  }, [funcionarios, isActive, today]);
+  }, [funcionarios, isActive, admissaoMap, today]);
 
   if (isLoading) {
     return <p className="text-muted-foreground py-8 text-center">Carregando...</p>;

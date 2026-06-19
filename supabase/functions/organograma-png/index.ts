@@ -13,13 +13,22 @@ const corsHeaders: Record<string, string> = {
 };
 
 // ---------- Layout constants ----------
-const NODE_W = 240;
-const NODE_H = 84;
-const H_GAP = 24;
-const V_GAP = 60;
-const PADDING = 16;        // tight outer padding (was 40)
-const TITLE_H = 28;        // compact header band (was 60)
+// ---------- Layout constants ----------
+// Sized for rasterization: even when downscaled to ~2000px wide the text stays legible.
+const NODE_W = 360;
+const NODE_H = 130;
+const H_GAP = 32;
+const V_GAP = 80;
+const PADDING = 20;
+const TITLE_H = 40;
 const FONT = "Noto Sans, Helvetica, Arial, sans-serif";
+const ACCENT = "#F97316";   // brand orange (top bar of each card)
+const BORDER = "#cbd5e1";
+const NAME_COLOR = "#0f172a";
+const ROLE_COLOR = "#334155";
+const TEAM_COLOR = "#64748b";
+const LINE_COLOR = "#94a3b8";
+const BG_COLOR = "#f8fafc";
 
 interface LaidOutNode {
   id: string;

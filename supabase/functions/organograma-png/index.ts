@@ -95,15 +95,15 @@ function renderCard(n: LaidOutNode): string {
   const cx = n.x + NODE_W / 2;
   return `
     <g>
-      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="8" ry="8"
-            fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
-      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="4" rx="2" ry="2" fill="#1e40af"/>
-      <text x="${cx}" y="${n.y + 28}" text-anchor="middle"
-            font-family="${FONT}" font-size="13" font-weight="700" fill="#0f172a">${nome}</text>
-      <text x="${cx}" y="${n.y + 48}" text-anchor="middle"
-            font-family="${FONT}" font-size="11" fill="#475569">${cargo}</text>
-      <text x="${cx}" y="${n.y + 66}" text-anchor="middle"
-            font-family="${FONT}" font-size="10" fill="#64748b" font-style="italic">${equipe}</text>
+      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="10" ry="10"
+            fill="#ffffff" stroke="${BORDER}" stroke-width="1.5"/>
+      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="8" rx="4" ry="4" fill="${ACCENT}"/>
+      <text x="${cx}" y="${n.y + 46}" text-anchor="middle"
+            font-family="${FONT}" font-size="22" font-weight="700" fill="${NAME_COLOR}">${nome}</text>
+      <text x="${cx}" y="${n.y + 78}" text-anchor="middle"
+            font-family="${FONT}" font-size="18" fill="${ROLE_COLOR}">${cargo}</text>
+      <text x="${cx}" y="${n.y + 106}" text-anchor="middle"
+            font-family="${FONT}" font-size="15" fill="${TEAM_COLOR}" font-style="italic">${equipe}</text>
     </g>`;
 }
 

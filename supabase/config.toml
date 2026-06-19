@@ -1,1 +1,4 @@
 project_id = "vvtympzatclvjaqucebr"
+
+[functions.organograma-svg]
+verify_jwt = false

@@ -17,9 +17,9 @@ const NODE_W = 240;
 const NODE_H = 84;
 const H_GAP = 24;
 const V_GAP = 60;
-const PADDING = 40;
-const TITLE_H = 60;
-const FONT = "Helvetica, Arial, sans-serif";
+const PADDING = 16;        // tight outer padding (was 40)
+const TITLE_H = 28;        // compact header band (was 60)
+const FONT = "Noto Sans, Helvetica, Arial, sans-serif";
 
 interface LaidOutNode {
   id: string;
@@ -128,16 +128,29 @@ function collectAll(n: LaidOutNode, out: LaidOutNode[]) {
   for (const c of n.children) collectAll(c, out);
 }
 
-// ---------- WASM init (one-shot, cached across invocations of the same isolate) ----------
+// ---------- WASM + Font init (cached per isolate) ----------
 let wasmReady: Promise<void> | null = null;
+let fontBuffers: Uint8Array[] | null = null;
+
+const FONT_URLS = [
+  // Noto Sans (Latin) — regular & bold, full pt-BR accent coverage.
+  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-400-normal.ttf",
+  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-700-normal.ttf",
+  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-ext-400-normal.ttf",
+];
+
 async function ensureWasm() {
   if (!wasmReady) {
     wasmReady = (async () => {
-      const res = await fetch(
-        "https://esm.sh/@resvg/resvg-wasm@2.6.2/index_bg.wasm",
-      );
-      const bytes = await res.arrayBuffer();
+      const [wasmRes, ...fontRes] = await Promise.all([
+        fetch("https://esm.sh/@resvg/resvg-wasm@2.6.2/index_bg.wasm"),
+        ...FONT_URLS.map((u) => fetch(u)),
+      ]);
+      const bytes = await wasmRes.arrayBuffer();
       await initWasm(bytes);
+      fontBuffers = await Promise.all(
+        fontRes.map(async (r) => new Uint8Array(await r.arrayBuffer())),
+      );
     })();
   }
   await wasmReady;
@@ -266,14 +279,16 @@ Deno.serve(async (req) => {
     // Optional ?width=NNNN to control output resolution (defaults to SVG intrinsic width).
     const url = new URL(req.url);
     const widthParam = url.searchParams.get("width");
-    const width = widthParam ? Math.max(200, Math.min(6000, parseInt(widthParam, 10) || 0)) : undefined;
+    const width = widthParam ? Math.max(200, Math.min(8000, parseInt(widthParam, 10) || 0)) : undefined;
 
     const resvg = new Resvg(svg, {
       background: "#f8fafc",
       fitTo: width ? { mode: "width", value: width } : { mode: "original" },
       font: {
         loadSystemFonts: false,
-        defaultFontFamily: "Helvetica",
+        fontBuffers: fontBuffers ?? [],
+        defaultFontFamily: "Noto Sans",
+        sansSerifFamily: "Noto Sans",
       },
     });
     const png = resvg.render().asPng();

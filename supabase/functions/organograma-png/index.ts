@@ -245,12 +245,8 @@ async function buildSvg(): Promise<{ svg: string; count: number }> {
   });
 
   const header = `
-    <text x="${PADDING}" y="${PADDING - 10}" font-family="${FONT}" font-size="20" font-weight="700" fill="#0f172a">
-      Organograma
-    </text>
-    <text x="${PADDING}" y="${PADDING + 14}" font-family="${FONT}" font-size="11" fill="#64748b">
-      Atualizado em ${escapeXml(dateStr)} • ${all.length} funcionário(s) ativo(s)
-    </text>
+    <text x="${PADDING}" y="${PADDING + 12}" font-family="${FONT}" font-size="14" font-weight="700" fill="#0f172a">Organograma</text>
+    <text x="${PADDING}" y="${PADDING + 26}" font-family="${FONT}" font-size="10" fill="#64748b">Atualizado em ${escapeXml(dateStr)} • ${all.length} funcionário(s) ativo(s)</text>
   `;
 
   const connectors = roots.map(renderConnectors).join("\n");

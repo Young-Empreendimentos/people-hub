@@ -254,8 +254,8 @@ async function buildSvg(): Promise<{ svg: string; count: number }> {
   });
 
   const header = `
-    <text x="${PADDING}" y="${PADDING + 12}" font-family="${FONT}" font-size="14" font-weight="700" fill="#0f172a">Organograma</text>
-    <text x="${PADDING}" y="${PADDING + 26}" font-family="${FONT}" font-size="10" fill="#64748b">Atualizado em ${escapeXml(dateStr)} • ${all.length} funcionário(s) ativo(s)</text>
+    <text x="${PADDING}" y="${PADDING + 20}" font-family="${FONT}" font-size="24" font-weight="700" fill="${NAME_COLOR}">Organograma</text>
+    <text x="${PADDING}" y="${PADDING + 42}" font-family="${FONT}" font-size="16" fill="${TEAM_COLOR}">Atualizado em ${escapeXml(dateStr)} • ${all.length} funcionário(s) ativo(s)</text>
   `;
 
   const connectors = roots.map(renderConnectors).join("\n");
@@ -263,7 +263,7 @@ async function buildSvg(): Promise<{ svg: string; count: number }> {
 
   const svg = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
-  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <rect width="100%" height="100%" fill="${BG_COLOR}"/>
   ${header}
   ${connectors}
   ${cards}

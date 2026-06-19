@@ -13,13 +13,22 @@ const corsHeaders: Record<string, string> = {
 };
 
 // ---------- Layout constants ----------
-const NODE_W = 240;
-const NODE_H = 84;
-const H_GAP = 24;
-const V_GAP = 60;
-const PADDING = 16;        // tight outer padding (was 40)
-const TITLE_H = 28;        // compact header band (was 60)
+// ---------- Layout constants ----------
+// Sized for rasterization: even when downscaled to ~2000px wide the text stays legible.
+const NODE_W = 360;
+const NODE_H = 130;
+const H_GAP = 32;
+const V_GAP = 80;
+const PADDING = 20;
+const TITLE_H = 40;
 const FONT = "Noto Sans, Helvetica, Arial, sans-serif";
+const ACCENT = "#F97316";   // brand orange (top bar of each card)
+const BORDER = "#cbd5e1";
+const NAME_COLOR = "#0f172a";
+const ROLE_COLOR = "#334155";
+const TEAM_COLOR = "#64748b";
+const LINE_COLOR = "#94a3b8";
+const BG_COLOR = "#f8fafc";
 
 interface LaidOutNode {
   id: string;
@@ -86,15 +95,15 @@ function renderCard(n: LaidOutNode): string {
   const cx = n.x + NODE_W / 2;
   return `
     <g>
-      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="8" ry="8"
-            fill="#ffffff" stroke="#cbd5e1" stroke-width="1"/>
-      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="4" rx="2" ry="2" fill="#1e40af"/>
-      <text x="${cx}" y="${n.y + 28}" text-anchor="middle"
-            font-family="${FONT}" font-size="13" font-weight="700" fill="#0f172a">${nome}</text>
-      <text x="${cx}" y="${n.y + 48}" text-anchor="middle"
-            font-family="${FONT}" font-size="11" fill="#475569">${cargo}</text>
-      <text x="${cx}" y="${n.y + 66}" text-anchor="middle"
-            font-family="${FONT}" font-size="10" fill="#64748b" font-style="italic">${equipe}</text>
+      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="${NODE_H}" rx="10" ry="10"
+            fill="#ffffff" stroke="${BORDER}" stroke-width="1.5"/>
+      <rect x="${n.x}" y="${n.y}" width="${NODE_W}" height="8" rx="4" ry="4" fill="${ACCENT}"/>
+      <text x="${cx}" y="${n.y + 46}" text-anchor="middle"
+            font-family="${FONT}" font-size="22" font-weight="700" fill="${NAME_COLOR}">${nome}</text>
+      <text x="${cx}" y="${n.y + 78}" text-anchor="middle"
+            font-family="${FONT}" font-size="18" fill="${ROLE_COLOR}">${cargo}</text>
+      <text x="${cx}" y="${n.y + 106}" text-anchor="middle"
+            font-family="${FONT}" font-size="15" fill="${TEAM_COLOR}" font-style="italic">${equipe}</text>
     </g>`;
 }
 
@@ -245,8 +254,8 @@ async function buildSvg(): Promise<{ svg: string; count: number }> {
   });
 
   const header = `
-    <text x="${PADDING}" y="${PADDING + 12}" font-family="${FONT}" font-size="14" font-weight="700" fill="#0f172a">Organograma</text>
-    <text x="${PADDING}" y="${PADDING + 26}" font-family="${FONT}" font-size="10" fill="#64748b">Atualizado em ${escapeXml(dateStr)} • ${all.length} funcionário(s) ativo(s)</text>
+    <text x="${PADDING}" y="${PADDING + 20}" font-family="${FONT}" font-size="24" font-weight="700" fill="${NAME_COLOR}">Organograma</text>
+    <text x="${PADDING}" y="${PADDING + 42}" font-family="${FONT}" font-size="16" fill="${TEAM_COLOR}">Atualizado em ${escapeXml(dateStr)} • ${all.length} funcionário(s) ativo(s)</text>
   `;
 
   const connectors = roots.map(renderConnectors).join("\n");
@@ -254,7 +263,7 @@ async function buildSvg(): Promise<{ svg: string; count: number }> {
 
   const svg = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}">
-  <rect width="100%" height="100%" fill="#f8fafc"/>
+  <rect width="100%" height="100%" fill="${BG_COLOR}"/>
   ${header}
   ${connectors}
   ${cards}

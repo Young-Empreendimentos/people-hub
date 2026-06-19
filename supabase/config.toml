@@ -2,3 +2,6 @@ project_id = "vvtympzatclvjaqucebr"
 
 [functions.organograma-svg]
 verify_jwt = false
+
+[functions.organograma-png]
+verify_jwt = false

@@ -10147,6 +10147,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      rh_list_funcionarios_para_vinculo: {
+        Args: never
+        Returns: {
+          cpf_masked: string
+          id: string
+          nome_completo: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       talents_has_privileged_role: {

@@ -24,14 +24,16 @@ export default function PrimeiroAcesso() {
   const { data: funcionarios = [], isLoading } = useQuery({
     queryKey: ["funcionarios_primeiro_acesso"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("rh_funcionarios")
-        .select("id, nome_completo, cpf")
-        .order("nome_completo");
+      const { data, error } = await supabase.rpc("rh_list_funcionarios_para_vinculo" as any);
       if (error) throw error;
-      return data || [];
+      return (data || []).map((f: any) => ({
+        id: f.id,
+        nome_completo: f.nome_completo,
+        cpf: f.cpf_masked,
+      }));
     },
   });
+
 
   const submitMutation = useMutation({
     mutationFn: async () => {

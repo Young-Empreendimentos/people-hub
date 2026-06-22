@@ -289,9 +289,12 @@ function UsuariosTab() {
               <TableCell className="font-medium">{u.email}</TableCell>
               <TableCell>{u.nome || "—"}</TableCell>
               <TableCell>
-                {u.role
-                  ? <Badge variant={roleBadgeVariant(u.role)}>{roleLabels[u.role] || u.role}</Badge>
-                  : <span className="text-xs text-muted-foreground">Sem função</span>}
+                <div className="flex flex-wrap gap-1">
+                  {u.role
+                    ? <Badge variant={roleBadgeVariant(u.role)}>{roleLabels[u.role] || u.role}</Badge>
+                    : !u.is_auditor && <span className="text-xs text-muted-foreground">Sem função</span>}
+                  {u.is_auditor && <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400">Auditor</Badge>}
+                </div>
               </TableCell>
               <TableCell>
                 {u.status

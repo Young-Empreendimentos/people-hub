@@ -51,10 +51,36 @@ const statusBadge = (s: string) => {
 
 export default function MeusKms() {
   const qc = useQueryClient();
-  const { user, funcionarioId, userName } = useAuth();
+  const { user, funcionarioId, userName, refreshRole } = useAuth();
   const [data, setData] = useState("");
   const [km, setKm] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [vincFunc, setVincFunc] = useState("");
+
+  const { data: opcoesFunc = [] } = useQuery({
+    queryKey: ["meus_kms_opcoes_func"],
+    enabled: !funcionarioId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_list_funcionarios_para_vinculo" as any);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const vincularMutation = useMutation({
+    mutationFn: async () => {
+      if (!vincFunc) throw new Error("Selecione seu nome.");
+      const { error } = await supabase.rpc("rh_set_my_funcionario" as any, { p_funcionario_id: vincFunc });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Cadastro vinculado.");
+      await refreshRole();
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao vincular."),
+  });
+
 
   const { data: funcionario } = useQuery({
     queryKey: ["meu_funcionario", funcionarioId],
@@ -145,13 +171,41 @@ export default function MeusKms() {
 
   if (!funcionarioId) {
     return (
-      <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">
-          Seu usuário ainda não está vinculado a um funcionário. Procure o RH.
+      <Card className="max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle className="text-base">Vincule seu cadastro de funcionário</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Para lançar seus KMs, selecione seu nome na lista abaixo. Isso vincula seu acesso ao seu cadastro de funcionário.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Seu nome</Label>
+            <select
+              className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+              value={vincFunc}
+              onChange={(e) => setVincFunc(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {(opcoesFunc as any[]).map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome_completo}{f.cpf_masked ? ` — ${f.cpf_masked}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => vincularMutation.mutate()}
+            disabled={!vincFunc || vincularMutation.isPending}
+          >
+            {vincularMutation.isPending ? "Vinculando..." : "Vincular e continuar"}
+          </Button>
         </CardContent>
       </Card>
     );
   }
+
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto">

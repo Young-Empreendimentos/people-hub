@@ -10155,6 +10155,10 @@ export type Database = {
           nome_completo: string
         }[]
       }
+      rh_set_my_funcionario: {
+        Args: { p_funcionario_id: string }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       talents_has_privileged_role: {

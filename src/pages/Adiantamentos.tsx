@@ -246,23 +246,45 @@ export default function Adiantamentos() {
     return { total, pago, saldo, parcelasPagas, totalParcelas: list.length };
   };
 
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Adiantamento</Button>
+      </div>
+
+      <div className="max-w-sm">
+        <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
       </div>
 
       <Card><CardContent className="p-0">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Valor</TableHead>
+            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead>
+            <TableHead className="text-right">Valor Total</TableHead>
+            <TableHead className="text-right">Pago</TableHead>
+            <TableHead className="text-right">Saldo</TableHead>
             <TableHead>Parcelas</TableHead><TableHead>Observações</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum adiantamento.</TableCell></TableRow>
-            : filtered.map((a: any) => (
+            {isLoading ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum adiantamento.</TableCell></TableRow>
+            : filtered.map((a: any) => {
+              const st = calcStatus(a);
+              return (
               <TableRow key={a.id}>
                 <TableCell>{a.data}</TableCell>
                 <TableCell className="font-medium">{a.rh_funcionarios?.nome_completo || "—"}</TableCell>
-                <TableCell>{formatCurrency(Number(a.valor))}</TableCell>
+                <TableCell className="tabular-nums text-right">{formatCurrency(st.total)}</TableCell>
+                <TableCell className="tabular-nums text-right text-muted-foreground">
+                  {formatCurrency(st.pago)}
+                  {st.totalParcelas > 0 && (
+                    <div className="text-[10px] text-muted-foreground">{st.parcelasPagas}/{st.totalParcelas} parc.</div>
+                  )}
+                </TableCell>
+                <TableCell className={`tabular-nums text-right font-semibold ${st.saldo <= 0 ? "text-emerald-600" : "text-primary"}`}>
+                  {formatCurrency(st.saldo)}
+                </TableCell>
                 <TableCell className="max-w-[260px] truncate">{renderParcelasResumo(a)}</TableCell>
                 <TableCell className="max-w-[150px] truncate">{a.observacoes || "—"}</TableCell>
                 <TableCell className="text-right">
@@ -272,10 +294,12 @@ export default function Adiantamentos() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent></Card>
+
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">

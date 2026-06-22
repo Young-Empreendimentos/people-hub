@@ -230,14 +230,14 @@ export default function PlanoSaude() {
         "Valor Odonto": Number(r.valor_odonto),
         "Uso do Plano": Number(r.uso_plano),
         "Total": tot,
-        "Desconto Mensal (20%)": tot * 0.2,
+        "Desconto Mensal": calcDesconto(r),
         "Observações": r.observacoes || "",
       };
     });
     rows.push({
       "Mês": "TOTAL", "Empresa": "", "Funcionário": "", "Idade": "",
       "Valor Saúde": totals.saude, "Valor Odonto": totals.odonto, "Uso do Plano": totals.uso,
-      "Total": totals.total, "Desconto Mensal (20%)": totals.desconto, "Observações": "",
+      "Total": totals.total, "Desconto Mensal": totals.desconto, "Observações": "",
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();

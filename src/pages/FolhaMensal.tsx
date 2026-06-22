@@ -185,14 +185,16 @@ export default function FolhaMensal() {
     },
   });
   const totaisByFolha = useMemo(() => {
-    const m: Record<string, { desc: number; reemb: number }> = {};
+    const m: Record<string, { desc: number; reemb: number; hasPlanoSaude: boolean }> = {};
     for (const d of descontosAll as any[]) {
       if ((d.tipo || "").trim() === "Horas Falta") continue; // horas falta é informativo
-      (m[d.folha_id] ||= { desc: 0, reemb: 0 }).desc += Number(d.valor || 0);
+      const entry = (m[d.folha_id] ||= { desc: 0, reemb: 0, hasPlanoSaude: false });
+      entry.desc += Number(d.valor || 0);
+      if ((d.tipo || "").trim() === "Plano de Saúde") entry.hasPlanoSaude = true;
     }
     for (const r of reembolsosAll as any[]) {
       if (r.status === "rejeitado") continue;
-      (m[r.folha_id] ||= { desc: 0, reemb: 0 }).reemb += Number(r.valor || 0);
+      (m[r.folha_id] ||= { desc: 0, reemb: 0, hasPlanoSaude: false }).reemb += Number(r.valor || 0);
     }
     return m;
   }, [descontosAll, reembolsosAll]);
@@ -499,7 +501,7 @@ export default function FolhaMensal() {
         mes_referencia: mesRef + "-01",
         horas_atraso_faltas: parseFloat(horasAtraso) || 0,
         horas_extra: parseFloat(horasExtra) || 0,
-        plano_saude: parseFloat(planoSaude) || 0,
+        plano_saude: 0, // valor vem do módulo Plano de Saúde como linha de desconto
         desconto_titulo_parque: parseFloat(descontoParque) || 0,
         auxilio_educacional: auxilioEdu,
         descontos_adiantamentos: parseFloat(descontos) || 0,
@@ -903,14 +905,17 @@ export default function FolhaMensal() {
               const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
               const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
               const salarioBase = cargo?.remuneracao || 0;
-              const tot = totaisByFolha[f.id] || { desc: 0, reemb: 0 };
+              const tot = totaisByFolha[f.id] || { desc: 0, reemb: 0, hasPlanoSaude: false };
               const bruto = salarioBase
                 + Number(f.valor_comissoes || 0)
                 + Number(f.valor_plr || 0)
                 + Number(f.valor_vr || 0)
                 + tot.reemb;
+              // Plano de saúde vem do módulo "Plano de Saúde" como linha de desconto.
+              // Só usa o campo legado f.plano_saude quando não há linha de desconto correspondente (compat. com registros antigos).
+              const planoSaudeLegado = tot.hasPlanoSaude ? 0 : Number(f.plano_saude || 0);
               const liquido = bruto
-                - Number(f.plano_saude || 0)
+                - planoSaudeLegado
                 - tot.desc;
               return (
               <TableRow key={f.id}>

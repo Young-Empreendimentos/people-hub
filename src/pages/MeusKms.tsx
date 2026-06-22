@@ -199,8 +199,20 @@ export default function MeusKms() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <Label>Data do deslocamento</Label>
-              <Input type="date" value={data} onChange={(e) => setData(e.target.value)} />
+              <Input
+                type="date"
+                value={data}
+                min={periodo.ini}
+                max={periodo.fim}
+                onChange={(e) => setData(e.target.value)}
+              />
+              {dataForaDoPeriodo && (
+                <p className="text-xs text-destructive">
+                  Data fora do período atual ({fmtDate(periodo.ini)} a {fmtDate(periodo.fim)}).
+                </p>
+              )}
             </div>
+
             <div className="space-y-1.5">
               <Label>KM percorridos</Label>
               <Input

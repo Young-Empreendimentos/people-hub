@@ -142,10 +142,9 @@ let wasmReady: Promise<void> | null = null;
 let fontBuffers: Uint8Array[] | null = null;
 
 const FONT_URLS = [
-  // Noto Sans (Latin) — regular & bold, full pt-BR accent coverage.
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-400-normal.ttf",
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-700-normal.ttf",
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-ext-400-normal.ttf",
+  // Static TTF builds straight from the official Google Fonts repo.
+  // These are guaranteed TTFs (resvg-wasm cannot parse WOFF/WOFF2).
+  "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans%5Bwdth,wght%5D.ttf",
 ];
 
 async function ensureWasm() {

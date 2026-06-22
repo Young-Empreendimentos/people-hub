@@ -47,6 +47,23 @@ export default function Adiantamentos() {
     },
   });
 
+  // Folhas já lançadas (para identificar quais parcelas de adiantamento já foram descontadas)
+  const { data: folhas = [] } = useQuery({
+    queryKey: ["rh_folha_mensal_para_adiantamentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rh_folha_mensal")
+        .select("funcionario_id, mes_referencia");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const folhasSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const f of folhas as any[]) s.add(`${f.funcionario_id}|${String(f.mes_referencia).slice(0, 7)}`);
+    return s;
+  }, [folhas]);
+
   const { funcionarios, isActive } = useActiveEmployees();
 
   const saveMutation = useMutation({
@@ -197,6 +214,38 @@ export default function Adiantamentos() {
     return a.datas_pagamento_pretendidas?.map(formatMesAno).join(", ") || "—";
   };
 
+  const getParcelasList = (a: any): Parcela[] => {
+    if (a.parcelas && Array.isArray(a.parcelas) && a.parcelas.length) return a.parcelas as Parcela[];
+    if (a.datas_pagamento_pretendidas?.length) {
+      const total = Number(a.valor) || 0;
+      const n = a.datas_pagamento_pretendidas.length;
+      const base = Math.floor((total / n) * 100) / 100;
+      const resto = Math.round((total - base * n) * 100) / 100;
+      return a.datas_pagamento_pretendidas.map((m: string, i: number) => ({
+        mes_ano: m,
+        valor: i === 0 ? +(base + resto).toFixed(2) : base,
+      }));
+    }
+    return [];
+  };
+
+  const calcStatus = (a: any) => {
+    const total = Number(a.valor) || 0;
+    const list = getParcelasList(a);
+    let pago = 0;
+    let parcelasPagas = 0;
+    for (const p of list) {
+      const mes = (p.mes_ano || "").slice(0, 7);
+      if (mes && folhasSet.has(`${a.funcionario_id}|${mes}`)) {
+        pago += Number(p.valor) || 0;
+        parcelasPagas++;
+      }
+    }
+    pago = +pago.toFixed(2);
+    const saldo = +(total - pago).toFixed(2);
+    return { total, pago, saldo, parcelasPagas, totalParcelas: list.length };
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -210,18 +259,32 @@ export default function Adiantamentos() {
       <Card><CardContent className="p-0">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead><TableHead>Valor</TableHead>
+            <TableHead>Data</TableHead><TableHead>Funcionário</TableHead>
+            <TableHead className="text-right">Valor Total</TableHead>
+            <TableHead className="text-right">Pago</TableHead>
+            <TableHead className="text-right">Saldo</TableHead>
             <TableHead>Parcelas</TableHead><TableHead>Observações</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum adiantamento.</TableCell></TableRow>
-            : filtered.map((a: any) => (
+            {isLoading ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum adiantamento.</TableCell></TableRow>
+            : filtered.map((a: any) => {
+              const st = calcStatus(a);
+              return (
               <TableRow key={a.id}>
                 <TableCell>{a.data}</TableCell>
                 <TableCell className="font-medium">{a.rh_funcionarios?.nome_completo || "—"}</TableCell>
-                <TableCell>{formatCurrency(Number(a.valor))}</TableCell>
+                <TableCell className="tabular-nums text-right">{formatCurrency(st.total)}</TableCell>
+                <TableCell className="tabular-nums text-right text-muted-foreground">
+                  {formatCurrency(st.pago)}
+                  {st.totalParcelas > 0 && (
+                    <div className="text-[10px] text-muted-foreground">{st.parcelasPagas}/{st.totalParcelas} parc.</div>
+                  )}
+                </TableCell>
+                <TableCell className={`tabular-nums text-right font-semibold ${st.saldo <= 0 ? "text-emerald-600" : "text-primary"}`}>
+                  {formatCurrency(st.saldo)}
+                </TableCell>
                 <TableCell className="max-w-[260px] truncate">{renderParcelasResumo(a)}</TableCell>
                 <TableCell className="max-w-[150px] truncate">{a.observacoes || "—"}</TableCell>
                 <TableCell className="text-right">
@@ -231,10 +294,12 @@ export default function Adiantamentos() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent></Card>
+
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">

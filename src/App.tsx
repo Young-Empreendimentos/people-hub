@@ -34,6 +34,9 @@ import BeneficiosMoradia from "./pages/BeneficiosMoradia";
 import Absenteismo from "./pages/Absenteismo";
 import PlanoSaude from "./pages/PlanoSaude";
 import NotFound from "./pages/NotFound";
+import PrimeiroAcesso from "./pages/PrimeiroAcesso";
+import MeusKms from "./pages/MeusKms";
+import AprovacoesKm from "./pages/AprovacoesKm";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +50,9 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<AppLayout />}>
+              <Route path="/primeiro-acesso" element={<PrimeiroAcesso />} />
+              <Route path="/meus-kms" element={<MeusKms />} />
+              <Route path="/aprovacoes-km" element={<AprovacoesKm />} />
               <Route path="/" element={<Index />} />
               <Route path="/funcionarios" element={<Funcionarios />} />
               <Route path="/funcionarios/:id" element={<FuncionarioDetalhes />} />

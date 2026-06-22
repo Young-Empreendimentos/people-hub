@@ -243,7 +243,18 @@ export default function Absenteismo() {
             <TableHeader>
               <TableRow>
                 <TableHead>Mês</TableHead>
-                <TableHead>Funcionário</TableHead>
+                <TableHead>
+                  <button
+                    type="button"
+                    onClick={toggleSortFunc}
+                    className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Funcionário
+                    {sortFunc === "asc" ? <ArrowUp className="h-3 w-3" />
+                      : sortFunc === "desc" ? <ArrowDown className="h-3 w-3" />
+                      : <ArrowUpDown className="h-3 w-3 opacity-50" />}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Dias Trabalhados</TableHead>
                 <TableHead className="text-right">Dias de Falta</TableHead>
                 <TableHead className="text-right">Taxa</TableHead>

@@ -197,6 +197,11 @@ export default function FuncionarioDetalhes() {
   };
 
   const downloadAnexo = async (filePath: string, fileName: string) => {
+    // Se for URL externa (ex.: Google Drive), abre em nova aba
+    if (/^https?:\/\//i.test(filePath)) {
+      window.open(filePath, "_blank", "noopener,noreferrer");
+      return;
+    }
     const { data, error } = await supabase.storage.from("rh-anexos").download(filePath);
     if (error || !data) {
       console.error("Erro download anexo:", error);

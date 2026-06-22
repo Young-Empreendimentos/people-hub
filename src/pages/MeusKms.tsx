@@ -96,11 +96,18 @@ export default function MeusKms() {
     return { km, total, qtd: items.length };
   }, [lancamentos, periodo]);
 
+  const dataForaDoPeriodo = !!data && (data < periodo.ini || data > periodo.fim);
+
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!funcionarioId) throw new Error("Funcionário não vinculado.");
       const kmN = parseFloat(km.replace(",", "."));
       if (!data) throw new Error("Informe a data.");
+      if (data < periodo.ini || data > periodo.fim) {
+        throw new Error(
+          `A data precisa estar no período atual (${fmtDate(periodo.ini)} a ${fmtDate(periodo.fim)}).`
+        );
+      }
       if (!kmN || kmN <= 0) throw new Error("Informe um valor de km válido.");
       const valor_total = +(kmN * valorKm).toFixed(2);
       const { error } = await supabase.from("rh_km_lancamentos" as any).insert({
@@ -122,6 +129,7 @@ export default function MeusKms() {
     },
     onError: (e: any) => toast.error(e.message || "Erro ao lançar km."),
   });
+
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {

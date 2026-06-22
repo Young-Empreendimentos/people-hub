@@ -501,7 +501,7 @@ export default function FolhaMensal() {
         mes_referencia: mesRef + "-01",
         horas_atraso_faltas: parseFloat(horasAtraso) || 0,
         horas_extra: parseFloat(horasExtra) || 0,
-        plano_saude: parseFloat(planoSaude) || 0,
+        plano_saude: 0, // valor vem do módulo Plano de Saúde como linha de desconto
         desconto_titulo_parque: parseFloat(descontoParque) || 0,
         auxilio_educacional: auxilioEdu,
         descontos_adiantamentos: parseFloat(descontos) || 0,

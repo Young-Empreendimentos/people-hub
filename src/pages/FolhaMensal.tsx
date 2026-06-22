@@ -153,7 +153,7 @@ export default function FolhaMensal() {
       const fim = `${mesRef}-19`;
       const { data, error } = await supabase
         .from("rh_km_lancamentos" as any)
-        .select("id, data, valor_total")
+        .select("id, data, km, valor_km_snapshot, valor_total")
         .eq("funcionario_id", funcId)
         .eq("status", "aprovado")
         .is("folha_reembolso_id", null)
@@ -165,7 +165,39 @@ export default function FolhaMensal() {
         toast.info("Nenhum KM aprovado e não-pago neste período.");
         return;
       }
-      const total = rows.reduce((s, r) => s + Number(r.valor_total || 0), 0);
+      // Recalcula linhas zeradas usando o valor_km atual do funcionário
+      const precisaRecalc = rows.some((r) => !Number(r.valor_total) || Number(r.valor_total) === 0);
+      let vkAtual = 0;
+      if (precisaRecalc) {
+        const { data: f } = await supabase
+          .from("rh_funcionarios").select("valor_km").eq("id", funcId).maybeSingle();
+        vkAtual = Number((f as any)?.valor_km || 0);
+      }
+      const idsParaAtualizar: { id: string; valor_total: number; valor_km_snapshot: number }[] = [];
+      let total = 0;
+      for (const r of rows) {
+        let vt = Number(r.valor_total || 0);
+        if (vt === 0 && vkAtual > 0) {
+          const novo = +(Number(r.km) * vkAtual).toFixed(2);
+          vt = novo;
+          idsParaAtualizar.push({ id: r.id, valor_total: novo, valor_km_snapshot: vkAtual });
+        }
+        total += vt;
+      }
+      if (idsParaAtualizar.length > 0) {
+        await Promise.all(
+          idsParaAtualizar.map((u) =>
+            supabase
+              .from("rh_km_lancamentos" as any)
+              .update({ valor_total: u.valor_total, valor_km_snapshot: u.valor_km_snapshot })
+              .eq("id", u.id)
+          )
+        );
+      }
+      if (total === 0) {
+        toast.error("Os lançamentos estão sem valor R$/km. Defina o valor por KM no cadastro do funcionário antes de importar.");
+        return;
+      }
       const formatBR = (s: string) => s.split("-").reverse().join("/");
       // remove qualquer importação anterior nesta sessão
       setReembolsosLista((arr) => [
@@ -178,6 +210,7 @@ export default function FolhaMensal() {
         },
       ]);
       toast.success(`${rows.length} lançamento(s) importado(s): ${fmt(total)}`);
+
     } catch (e: any) {
       toast.error(e.message || "Erro ao importar KMs.");
     } finally {

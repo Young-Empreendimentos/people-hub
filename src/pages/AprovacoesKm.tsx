@@ -63,12 +63,27 @@ export default function AprovacoesKm() {
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_km_lancamentos" as any).update({
+      const lanc = (lancamentos as any[]).find((l) => l.id === id);
+      const patch: any = {
         status: "aprovado",
         aprovado_por: user?.id ?? null,
         aprovado_em: new Date().toISOString(),
         motivo_rejeicao: null,
-      } as any).eq("id", id);
+      };
+      // Se o snapshot estava zerado, recalcula com o valor atual do funcionário
+      if (lanc && (!Number(lanc.valor_km_snapshot) || Number(lanc.valor_km_snapshot) === 0)) {
+        const { data: func } = await supabase
+          .from("rh_funcionarios")
+          .select("valor_km")
+          .eq("id", lanc.funcionario_id)
+          .maybeSingle();
+        const vk = Number((func as any)?.valor_km || 0);
+        if (vk > 0) {
+          patch.valor_km_snapshot = vk;
+          patch.valor_total = +(Number(lanc.km) * vk).toFixed(2);
+        }
+      }
+      const { error } = await supabase.from("rh_km_lancamentos" as any).update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -77,6 +92,7 @@ export default function AprovacoesKm() {
     },
     onError: () => toast.error("Erro ao aprovar."),
   });
+
 
   const rejectMutation = useMutation({
     mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {

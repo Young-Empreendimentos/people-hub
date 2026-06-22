@@ -385,7 +385,7 @@ export default function PlanoSaude() {
                 <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum lançamento.</TableCell></TableRow>
               ) : filtered.map((r) => {
                 const tot = Number(r.valor_saude) + Number(r.valor_odonto) + Number(r.uso_plano);
-                const desc = tot * 0.2;
+                const desc = calcDesconto(r);
                 const idade = calcIdade(r.rh_funcionarios?.aniversario);
                 return (
                   <TableRow key={r.id}>

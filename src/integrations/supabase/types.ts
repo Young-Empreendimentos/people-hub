@@ -10135,6 +10135,7 @@ export type Database = {
           funcionario_id: string
           funcionario_nome: string
           id: string
+          is_auditor: boolean
           nome: string
           role: Database["public"]["Enums"]["rh_app_role"]
           status: string
@@ -10236,7 +10237,12 @@ export type Database = {
       paver_app_role: "admin" | "engenharia"
       permuta_status: "incerto" | "nao" | "sim"
       registros_user_role: "gestor" | "operador" | "leitor"
-      rh_app_role: "admin" | "coordenador" | "usuario" | "colaborador"
+      rh_app_role:
+        | "admin"
+        | "coordenador"
+        | "usuario"
+        | "colaborador"
+        | "auditor"
       tipo_anexo_gleba:
         | "pesquisa_mercado"
         | "planilha_viabilidade"
@@ -10412,7 +10418,13 @@ export const Constants = {
       paver_app_role: ["admin", "engenharia"],
       permuta_status: ["incerto", "nao", "sim"],
       registros_user_role: ["gestor", "operador", "leitor"],
-      rh_app_role: ["admin", "coordenador", "usuario", "colaborador"],
+      rh_app_role: [
+        "admin",
+        "coordenador",
+        "usuario",
+        "colaborador",
+        "auditor",
+      ],
       tipo_anexo_gleba: [
         "pesquisa_mercado",
         "planilha_viabilidade",

@@ -471,11 +471,13 @@ export default function FolhaMensal() {
 
   const planoSaudeCalculado = useMemo(() => {
     if (!planoSaudeMes) return null;
-    const total = Number((planoSaudeMes as any).valor_saude || 0)
-      + Number((planoSaudeMes as any).valor_odonto || 0)
-      + Number((planoSaudeMes as any).uso_plano || 0);
-    const desconto = +(total * 0.2).toFixed(2);
-    return { total, desconto };
+    const mensalidade = Number((planoSaudeMes as any).valor_saude || 0)
+      + Number((planoSaudeMes as any).valor_odonto || 0);
+    const uso = Number((planoSaudeMes as any).uso_plano || 0);
+    const total = mensalidade + uso;
+    // Mensalidade: 20% de coparticipação · Uso do plano: valor integral
+    const desconto = +(mensalidade * 0.2 + uso).toFixed(2);
+    return { total, mensalidade, uso, desconto };
   }, [planoSaudeMes]);
 
   // Auto-preenche o campo Plano de Saúde com o desconto mensal (20% do total)
@@ -551,7 +553,7 @@ export default function FolhaMensal() {
             folha_id: folhaId,
             tipo: "Plano de Saúde",
             valor: planoSaudeCalculado.desconto,
-            observacao: `20% de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.total)} (saúde + odonto + uso)`,
+            observacao: `Mensalidade ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.mensalidade)} × 20% + Uso ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.uso)} (integral)`,
             origem: "plano_saude",
           });
         }
@@ -1087,7 +1089,7 @@ export default function FolhaMensal() {
                   <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
                     <div className="flex-1 truncate">
                       <span className="font-medium">Plano de Saúde</span> — <span className="tabular-nums">{fmt(planoSaudeCalculado.desconto)}</span>
-                      <span className="text-muted-foreground"> · 20% de {fmt(planoSaudeCalculado.total)} (cadastro do plano)</span>
+                      <span className="text-muted-foreground"> · Mensalidade {fmt(planoSaudeCalculado.mensalidade)} × 20% + Uso {fmt(planoSaudeCalculado.uso)} (integral)</span>
                     </div>
                   </div>
                 </div>

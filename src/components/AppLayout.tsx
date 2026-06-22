@@ -20,13 +20,32 @@ export function AppLayout() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Sem nenhum registro → ir para primeiro acesso
+  // Usuário logado sem nenhum papel cadastrado → bloqueio (NÃO manda para /primeiro-acesso)
+  // /primeiro-acesso é exclusivo do fluxo de cadastro de novos colaboradores.
   if (!role) {
-    if (location.pathname !== "/primeiro-acesso") {
-      return <Navigate to="/primeiro-acesso" replace />;
-    }
-    return <Outlet />;
+    if (location.pathname === "/primeiro-acesso") return <Outlet />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center space-y-2">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-amber-100 dark:bg-amber-950/40 p-3">
+                <ShieldAlert className="h-6 w-6 text-amber-600" />
+              </div>
+            </div>
+            <CardTitle className="text-xl">Acesso não liberado</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium">{user.email}</span> ainda não tem permissão neste sistema. Procure o RH para liberação.
+            </p>
+            <Button variant="outline" className="w-full" onClick={signOut}>Sair</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
+
 
   // Colaborador pendente → tela de espera
   if (isColaborador && roleStatus === "pendente") {

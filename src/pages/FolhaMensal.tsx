@@ -905,14 +905,17 @@ export default function FolhaMensal() {
               const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
               const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
               const salarioBase = cargo?.remuneracao || 0;
-              const tot = totaisByFolha[f.id] || { desc: 0, reemb: 0 };
+              const tot = totaisByFolha[f.id] || { desc: 0, reemb: 0, hasPlanoSaude: false };
               const bruto = salarioBase
                 + Number(f.valor_comissoes || 0)
                 + Number(f.valor_plr || 0)
                 + Number(f.valor_vr || 0)
                 + tot.reemb;
+              // Plano de saúde vem do módulo "Plano de Saúde" como linha de desconto.
+              // Só usa o campo legado f.plano_saude quando não há linha de desconto correspondente (compat. com registros antigos).
+              const planoSaudeLegado = tot.hasPlanoSaude ? 0 : Number(f.plano_saude || 0);
               const liquido = bruto
-                - Number(f.plano_saude || 0)
+                - planoSaudeLegado
                 - tot.desc;
               return (
               <TableRow key={f.id}>

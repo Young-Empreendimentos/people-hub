@@ -396,7 +396,7 @@ export default function FuncionarioDetalhes() {
                     {aditivos.map((a: any) => (
                       <TableRow key={a.id}>
                         <TableCell>{fmtDate(a.data)}</TableCell>
-                        <TableCell>{a.rh_tipos_aditivo?.nome || "—"}</TableCell>
+                        <TableCell>{(a.rh_aditivo_tipo_aditivo || []).map((j: any) => j.rh_tipos_aditivo?.nome).filter(Boolean).join(", ") || "—"}</TableCell>
                         <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
                         <TableCell>{formatCargoLabel(a.rh_cargos)}</TableCell>
                         <TableCell>{a.rh_equipes?.nome || "—"}</TableCell>

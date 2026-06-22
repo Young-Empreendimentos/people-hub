@@ -291,8 +291,10 @@ export default function PlanoSaude() {
   };
 
   // Preview no dialog
-  const total = (parseFloat(valorSaude) || 0) + (parseFloat(valorOdonto) || 0) + (parseFloat(usoPlano) || 0);
-  const desconto = total * 0.2;
+  const mensalidade = (parseFloat(valorSaude) || 0) + (parseFloat(valorOdonto) || 0);
+  const uso = parseFloat(usoPlano) || 0;
+  const total = mensalidade + uso;
+  const desconto = mensalidade * 0.2 + uso;
 
   return (
     <div className="space-y-4">

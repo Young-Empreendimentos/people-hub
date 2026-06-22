@@ -40,13 +40,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase
       .from("rh_user_roles")
       .select("role, nome, status, funcionario_id")
-      .eq("user_id", userId)
-      .maybeSingle();
-    setRole(((data as any)?.role as RhRole) ?? null);
-    setUserName(((data as any)?.nome as string) ?? null);
-    setRoleStatus(((data as any)?.status as RoleStatus) ?? null);
-    setFuncionarioId(((data as any)?.funcionario_id as string) ?? null);
+      .eq("user_id", userId);
+    const rows = (data ?? []) as any[];
+    if (rows.length === 0) {
+      setRole(null); setUserName(null); setRoleStatus(null); setFuncionarioId(null);
+      return;
+    }
+    // Prioridade: admin > coordenador > usuario > colaborador
+    const priority: Record<string, number> = { admin: 4, coordenador: 3, usuario: 2, colaborador: 1 };
+    rows.sort((a, b) => (priority[b.role] ?? 0) - (priority[a.role] ?? 0));
+    const best = rows[0];
+    setRole((best.role as RhRole) ?? null);
+    setUserName((best.nome as string) ?? null);
+    setRoleStatus((best.status as RoleStatus) ?? null);
+    setFuncionarioId((best.funcionario_id as string) ?? null);
   };
+
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

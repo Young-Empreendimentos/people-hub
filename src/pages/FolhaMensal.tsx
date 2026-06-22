@@ -119,7 +119,7 @@ export default function FolhaMensal() {
     "Educação e Treinamento",
     "Outro",
   ];
-  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string };
+  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string; _kmIds?: string[] };
   const [reembolsosLista, setReembolsosLista] = useState<ReembolsoItem[]>([]);
   const [novoReembolsoTipo, setNovoReembolsoTipo] = useState("");
   const [novoReembolsoValor, setNovoReembolsoValor] = useState("");
@@ -138,6 +138,54 @@ export default function FolhaMensal() {
   const removeReembolsoItem = (idx: number) => {
     setReembolsosLista((arr) => arr.filter((_, i) => i !== idx));
   };
+
+  const [importandoKm, setImportandoKm] = useState(false);
+  const importarKmsAprovados = async () => {
+    if (!funcId || !mesRef) {
+      toast.error("Selecione o funcionário e o mês de referência.");
+      return;
+    }
+    setImportandoKm(true);
+    try {
+      const [y, m] = mesRef.split("-").map(Number);
+      const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+      const ini = `${prev.y}-${String(prev.m).padStart(2, "0")}-20`;
+      const fim = `${mesRef}-19`;
+      const { data, error } = await supabase
+        .from("rh_km_lancamentos" as any)
+        .select("id, data, valor_total")
+        .eq("funcionario_id", funcId)
+        .eq("status", "aprovado")
+        .is("folha_reembolso_id", null)
+        .gte("data", ini)
+        .lte("data", fim);
+      if (error) throw error;
+      const rows = (data || []) as any[];
+      if (rows.length === 0) {
+        toast.info("Nenhum KM aprovado e não-pago neste período.");
+        return;
+      }
+      const total = rows.reduce((s, r) => s + Number(r.valor_total || 0), 0);
+      const formatBR = (s: string) => s.split("-").reverse().join("/");
+      // remove qualquer importação anterior nesta sessão
+      setReembolsosLista((arr) => [
+        ...arr.filter((r) => !r._kmIds),
+        {
+          tipo: "Quilometragem",
+          valor: total.toFixed(2),
+          observacao: `${rows.length} lançamento(s) aprovado(s) — período ${formatBR(ini)} a ${formatBR(fim)}`,
+          _kmIds: rows.map((r) => r.id),
+        },
+      ]);
+      toast.success(`${rows.length} lançamento(s) importado(s): ${fmt(total)}`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao importar KMs.");
+    } finally {
+      setImportandoKm(false);
+    }
+  };
+
+
 
   const VR_CLT_VALOR = 300;
 
@@ -597,8 +645,9 @@ export default function FolhaMensal() {
 
         const isUsuario = role === "usuario";
         const novoStatus = isUsuario ? "pendente" : "aprovado";
-        const reembRowsInsert: any[] = reembolsosLista
-          .filter((d) => !d.id) // só novos
+        const novosManuais = reembolsosLista.filter((d) => !d.id);
+        const reembRowsInsert: any[] = novosManuais
+          .filter((d) => !d._kmIds)
           .map((d) => ({
             folha_id: folhaId,
             tipo: d.tipo,
@@ -610,6 +659,33 @@ export default function FolhaMensal() {
             aprovado_por: isUsuario ? null : (user?.id || null),
             aprovado_em: isUsuario ? null : new Date().toISOString(),
           }));
+        // Importação de KMs: insere com origem 'km' e vincula os lançamentos
+        const kmItens = novosManuais.filter((d) => d._kmIds && d._kmIds.length > 0);
+        for (const km of kmItens) {
+          const { data: inserted, error: insErr } = await supabase
+            .from("rh_folha_reembolsos")
+            .insert({
+              folha_id: folhaId,
+              tipo: km.tipo,
+              valor: parseFloat(km.valor) || 0,
+              observacao: km.observacao || null,
+              origem: "km",
+              status: novoStatus,
+              criado_por: user?.id || null,
+              aprovado_por: isUsuario ? null : (user?.id || null),
+              aprovado_em: isUsuario ? null : new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+          if (insErr) throw insErr;
+          const reembId = (inserted as any).id;
+          const { error: upErr } = await supabase
+            .from("rh_km_lancamentos" as any)
+            .update({ status: "pago", folha_reembolso_id: reembId })
+            .in("id", km._kmIds as string[]);
+          if (upErr) throw upErr;
+        }
+
         // Atualiza valores/observação dos manuais existentes (mantém status)
         for (const d of reembolsosLista.filter((x) => x.id)) {
           const prev = existingManual.find((r: any) => r.id === d.id);
@@ -1152,14 +1228,28 @@ export default function FolhaMensal() {
               )}
             </div>
             <div className="space-y-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <label className="text-sm font-medium">Reembolsos</label>
-                {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
-                  <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
-                    Benefício de moradia aplicado automaticamente
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
+                    <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
+                      Benefício de moradia aplicado automaticamente
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={importarKmsAprovados}
+                    disabled={!funcId || !mesRef || importandoKm}
+                    title="Soma os KMs aprovados do período (dia 20 do mês anterior ao 19 do mês de referência)"
+                  >
+                    <Download className="mr-1 h-3 w-3" />
+                    {importandoKm ? "Importando..." : "Importar KMs aprovados"}
+                  </Button>
+                </div>
               </div>
+
               {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
                 <div className="space-y-1">
                   {moradiaCalculada.aluguel > 0 && (

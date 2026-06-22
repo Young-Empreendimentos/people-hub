@@ -357,6 +357,20 @@ function UsuariosTab() {
                 />
               </div>
             )}
+            <label className="flex items-start gap-2 cursor-pointer rounded-md border p-3 hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4"
+                checked={isAuditor}
+                onChange={(e) => setIsAuditor(e.target.checked)}
+              />
+              <span className="text-sm">
+                <span className="font-medium">Também é Auditor</span>
+                <span className="block text-xs text-muted-foreground">
+                  Papel adicional, independente da função principal.
+                </span>
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

@@ -51,10 +51,36 @@ const statusBadge = (s: string) => {
 
 export default function MeusKms() {
   const qc = useQueryClient();
-  const { user, funcionarioId, userName } = useAuth();
+  const { user, funcionarioId, userName, refreshRole } = useAuth();
   const [data, setData] = useState("");
   const [km, setKm] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [vincFunc, setVincFunc] = useState("");
+
+  const { data: opcoesFunc = [] } = useQuery({
+    queryKey: ["meus_kms_opcoes_func"],
+    enabled: !funcionarioId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_list_funcionarios_para_vinculo" as any);
+      if (error) throw error;
+      return (data || []) as any[];
+    },
+  });
+
+  const vincularMutation = useMutation({
+    mutationFn: async () => {
+      if (!vincFunc) throw new Error("Selecione seu nome.");
+      const { error } = await supabase.rpc("rh_set_my_funcionario" as any, { p_funcionario_id: vincFunc });
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Cadastro vinculado.");
+      await refreshRole();
+      qc.invalidateQueries();
+    },
+    onError: (e: any) => toast.error(e.message || "Erro ao vincular."),
+  });
+
 
   const { data: funcionario } = useQuery({
     queryKey: ["meu_funcionario", funcionarioId],

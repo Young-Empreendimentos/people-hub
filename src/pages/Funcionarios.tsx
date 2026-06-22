@@ -19,7 +19,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Pencil, Trash2, Search, Eye, Users } from "lucide-react";
+import { Pencil, Trash2, Search, Eye, Users, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { maskCPF, maskRG, maskPhone, isValidCPF } from "@/lib/masks";
 

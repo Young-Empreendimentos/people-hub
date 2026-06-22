@@ -10132,9 +10132,12 @@ export type Database = {
         Returns: {
           created_at: string
           email: string
+          funcionario_id: string
+          funcionario_nome: string
           id: string
           nome: string
           role: Database["public"]["Enums"]["rh_app_role"]
+          status: string
         }[]
       }
       rh_has_role: {

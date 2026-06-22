@@ -207,10 +207,15 @@ export default function PlanoSaude() {
       const u = Number(r.uso_plano) || 0;
       const t = s + o + u;
       acc.saude += s; acc.odonto += o; acc.uso += u;
-      acc.total += t; acc.desconto += t * 0.2;
+      acc.total += t;
+      // Mensalidade (saúde + odonto) × 20% + Uso integral
+      acc.desconto += (s + o) * 0.2 + u;
       return acc;
     }, { saude: 0, odonto: 0, uso: 0, total: 0, desconto: 0 });
   }, [filtered]);
+
+  const calcDesconto = (r: any) =>
+    (Number(r.valor_saude || 0) + Number(r.valor_odonto || 0)) * 0.2 + Number(r.uso_plano || 0);
 
   const exportXLSX = () => {
     if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }

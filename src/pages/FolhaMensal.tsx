@@ -169,6 +169,35 @@ export default function FolhaMensal() {
     return m;
   }, [pendencias]);
 
+  // Totais agregados por folha (descontos aprovados/sem status pendente + reembolsos aprovados)
+  const { data: descontosAll = [] } = useQuery({
+    queryKey: ["rh_folha_descontos_all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_folha_descontos").select("folha_id, tipo, valor");
+      return data || [];
+    },
+  });
+  const { data: reembolsosAll = [] } = useQuery({
+    queryKey: ["rh_folha_reembolsos_all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_folha_reembolsos").select("folha_id, valor, status");
+      return data || [];
+    },
+  });
+  const totaisByFolha = useMemo(() => {
+    const m: Record<string, { desc: number; reemb: number }> = {};
+    for (const d of descontosAll as any[]) {
+      if ((d.tipo || "").trim() === "Horas Falta") continue; // horas falta é informativo
+      (m[d.folha_id] ||= { desc: 0, reemb: 0 }).desc += Number(d.valor || 0);
+    }
+    for (const r of reembolsosAll as any[]) {
+      if (r.status === "rejeitado") continue;
+      (m[r.folha_id] ||= { desc: 0, reemb: 0 }).reemb += Number(r.valor || 0);
+    }
+    return m;
+  }, [descontosAll, reembolsosAll]);
+
+
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {

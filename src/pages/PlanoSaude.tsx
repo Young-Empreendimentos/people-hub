@@ -444,8 +444,11 @@ export default function PlanoSaude() {
               <Input type="number" step="0.01" min="0" value={usoPlano} onChange={(e) => setUsoPlano(e.target.value)} />
             </div>
             <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span className="font-medium">{fmtBRL(total)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Desconto Mensal (20%)</span><span className="font-semibold text-primary">{fmtBRL(desconto)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Mensalidade (saúde + odonto)</span><span>{fmtBRL(mensalidade)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Coparticipação (20% da mensalidade)</span><span>{fmtBRL(mensalidade * 0.2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Uso do plano (integral)</span><span>{fmtBRL(uso)}</span></div>
+              <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Total cadastrado</span><span className="font-medium">{fmtBRL(total)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Desconto do funcionário</span><span className="font-semibold text-primary">{fmtBRL(desconto)}</span></div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Observações</label>

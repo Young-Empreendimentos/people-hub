@@ -171,13 +171,41 @@ export default function MeusKms() {
 
   if (!funcionarioId) {
     return (
-      <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">
-          Seu usuário ainda não está vinculado a um funcionário. Procure o RH.
+      <Card className="max-w-lg mx-auto">
+        <CardHeader>
+          <CardTitle className="text-base">Vincule seu cadastro de funcionário</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Para lançar seus KMs, selecione seu nome na lista abaixo. Isso vincula seu acesso ao seu cadastro de funcionário.
+          </p>
+          <div className="space-y-1.5">
+            <Label>Seu nome</Label>
+            <select
+              className="w-full h-10 rounded-md border bg-background px-3 text-sm"
+              value={vincFunc}
+              onChange={(e) => setVincFunc(e.target.value)}
+            >
+              <option value="">Selecione...</option>
+              {(opcoesFunc as any[]).map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome_completo}{f.cpf_masked ? ` — ${f.cpf_masked}` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          <Button
+            className="w-full"
+            onClick={() => vincularMutation.mutate()}
+            disabled={!vincFunc || vincularMutation.isPending}
+          >
+            {vincularMutation.isPending ? "Vinculando..." : "Vincular e continuar"}
+          </Button>
         </CardContent>
       </Card>
     );
   }
+
 
   return (
     <div className="space-y-4 max-w-4xl mx-auto">

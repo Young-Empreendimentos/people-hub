@@ -207,10 +207,15 @@ export default function PlanoSaude() {
       const u = Number(r.uso_plano) || 0;
       const t = s + o + u;
       acc.saude += s; acc.odonto += o; acc.uso += u;
-      acc.total += t; acc.desconto += t * 0.2;
+      acc.total += t;
+      // Mensalidade (saúde + odonto) × 20% + Uso integral
+      acc.desconto += (s + o) * 0.2 + u;
       return acc;
     }, { saude: 0, odonto: 0, uso: 0, total: 0, desconto: 0 });
   }, [filtered]);
+
+  const calcDesconto = (r: any) =>
+    (Number(r.valor_saude || 0) + Number(r.valor_odonto || 0)) * 0.2 + Number(r.uso_plano || 0);
 
   const exportXLSX = () => {
     if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
@@ -225,14 +230,14 @@ export default function PlanoSaude() {
         "Valor Odonto": Number(r.valor_odonto),
         "Uso do Plano": Number(r.uso_plano),
         "Total": tot,
-        "Desconto Mensal (20%)": tot * 0.2,
+        "Desconto Mensal": calcDesconto(r),
         "Observações": r.observacoes || "",
       };
     });
     rows.push({
       "Mês": "TOTAL", "Empresa": "", "Funcionário": "", "Idade": "",
       "Valor Saúde": totals.saude, "Valor Odonto": totals.odonto, "Uso do Plano": totals.uso,
-      "Total": totals.total, "Desconto Mensal (20%)": totals.desconto, "Observações": "",
+      "Total": totals.total, "Desconto Mensal": totals.desconto, "Observações": "",
     });
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -257,7 +262,7 @@ export default function PlanoSaude() {
 
     autoTable(doc, {
       startY: 26,
-      head: [["Mês", "Empresa", "Funcionário", "Idade", "Saúde", "Odonto", "Uso", "Total", "Desconto (20%)"]],
+      head: [["Mês", "Empresa", "Funcionário", "Idade", "Saúde", "Odonto", "Uso", "Total", "Desconto"]],
       body: filtered.map((r) => {
         const tot = Number(r.valor_saude) + Number(r.valor_odonto) + Number(r.uso_plano);
         return [
@@ -269,7 +274,7 @@ export default function PlanoSaude() {
           fmtBRL(Number(r.valor_odonto)),
           fmtBRL(Number(r.uso_plano)),
           fmtBRL(tot),
-          fmtBRL(tot * 0.2),
+          fmtBRL(calcDesconto(r)),
         ];
       }),
       foot: [[
@@ -286,8 +291,10 @@ export default function PlanoSaude() {
   };
 
   // Preview no dialog
-  const total = (parseFloat(valorSaude) || 0) + (parseFloat(valorOdonto) || 0) + (parseFloat(usoPlano) || 0);
-  const desconto = total * 0.2;
+  const mensalidade = (parseFloat(valorSaude) || 0) + (parseFloat(valorOdonto) || 0);
+  const uso = parseFloat(usoPlano) || 0;
+  const total = mensalidade + uso;
+  const desconto = mensalidade * 0.2 + uso;
 
   return (
     <div className="space-y-4">
@@ -378,7 +385,7 @@ export default function PlanoSaude() {
                 <TableRow><TableCell colSpan={10} className="text-center py-8 text-muted-foreground">Nenhum lançamento.</TableCell></TableRow>
               ) : filtered.map((r) => {
                 const tot = Number(r.valor_saude) + Number(r.valor_odonto) + Number(r.uso_plano);
-                const desc = tot * 0.2;
+                const desc = calcDesconto(r);
                 const idade = calcIdade(r.rh_funcionarios?.aniversario);
                 return (
                   <TableRow key={r.id}>
@@ -437,8 +444,11 @@ export default function PlanoSaude() {
               <Input type="number" step="0.01" min="0" value={usoPlano} onChange={(e) => setUsoPlano(e.target.value)} />
             </div>
             <div className="rounded-md border bg-muted/40 p-3 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-muted-foreground">Total</span><span className="font-medium">{fmtBRL(total)}</span></div>
-              <div className="flex justify-between"><span className="text-muted-foreground">Desconto Mensal (20%)</span><span className="font-semibold text-primary">{fmtBRL(desconto)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Mensalidade (saúde + odonto)</span><span>{fmtBRL(mensalidade)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Coparticipação (20% da mensalidade)</span><span>{fmtBRL(mensalidade * 0.2)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Uso do plano (integral)</span><span>{fmtBRL(uso)}</span></div>
+              <div className="flex justify-between border-t pt-1"><span className="text-muted-foreground">Total cadastrado</span><span className="font-medium">{fmtBRL(total)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Desconto do funcionário</span><span className="font-semibold text-primary">{fmtBRL(desconto)}</span></div>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Observações</label>

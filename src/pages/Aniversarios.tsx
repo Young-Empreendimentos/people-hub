@@ -187,6 +187,7 @@ export default function Aniversarios() {
   };
 
   // Company anniversaries (next 6 months) — mantém comportamento original
+  // Company anniversaries — todos os marcos (3m, 6m, e anuais) que caem no ano selecionado
   const companyAnniversaries = useMemo(() => {
     const items: AnniversaryItem[] = [];
 
@@ -206,29 +207,50 @@ export default function Aniversarios() {
       for (const m of milestoneMonths) {
         const milestoneDate = new Date(admYear, admMonth + m, admDay);
         milestoneDate.setHours(0, 0, 0, 0);
-        if (milestoneDate < today) continue;
+        if (milestoneDate.getFullYear() !== ano) continue;
 
         const diffDays = daysUntilDate(milestoneDate, today);
 
-        if (diffDays <= 180) {
-          items.push({
-            id: f.id,
-            nome: f.nome_completo,
-            cargo: f.rh_cargos?.nome || null,
-            equipe: f.rh_equipes?.nome || null,
-            month: milestoneDate.getMonth() + 1,
-            day: milestoneDate.getDate(),
-            daysUntil: diffDays,
-            milestone: formatMilestone(m),
-            fullDate: formatDate(milestoneDate.getMonth() + 1, milestoneDate.getDate()),
-          });
-        }
+        items.push({
+          id: f.id,
+          nome: f.nome_completo,
+          cargo: f.rh_cargos?.nome || null,
+          equipe: f.rh_equipes?.nome || null,
+          month: milestoneDate.getMonth() + 1,
+          day: milestoneDate.getDate(),
+          daysUntil: diffDays,
+          milestone: formatMilestone(m),
+          fullDate: formatDate(milestoneDate.getMonth() + 1, milestoneDate.getDate()),
+        });
       }
     }
 
-    items.sort((a, b) => a.daysUntil - b.daysUntil);
+    items.sort((a, b) => a.month - b.month || a.day - b.day);
     return items;
-  }, [funcionarios, isActive, admissaoMap, today]);
+  }, [funcionarios, isActive, admissaoMap, today, ano]);
+
+  const companyByMonth = useMemo(() => {
+    const m: Record<number, AnniversaryItem[]> = {};
+    for (const b of companyAnniversaries) (m[b.month] ||= []).push(b);
+    return m;
+  }, [companyAnniversaries]);
+
+  const exportarAniversariosEmpresa = () => {
+    const rows = companyAnniversaries.map((b) => ({
+      "Mês": MONTHS_FULL[b.month - 1],
+      "Dia": b.day,
+      "Data": formatDate(b.month, b.day),
+      "Funcionário": b.nome,
+      "Marco": b.milestone || "—",
+      "Cargo": b.cargo || "—",
+      "Equipe": b.equipe || "—",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Aniversários Empresa ${ano}`);
+    XLSX.writeFile(wb, `aniversarios_empresa_${ano}.xlsx`);
+  };
+
 
   if (isLoading) {
     return <p className="text-muted-foreground py-8 text-center">Carregando...</p>;

@@ -139,6 +139,54 @@ export default function FolhaMensal() {
     setReembolsosLista((arr) => arr.filter((_, i) => i !== idx));
   };
 
+  const [importandoKm, setImportandoKm] = useState(false);
+  const importarKmsAprovados = async () => {
+    if (!funcId || !mesRef) {
+      toast.error("Selecione o funcionário e o mês de referência.");
+      return;
+    }
+    setImportandoKm(true);
+    try {
+      const [y, m] = mesRef.split("-").map(Number);
+      const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
+      const ini = `${prev.y}-${String(prev.m).padStart(2, "0")}-20`;
+      const fim = `${mesRef}-19`;
+      const { data, error } = await supabase
+        .from("rh_km_lancamentos" as any)
+        .select("id, data, valor_total")
+        .eq("funcionario_id", funcId)
+        .eq("status", "aprovado")
+        .is("folha_reembolso_id", null)
+        .gte("data", ini)
+        .lte("data", fim);
+      if (error) throw error;
+      const rows = (data || []) as any[];
+      if (rows.length === 0) {
+        toast.info("Nenhum KM aprovado e não-pago neste período.");
+        return;
+      }
+      const total = rows.reduce((s, r) => s + Number(r.valor_total || 0), 0);
+      const formatBR = (s: string) => s.split("-").reverse().join("/");
+      // remove qualquer importação anterior nesta sessão
+      setReembolsosLista((arr) => [
+        ...arr.filter((r) => !r._kmIds),
+        {
+          tipo: "Quilometragem",
+          valor: total.toFixed(2),
+          observacao: `${rows.length} lançamento(s) aprovado(s) — período ${formatBR(ini)} a ${formatBR(fim)}`,
+          _kmIds: rows.map((r) => r.id),
+        },
+      ]);
+      toast.success(`${rows.length} lançamento(s) importado(s): ${fmt(total)}`);
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao importar KMs.");
+    } finally {
+      setImportandoKm(false);
+    }
+  };
+
+
+
   const VR_CLT_VALOR = 300;
 
   const { data: folhas = [], isLoading } = useQuery({

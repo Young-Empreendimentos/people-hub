@@ -185,14 +185,16 @@ export default function FolhaMensal() {
     },
   });
   const totaisByFolha = useMemo(() => {
-    const m: Record<string, { desc: number; reemb: number }> = {};
+    const m: Record<string, { desc: number; reemb: number; hasPlanoSaude: boolean }> = {};
     for (const d of descontosAll as any[]) {
       if ((d.tipo || "").trim() === "Horas Falta") continue; // horas falta é informativo
-      (m[d.folha_id] ||= { desc: 0, reemb: 0 }).desc += Number(d.valor || 0);
+      const entry = (m[d.folha_id] ||= { desc: 0, reemb: 0, hasPlanoSaude: false });
+      entry.desc += Number(d.valor || 0);
+      if ((d.tipo || "").trim() === "Plano de Saúde") entry.hasPlanoSaude = true;
     }
     for (const r of reembolsosAll as any[]) {
       if (r.status === "rejeitado") continue;
-      (m[r.folha_id] ||= { desc: 0, reemb: 0 }).reemb += Number(r.valor || 0);
+      (m[r.folha_id] ||= { desc: 0, reemb: 0, hasPlanoSaude: false }).reemb += Number(r.valor || 0);
     }
     return m;
   }, [descontosAll, reembolsosAll]);

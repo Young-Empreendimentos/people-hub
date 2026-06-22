@@ -71,7 +71,7 @@ export default function FuncionarioDetalhes() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_aditivos")
-        .select("*, rh_tipos_aditivo(nome), rh_empresas(nome), rh_cargos(nome, nivel, remuneracao), rh_equipes(nome)")
+        .select("*, rh_aditivo_tipo_aditivo(rh_tipos_aditivo(id, nome)), rh_empresas(nome), rh_cargos(nome, nivel, remuneracao), rh_equipes(nome)")
         .eq("funcionario_id", id!)
         .order("data", { ascending: false })
         .order("created_at", { ascending: false });
@@ -396,7 +396,7 @@ export default function FuncionarioDetalhes() {
                     {aditivos.map((a: any) => (
                       <TableRow key={a.id}>
                         <TableCell>{fmtDate(a.data)}</TableCell>
-                        <TableCell>{a.rh_tipos_aditivo?.nome || "—"}</TableCell>
+                        <TableCell>{(a.rh_aditivo_tipo_aditivo || []).map((j: any) => j.rh_tipos_aditivo?.nome).filter(Boolean).join(", ") || "—"}</TableCell>
                         <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
                         <TableCell>{formatCargoLabel(a.rh_cargos)}</TableCell>
                         <TableCell>{a.rh_equipes?.nome || "—"}</TableCell>

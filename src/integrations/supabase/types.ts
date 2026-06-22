@@ -2103,67 +2103,277 @@ export type Database = {
           },
         ]
       }
+      comissoes_sienge_comissoes_backup_20260622: {
+        Row: {
+          aprovado_por: number | null
+          atingiu_gatilho: boolean | null
+          atualizado_em: string | null
+          bill_number: number | null
+          billing_broker_id: string | null
+          billing_broker_name: string | null
+          block_edit: boolean | null
+          broker_id: string | null
+          broker_nome: string | null
+          building_id: string | null
+          commission_date: string | null
+          commission_released_automatically: boolean | null
+          commission_released_to_be_paid: boolean | null
+          commission_value: number | null
+          company_id: string | null
+          company_name: string | null
+          consider_embedded_interest: boolean | null
+          contract_bill_number: number | null
+          contract_percentage_paid: number | null
+          criado_em: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_situation_type: string | null
+          dados_completos: Json | null
+          data_aprovacao: string | null
+          data_comissao: string | null
+          data_envio_aprovacao: string | null
+          due_date: string | null
+          enterprise_name: string | null
+          enviado_por: number | null
+          id: number | null
+          installment_number: number | null
+          installment_percentage: number | null
+          installment_status: string | null
+          numero_contrato: string | null
+          observacoes: string | null
+          payment_operation_type: string | null
+          regra_gatilho: string | null
+          regra_gatilho_id: number | null
+          sienge_id: string | null
+          status_aprovacao: string | null
+          total_installments_number: number | null
+          unit_name: string | null
+          updated_at: string | null
+          valor_comissao: number | null
+          valor_gatilho: number | null
+        }
+        Insert: {
+          aprovado_por?: number | null
+          atingiu_gatilho?: boolean | null
+          atualizado_em?: string | null
+          bill_number?: number | null
+          billing_broker_id?: string | null
+          billing_broker_name?: string | null
+          block_edit?: boolean | null
+          broker_id?: string | null
+          broker_nome?: string | null
+          building_id?: string | null
+          commission_date?: string | null
+          commission_released_automatically?: boolean | null
+          commission_released_to_be_paid?: boolean | null
+          commission_value?: number | null
+          company_id?: string | null
+          company_name?: string | null
+          consider_embedded_interest?: boolean | null
+          contract_bill_number?: number | null
+          contract_percentage_paid?: number | null
+          criado_em?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_situation_type?: string | null
+          dados_completos?: Json | null
+          data_aprovacao?: string | null
+          data_comissao?: string | null
+          data_envio_aprovacao?: string | null
+          due_date?: string | null
+          enterprise_name?: string | null
+          enviado_por?: number | null
+          id?: number | null
+          installment_number?: number | null
+          installment_percentage?: number | null
+          installment_status?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          payment_operation_type?: string | null
+          regra_gatilho?: string | null
+          regra_gatilho_id?: number | null
+          sienge_id?: string | null
+          status_aprovacao?: string | null
+          total_installments_number?: number | null
+          unit_name?: string | null
+          updated_at?: string | null
+          valor_comissao?: number | null
+          valor_gatilho?: number | null
+        }
+        Update: {
+          aprovado_por?: number | null
+          atingiu_gatilho?: boolean | null
+          atualizado_em?: string | null
+          bill_number?: number | null
+          billing_broker_id?: string | null
+          billing_broker_name?: string | null
+          block_edit?: boolean | null
+          broker_id?: string | null
+          broker_nome?: string | null
+          building_id?: string | null
+          commission_date?: string | null
+          commission_released_automatically?: boolean | null
+          commission_released_to_be_paid?: boolean | null
+          commission_value?: number | null
+          company_id?: string | null
+          company_name?: string | null
+          consider_embedded_interest?: boolean | null
+          contract_bill_number?: number | null
+          contract_percentage_paid?: number | null
+          criado_em?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_situation_type?: string | null
+          dados_completos?: Json | null
+          data_aprovacao?: string | null
+          data_comissao?: string | null
+          data_envio_aprovacao?: string | null
+          due_date?: string | null
+          enterprise_name?: string | null
+          enviado_por?: number | null
+          id?: number | null
+          installment_number?: number | null
+          installment_percentage?: number | null
+          installment_status?: string | null
+          numero_contrato?: string | null
+          observacoes?: string | null
+          payment_operation_type?: string | null
+          regra_gatilho?: string | null
+          regra_gatilho_id?: number | null
+          sienge_id?: string | null
+          status_aprovacao?: string | null
+          total_installments_number?: number | null
+          unit_name?: string | null
+          updated_at?: string | null
+          valor_comissao?: number | null
+          valor_gatilho?: number | null
+        }
+        Relationships: []
+      }
       comissoes_sienge_corretores: {
         Row: {
           ativo: boolean | null
           atualizado_em: string | null
+          bairro: string | null
+          banco_agencia: string | null
+          banco_chave_pix: string | null
+          banco_conta: string | null
+          banco_nome: string | null
+          banco_tipo: string | null
           broker_flag: string | null
           cadastro_login_em: string | null
+          cep: string | null
+          cidade: string | null
           cnpj: string | null
           company_id: string | null
           cpf: string | null
+          creci: string | null
           criado_em: string | null
+          crm_uuid: string | null
+          dados_bancarios: string | null
           dados_completos: Json | null
           email: string | null
+          email_secundario: string | null
+          endereco: string | null
           id: number
+          imobiliaria_origem_id: string | null
+          is_cadastro_completo: boolean
           nome: string
           nome_comercial: string | null
+          nome_exibicao: string | null
           nome_social: string | null
+          origem: string
+          razao_social: string | null
           senha_hash: string | null
           sienge_id: string
           telefone: string | null
+          tipo: string | null
+          tipo_corretor: string | null
+          uf: string | null
           ultimo_login: string | null
           updated_at: string | null
         }
         Insert: {
           ativo?: boolean | null
           atualizado_em?: string | null
+          bairro?: string | null
+          banco_agencia?: string | null
+          banco_chave_pix?: string | null
+          banco_conta?: string | null
+          banco_nome?: string | null
+          banco_tipo?: string | null
           broker_flag?: string | null
           cadastro_login_em?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           company_id?: string | null
           cpf?: string | null
+          creci?: string | null
           criado_em?: string | null
+          crm_uuid?: string | null
+          dados_bancarios?: string | null
           dados_completos?: Json | null
           email?: string | null
+          email_secundario?: string | null
+          endereco?: string | null
           id?: number
+          imobiliaria_origem_id?: string | null
+          is_cadastro_completo?: boolean
           nome: string
           nome_comercial?: string | null
+          nome_exibicao?: string | null
           nome_social?: string | null
+          origem?: string
+          razao_social?: string | null
           senha_hash?: string | null
           sienge_id: string
           telefone?: string | null
+          tipo?: string | null
+          tipo_corretor?: string | null
+          uf?: string | null
           ultimo_login?: string | null
           updated_at?: string | null
         }
         Update: {
           ativo?: boolean | null
           atualizado_em?: string | null
+          bairro?: string | null
+          banco_agencia?: string | null
+          banco_chave_pix?: string | null
+          banco_conta?: string | null
+          banco_nome?: string | null
+          banco_tipo?: string | null
           broker_flag?: string | null
           cadastro_login_em?: string | null
+          cep?: string | null
+          cidade?: string | null
           cnpj?: string | null
           company_id?: string | null
           cpf?: string | null
+          creci?: string | null
           criado_em?: string | null
+          crm_uuid?: string | null
+          dados_bancarios?: string | null
           dados_completos?: Json | null
           email?: string | null
+          email_secundario?: string | null
+          endereco?: string | null
           id?: number
+          imobiliaria_origem_id?: string | null
+          is_cadastro_completo?: boolean
           nome?: string
           nome_comercial?: string | null
+          nome_exibicao?: string | null
           nome_social?: string | null
+          origem?: string
+          razao_social?: string | null
           senha_hash?: string | null
           sienge_id?: string
           telefone?: string | null
+          tipo?: string | null
+          tipo_corretor?: string | null
+          uf?: string | null
           ultimo_login?: string | null
           updated_at?: string | null
         }

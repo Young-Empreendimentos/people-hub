@@ -208,6 +208,57 @@ export default function Funcionarios() {
     return <Badge variant="secondary">Sem registro</Badge>;
   };
 
+  const exportarRelatorio = () => {
+    if (!filtered.length) { toast.error("Nenhum funcionário para exportar."); return; }
+    const headers = [
+      "Nome","CPF","RG","Telefone","Endereço","Aniversário",
+      "Empresa","Equipe","Cargo","Nível","Salário",
+      "Tipo Contrato","Data Contrato Vigente","Status",
+    ];
+    const statusLabel = (id: string) => {
+      const st = (statusMap as Record<string, string>)[id];
+      if (st === "desligamento") return "Desligado";
+      if (st === "admissao") return "Ativo";
+      return "Sem registro";
+    };
+    const fmtNum = (n: number | null) => n == null ? "" : Number(n).toFixed(2).replace(".", ",");
+    const rows = filtered.map((f: any) => {
+      const eff = getEffective(f);
+      const cargo = eff.cargo_id ? cargoMap[eff.cargo_id] : null;
+      return [
+        f.nome_completo || "",
+        f.cpf || "",
+        f.rg || "",
+        f.telefone || "",
+        (f.endereco || "").replace(/\r?\n/g, " "),
+        f.aniversario || "",
+        eff.empresa_id ? (empresaMap[eff.empresa_id]?.nome || "") : "",
+        eff.equipe_id ? (equipeMap[eff.equipe_id]?.nome || "") : "",
+        cargo?.nome || "",
+        cargo?.nivel ?? "",
+        fmtNum(getSalario(f)),
+        f.tipo_contrato || "",
+        f.data_contrato_vigente || "",
+        statusLabel(f.id),
+      ];
+    });
+    const escape = (v: any) => {
+      const s = String(v ?? "");
+      return /[";\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csv = [headers, ...rows].map((r) => r.map(escape).join(";")).join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `funcionarios_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success(`${filtered.length} funcionário(s) exportado(s).`);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">

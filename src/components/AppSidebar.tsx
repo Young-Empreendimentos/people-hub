@@ -19,7 +19,9 @@ const mainItems = [
   { title: "Avaliações", url: "/avaliacoes", icon: ClipboardCheck },
   { title: "Gestão de Pessoas", url: "/gestao-pessoas", icon: ShieldAlert },
   { title: "Folha Mensal", url: "/folha", icon: Receipt },
+  { title: "Meus KMs", url: "/meus-kms", icon: Car },
   { title: "Aprovações de KM", url: "/aprovacoes-km", icon: Car },
+
   { title: "Atividades", url: "/atividades", icon: ListChecks },
 ];
 

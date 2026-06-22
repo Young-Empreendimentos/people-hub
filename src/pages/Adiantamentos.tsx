@@ -214,14 +214,38 @@ export default function Adiantamentos() {
     return a.datas_pagamento_pretendidas?.map(formatMesAno).join(", ") || "—";
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Adiantamento</Button>
-      </div>
+  const getParcelasList = (a: any): Parcela[] => {
+    if (a.parcelas && Array.isArray(a.parcelas) && a.parcelas.length) return a.parcelas as Parcela[];
+    if (a.datas_pagamento_pretendidas?.length) {
+      const total = Number(a.valor) || 0;
+      const n = a.datas_pagamento_pretendidas.length;
+      const base = Math.floor((total / n) * 100) / 100;
+      const resto = Math.round((total - base * n) * 100) / 100;
+      return a.datas_pagamento_pretendidas.map((m: string, i: number) => ({
+        mes_ano: m,
+        valor: i === 0 ? +(base + resto).toFixed(2) : base,
+      }));
+    }
+    return [];
+  };
 
-      <div className="max-w-sm">
-        <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
+  const calcStatus = (a: any) => {
+    const total = Number(a.valor) || 0;
+    const list = getParcelasList(a);
+    let pago = 0;
+    let parcelasPagas = 0;
+    for (const p of list) {
+      const mes = (p.mes_ano || "").slice(0, 7);
+      if (mes && folhasSet.has(`${a.funcionario_id}|${mes}`)) {
+        pago += Number(p.valor) || 0;
+        parcelasPagas++;
+      }
+    }
+    pago = +pago.toFixed(2);
+    const saldo = +(total - pago).toFixed(2);
+    return { total, pago, saldo, parcelasPagas, totalParcelas: list.length };
+  };
+
       </div>
 
       <Card><CardContent className="p-0">

@@ -20,6 +20,7 @@ export default function PrimeiroAcesso() {
   const navigate = useNavigate();
   const { user, signOut, refreshRole } = useAuth();
   const [funcId, setFuncId] = useState("");
+  const [isAuditor, setIsAuditor] = useState(false);
 
   const { data: funcionarios = [], isLoading } = useQuery({
     queryKey: ["funcionarios_primeiro_acesso"],
@@ -39,13 +40,22 @@ export default function PrimeiroAcesso() {
     mutationFn: async () => {
       if (!user || !funcId) throw new Error("Selecione seu nome.");
       const func = (funcionarios as any[]).find((f) => f.id === funcId);
-      const { error } = await supabase.from("rh_user_roles").insert({
+      const rows: any[] = [{
         user_id: user.id,
-        role: "colaborador" as any,
-        status: "pendente" as any,
+        role: "colaborador",
+        status: "pendente",
         funcionario_id: funcId,
         nome: func?.nome_completo ?? null,
-      } as any);
+      }];
+      if (isAuditor) {
+        rows.push({
+          user_id: user.id,
+          role: "auditor",
+          status: "pendente",
+          nome: func?.nome_completo ?? null,
+        });
+      }
+      const { error } = await supabase.from("rh_user_roles").insert(rows as any);
       if (error) throw error;
     },
     onSuccess: async () => {
@@ -78,6 +88,20 @@ export default function PrimeiroAcesso() {
               placeholder={isLoading ? "Carregando..." : "Procurar pelo seu nome"}
             />
           </div>
+          <label className="flex items-start gap-2 cursor-pointer rounded-md border p-3 hover:bg-accent/50">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4"
+              checked={isAuditor}
+              onChange={(e) => setIsAuditor(e.target.checked)}
+            />
+            <span className="text-sm">
+              <span className="font-medium">Também atuo como Auditor</span>
+              <span className="block text-xs text-muted-foreground">
+                Marque se, além de colaborador, você também irá auditar lançamentos.
+              </span>
+            </span>
+          </label>
           <div className="flex gap-2">
             <Button variant="outline" onClick={signOut}>
               <LogOut className="mr-2 h-4 w-4" /> Sair

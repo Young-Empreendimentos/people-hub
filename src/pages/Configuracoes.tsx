@@ -132,15 +132,17 @@ function UsuariosTab() {
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ativo");
   const [selectedFuncionarioId, setSelectedFuncionarioId] = useState("");
+  const [isAuditor, setIsAuditor] = useState(false);
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["rh_users_with_roles"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("rh_get_all_users_with_roles");
       if (error) throw error;
-      return data as {
+      return data as any as {
         id: string; email: string; role: string | null; created_at: string; nome: string;
         status: string | null; funcionario_id: string | null; funcionario_nome: string | null;
+        is_auditor?: boolean;
       }[];
     },
   });
@@ -157,16 +159,27 @@ function UsuariosTab() {
     mutationFn: async () => {
       if (!editingUserId) return;
       await supabase.from("rh_user_roles").delete().eq("user_id", editingUserId);
+      const rows: any[] = [];
       if (selectedRole) {
         const payload: any = {
           user_id: editingUserId,
-          role: selectedRole as any,
+          role: selectedRole,
           status: selectedStatus,
         };
         if (selectedRole === "colaborador" && selectedFuncionarioId) {
           payload.funcionario_id = selectedFuncionarioId;
         }
-        const { error } = await supabase.from("rh_user_roles").insert(payload);
+        rows.push(payload);
+      }
+      if (isAuditor) {
+        rows.push({
+          user_id: editingUserId,
+          role: "auditor",
+          status: selectedStatus || "ativo",
+        });
+      }
+      if (rows.length > 0) {
+        const { error } = await supabase.from("rh_user_roles").insert(rows as any);
         if (error) throw error;
       }
     },
@@ -195,6 +208,7 @@ function UsuariosTab() {
     setSelectedRole(u.role || "");
     setSelectedStatus(u.status || "ativo");
     setSelectedFuncionarioId(u.funcionario_id || "");
+    setIsAuditor(!!u.is_auditor);
     setDialogOpen(true);
   };
 
@@ -203,6 +217,7 @@ function UsuariosTab() {
     coordenador: "Coordenador",
     usuario: "Usuário",
     colaborador: "Colaborador",
+    auditor: "Auditor",
   };
   const statusLabels: Record<string, string> = {
     pendente: "Pendente",
@@ -274,9 +289,12 @@ function UsuariosTab() {
               <TableCell className="font-medium">{u.email}</TableCell>
               <TableCell>{u.nome || "—"}</TableCell>
               <TableCell>
-                {u.role
-                  ? <Badge variant={roleBadgeVariant(u.role)}>{roleLabels[u.role] || u.role}</Badge>
-                  : <span className="text-xs text-muted-foreground">Sem função</span>}
+                <div className="flex flex-wrap gap-1">
+                  {u.role
+                    ? <Badge variant={roleBadgeVariant(u.role)}>{roleLabels[u.role] || u.role}</Badge>
+                    : !u.is_auditor && <span className="text-xs text-muted-foreground">Sem função</span>}
+                  {u.is_auditor && <Badge variant="outline" className="border-amber-500 text-amber-600 dark:text-amber-400">Auditor</Badge>}
+                </div>
               </TableCell>
               <TableCell>
                 {u.status
@@ -339,6 +357,20 @@ function UsuariosTab() {
                 />
               </div>
             )}
+            <label className="flex items-start gap-2 cursor-pointer rounded-md border p-3 hover:bg-accent/50">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4"
+                checked={isAuditor}
+                onChange={(e) => setIsAuditor(e.target.checked)}
+              />
+              <span className="text-sm">
+                <span className="font-medium">Também é Auditor</span>
+                <span className="block text-xs text-muted-foreground">
+                  Papel adicional, independente da função principal.
+                </span>
+              </span>
+            </label>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

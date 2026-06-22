@@ -262,7 +262,7 @@ export default function PlanoSaude() {
 
     autoTable(doc, {
       startY: 26,
-      head: [["Mês", "Empresa", "Funcionário", "Idade", "Saúde", "Odonto", "Uso", "Total", "Desconto (20%)"]],
+      head: [["Mês", "Empresa", "Funcionário", "Idade", "Saúde", "Odonto", "Uso", "Total", "Desconto"]],
       body: filtered.map((r) => {
         const tot = Number(r.valor_saude) + Number(r.valor_odonto) + Number(r.uso_plano);
         return [
@@ -274,7 +274,7 @@ export default function PlanoSaude() {
           fmtBRL(Number(r.valor_odonto)),
           fmtBRL(Number(r.uso_plano)),
           fmtBRL(tot),
-          fmtBRL(tot * 0.2),
+          fmtBRL(calcDesconto(r)),
         ];
       }),
       foot: [[

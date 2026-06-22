@@ -1228,14 +1228,28 @@ export default function FolhaMensal() {
               )}
             </div>
             <div className="space-y-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
                 <label className="text-sm font-medium">Reembolsos</label>
-                {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
-                  <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
-                    Benefício de moradia aplicado automaticamente
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
+                    <span className="text-xs text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 px-2 py-0.5 rounded">
+                      Benefício de moradia aplicado automaticamente
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={importarKmsAprovados}
+                    disabled={!funcId || !mesRef || importandoKm}
+                    title="Soma os KMs aprovados do período (dia 20 do mês anterior ao 19 do mês de referência)"
+                  >
+                    <Download className="mr-1 h-3 w-3" />
+                    {importandoKm ? "Importando..." : "Importar KMs aprovados"}
+                  </Button>
+                </div>
               </div>
+
               {moradiaCalculada && (moradiaCalculada.aluguel > 0 || moradiaCalculada.auxilio > 0) && (
                 <div className="space-y-1">
                   {moradiaCalculada.aluguel > 0 && (

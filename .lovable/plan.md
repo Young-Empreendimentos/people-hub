@@ -1,91 +1,66 @@
 ## Objetivo
 
-1. **Benefícios de Moradia** no funcionário (reembolso aluguel + auxílio moradia 25% do salário do cargo), com histórico versionado.
-2. Aplicar automaticamente na **Folha Mensal** quando o funcionário tiver benefício vigente (valores não editáveis na folha).
-3. **Reembolsos** (gratificações e demais reembolsos) lançados dentro da folha mensal, com página de visualização em **Financeiro → Reembolsos**.
+Permitir que funcionários da empresa entrem no Pilares via Google, lancem seus próprios km/data e, após aprovação do RH, esses valores virem reembolso na folha do mês vigente (período de competência: dia 20 do mês anterior → dia 19 do mês atual).
 
 ---
 
-## 1. Banco de dados (migração)
+## Mudanças no banco (migration)
 
-### `rh_funcionario_beneficios_moradia` (histórico)
-Campos: `funcionario_id`, `data_inicio`, `data_fim` (nullable = vigente), `valor_reembolso_aluguel` (numeric), `percentual_auxilio_moradia` (numeric, default 25), `observacao`, `created_at`, `created_by`.
+1. **Enum `app_role`**: adicionar valor `'colaborador'`.
+2. **Tabela `rh_user_roles`** — adicionar colunas:
+   - `funcionario_id uuid` (FK → `rh_funcionarios`, nullable) — qual funcionário esse usuário representa.
+   - `status text` default `'pendente'` — `pendente` | `ativo` | `rejeitado`.
+3. **Tabela `rh_funcionarios`** — adicionar:
+   - `valor_km numeric(10,4)` default `0` — R$ por km do funcionário.
+4. **Nova tabela `rh_km_lancamentos`**:
+   - `funcionario_id`, `data` (date do trajeto), `km numeric`, `valor_km_snapshot` (R$/km no momento do lançamento), `valor_total` (km × snapshot), `descricao` text, `status` (`pendente`/`aprovado`/`rejeitado`/`pago`), `criado_por`, `aprovado_por`, `aprovado_em`, `motivo_rejeicao`, `folha_reembolso_id` (preenchido quando virar linha de folha), timestamps.
+   - GRANT + RLS:
+     - `colaborador` lê/cria/edita/deleta apenas lançamentos **com status `pendente`** vinculados ao seu próprio `funcionario_id` (via `rh_user_roles`).
+     - `admin`/`coordenador`/`usuario` leem tudo; aprovam/rejeitam/editam.
+5. **RLS de `rh_user_roles`**: colaborador pode criar a **própria linha** com `role='colaborador'` e `status='pendente'` (autocadastro). Admin atualiza para `ativo`.
 
-- Vigente = `data_fim IS NULL` OU `data_fim >= mes_referência`.
-- Apenas um registro vigente por funcionário (validar no app; índice parcial opcional).
-- RLS: leitura para autenticados; insert/update/delete conforme `rh_has_role` (admin/coordenador), delete só admin — alinhado ao restante do sistema.
+## Frontend
 
-### `rh_folha_reembolsos` (itens de provento dentro da folha)
-Campos: `folha_id` (FK `rh_folha_mensal`, cascade), `tipo` (text — ex.: "Gratificação", "Reembolso de Aluguel", "Auxílio Moradia", "Outro"), `valor` (numeric), `observacao`, `origem` (text — `manual` | `beneficio_moradia`), `created_at`.
+### Auth (`useAuth.tsx`)
+- `RhRole` passa a incluir `"colaborador"`.
+- Expor `funcionarioId`, `roleStatus`, `isColaborador`.
+- Helpers `canDelete/canConfig/...` continuam falsos para colaborador.
 
-- RLS análogo ao `rh_folha_descontos` existente.
+### Roteamento (`App.tsx`)
+- Nova rota `/meus-kms` (tela do colaborador).
+- Nova rota `/primeiro-acesso` (seleção do próprio cadastro).
+- Em `Reembolsos`, nova aba/seção "Aprovações de KM" para admin/coordenador/usuario.
 
----
+### `AppLayout.tsx`
+- Se logado **sem role**: redirecionar para `/primeiro-acesso` (em vez da tela "acesso pendente").
+- Se role = `colaborador` + status `pendente`: tela "aguardando aprovação do RH".
+- Se role = `colaborador` + status `ativo`: layout reduzido (sem sidebar completo) — só link "Meus KMs" e Sair. Qualquer rota fora de `/meus-kms` redireciona pra lá.
+- Demais roles: comportamento atual.
 
-## 2. Funcionário — aba "Benefícios de Moradia"
+### Páginas novas
+- **`PrimeiroAcesso.tsx`**: combobox com funcionários ativos (nome + cpf mascarado), botão "Confirmar". Cria registro em `rh_user_roles` (role `colaborador`, status `pendente`, funcionario_id selecionado, nome = nome do funcionário). Mostra confirmação "aguarde aprovação".
+- **`MeusKms.tsx`**: 
+  - Form: data (date), km (number), descrição (opcional) → INSERT com `valor_km_snapshot` lido de `rh_funcionarios.valor_km`.
+  - Lista dos próprios lançamentos com status colorido (pendente/aprovado/rejeitado/pago) e motivo de rejeição quando houver.
+  - Editar/excluir só se status `pendente`.
+  - Resumo do período vigente (20→19) com total de km e R$ previsto.
 
-Em `FuncionarioDetalhes.tsx`, adicionar nova aba ao lado das existentes:
+### Aprovações (admin/coordenador/usuario)
+- Em `src/pages/Reembolsos.tsx`, adicionar card/aba **"KM a aprovar"** com lista agrupada por funcionário, filtros por status e período. Ações: aprovar, rejeitar (com motivo), editar km/valor.
 
-- **Lista histórica** (tabela): período, valor reembolso aluguel, % auxílio moradia, valor calculado (com base na remuneração atual do cargo, apenas referência visual), observação.
-- **Botão "Novo benefício"**: ao criar, encerra o anterior vigente (preenche `data_fim`) e abre um novo a partir de `data_inicio`.
-- **Editar/Excluir** registros (respeitando permissões).
-- Campos do form: `data_inicio` (obrig.), `valor_reembolso_aluguel`, `percentual_auxilio_moradia` (default 25), `observacao`.
+### Configurações
+- Em `src/pages/Configuracoes.tsx` → seção Usuários: mostrar pedidos pendentes (`rh_user_roles.status='pendente'`) com botão Aprovar / Rejeitar / Alterar role. Mostrar funcionário vinculado.
+- Em cadastro de funcionário (`FuncionarioDetalhes`): novo campo `valor_km` editável por admin/coord.
 
----
+### Folha mensal
+- Em `FolhaMensal.tsx`, ao gerar/abrir a folha de um mês, somar `rh_km_lancamentos` **aprovados** com `data` entre `dia 20 do mês anterior` e `dia 19 do mês de referência`, e inserir/atualizar uma linha em `rh_folha_reembolsos` (tipo `KM`, origem `lancamento_colaborador`) com o total. Marcar os lançamentos com `folha_reembolso_id` e `status='pago'` quando a folha for fechada.
 
-## 3. Folha Mensal — aplicação automática
+## Pontos técnicos
 
-No diálogo de nova folha, ao selecionar funcionário + mês de referência:
+- Período de competência calculado por helper `getPeriodoKm(mesReferencia: Date) → { inicio: Date, fim: Date }` que retorna `[ano-mês-anterior-20, ano-mês-19]`.
+- Lock: lançamentos com status `pago` não podem ser editados nem por admin.
+- Snapshot do valor_km evita que mudanças posteriores no cadastro alterem reembolsos já aprovados.
 
-1. Buscar benefício vigente na data do mês (`data_inicio <= último dia do mês AND (data_fim IS NULL OR data_fim >= primeiro dia do mês)`).
-2. Se existir, calcular:
-   - `valor_aluguel = beneficio.valor_reembolso_aluguel`
-   - `valor_auxilio = remuneracao_cargo * (percentual_auxilio_moradia/100)` — usar `rh_cargos.remuneracao` do funcionário no momento.
-3. Renderizar uma seção **Benefícios de Moradia (automático)** com os dois valores em modo **somente leitura** (com aviso "Para alterar, edite no cadastro do funcionário").
-4. Ao salvar a folha, gravar dois registros em `rh_folha_reembolsos` com `origem='beneficio_moradia'`. Se a folha já tem esses itens (edição), regravar (delete + insert, igual descontos).
-
----
-
-## 4. Folha Mensal — lista de Reembolsos (manual)
-
-Espelhar a UX da lista de descontos:
-
-- Seção **Reembolsos** com Combobox de tipo (Gratificação, Reembolso de Aluguel, Auxílio Moradia, Outro), valor, observação, botão adicionar, lista com remover.
-- Itens manuais salvam com `origem='manual'`.
-- Itens automáticos (moradia) aparecem na lista travados (sem botão remover) e marcados com badge "automático".
-
----
-
-## 5. Financeiro → Reembolsos
-
-Card novo em `Financeiro.tsx`: "Reembolsos" (ícone `HandCoins`), rota `/reembolsos`.
-
-- **`src/pages/Reembolsos.tsx`** — lista agregada por mês (igual `Descontos.tsx`): mês, total, qtd lançamentos. Link para detalhe.
-- **`src/pages/ReembolsosDetalhes.tsx`** — rota `/reembolsos/:mes`. Tabela com funcionário, empresa, tipo, valor, origem, observação. Filtros (Combobox): mês, funcionário, tipo, empresa.
-
----
-
-## 6. Arquivos afetados
-
-**Criar**
-- `src/pages/Reembolsos.tsx`
-- `src/pages/ReembolsosDetalhes.tsx`
-- Componente da aba moradia (ex.: `src/components/funcionario/BeneficiosMoradiaTab.tsx`) ou inline em `FuncionarioDetalhes.tsx`.
-
-**Editar**
-- `src/App.tsx` — rotas `/reembolsos` e `/reembolsos/:mes`.
-- `src/pages/Financeiro.tsx` — card Reembolsos.
-- `src/pages/FuncionarioDetalhes.tsx` — nova aba.
-- `src/pages/FolhaMensal.tsx` — busca benefício vigente, seção automática read-only, lista de reembolsos manuais, persistência em `rh_folha_reembolsos`.
-
-**Migração**
-- Criar tabelas `rh_funcionario_beneficios_moradia` e `rh_folha_reembolsos` + RLS + índices.
-
----
-
-## 7. Pontos de atenção
-
-- **Histórico preservado**: nunca sobrescrever benefícios antigos — sempre encerrar (`data_fim`) e criar novo.
-- **Auxílio moradia depende do cargo vigente**: o valor é calculado no momento de criar a folha. Se o cargo mudar depois (aditivo), folhas já criadas mantêm o valor que foi gravado — o histórico fica em `rh_folha_reembolsos`.
-- **Mudança de empresa (aditivo)**: o benefício segue o `funcionario_id`, independente da empresa, então continua aplicado normalmente.
-- **Permissões**: seguir padrão admin/coordenador editam, usuario só visualiza; delete só admin.
+## Fora de escopo
+- Anexo de comprovante / foto do hodômetro (pode entrar depois).
+- Notificação por email ao colaborador quando aprovado/rejeitado.

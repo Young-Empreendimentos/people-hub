@@ -553,7 +553,7 @@ export default function FolhaMensal() {
             folha_id: folhaId,
             tipo: "Plano de Saúde",
             valor: planoSaudeCalculado.desconto,
-            observacao: `20% de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.total)} (saúde + odonto + uso)`,
+            observacao: `Mensalidade ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.mensalidade)} × 20% + Uso ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(planoSaudeCalculado.uso)} (integral)`,
             origem: "plano_saude",
           });
         }

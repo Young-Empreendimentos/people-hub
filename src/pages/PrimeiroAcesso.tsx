@@ -20,6 +20,7 @@ export default function PrimeiroAcesso() {
   const navigate = useNavigate();
   const { user, signOut, refreshRole } = useAuth();
   const [funcId, setFuncId] = useState("");
+  const [isAuditor, setIsAuditor] = useState(false);
 
   const { data: funcionarios = [], isLoading } = useQuery({
     queryKey: ["funcionarios_primeiro_acesso"],
@@ -39,13 +40,22 @@ export default function PrimeiroAcesso() {
     mutationFn: async () => {
       if (!user || !funcId) throw new Error("Selecione seu nome.");
       const func = (funcionarios as any[]).find((f) => f.id === funcId);
-      const { error } = await supabase.from("rh_user_roles").insert({
+      const rows: any[] = [{
         user_id: user.id,
-        role: "colaborador" as any,
-        status: "pendente" as any,
+        role: "colaborador",
+        status: "pendente",
         funcionario_id: funcId,
         nome: func?.nome_completo ?? null,
-      } as any);
+      }];
+      if (isAuditor) {
+        rows.push({
+          user_id: user.id,
+          role: "auditor",
+          status: "pendente",
+          nome: func?.nome_completo ?? null,
+        });
+      }
+      const { error } = await supabase.from("rh_user_roles").insert(rows as any);
       if (error) throw error;
     },
     onSuccess: async () => {

@@ -119,7 +119,7 @@ export default function FolhaMensal() {
     "Educação e Treinamento",
     "Outro",
   ];
-  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string };
+  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string; _kmIds?: string[] };
   const [reembolsosLista, setReembolsosLista] = useState<ReembolsoItem[]>([]);
   const [novoReembolsoTipo, setNovoReembolsoTipo] = useState("");
   const [novoReembolsoValor, setNovoReembolsoValor] = useState("");

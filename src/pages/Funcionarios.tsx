@@ -47,6 +47,7 @@ export default function Funcionarios() {
   const [dataContratoVigente, setDataContratoVigente] = useState("");
   const [gestorId, setGestorId] = useState("");
   const [tipoContrato, setTipoContrato] = useState("");
+  const [valorKm, setValorKm] = useState("");
   const [cpfError, setCpfError] = useState("");
 
   const TIPO_CONTRATO_OPTIONS = [
@@ -144,6 +145,7 @@ export default function Funcionarios() {
         data_contrato_vigente: dataContratoVigente || null,
         gestor_id: gestorId || null,
         tipo_contrato: tipoContrato || null,
+        valor_km: parseFloat(valorKm.replace(",", ".")) || 0,
       };
       if (editingId) {
         const { error } = await supabase.from("rh_funcionarios").update(payload).eq("id", editingId);
@@ -182,6 +184,7 @@ export default function Funcionarios() {
     setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
     setGestorId(f.gestor_id || "");
     setTipoContrato(f.tipo_contrato || "");
+    setValorKm(f.valor_km != null ? String(f.valor_km) : "");
     setCpfError("");
     setDialogOpen(true);
   };
@@ -435,9 +438,22 @@ export default function Funcionarios() {
                 value={gestorId} onValueChange={setGestorId} placeholder="Selecione o gestor"
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Contrato</label>
-              <Combobox options={TIPO_CONTRATO_OPTIONS} value={tipoContrato} onValueChange={setTipoContrato} placeholder="Selecione o tipo de contrato" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Tipo de Contrato</label>
+                <Combobox options={TIPO_CONTRATO_OPTIONS} value={tipoContrato} onValueChange={setTipoContrato} placeholder="Selecione o tipo de contrato" />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Valor por KM (R$)</label>
+                <Input
+                  type="number" inputMode="decimal" step="0.0001" min="0"
+                  value={valorKm} onChange={(e) => setValorKm(e.target.value)}
+                  placeholder="Ex: 1.20"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Usado quando o colaborador lança km no Pilares.
+                </p>
+              </div>
             </div>
           </div>
           <DialogFooter>

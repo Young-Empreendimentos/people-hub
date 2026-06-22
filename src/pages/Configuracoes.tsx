@@ -130,40 +130,71 @@ function UsuariosTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("ativo");
+  const [selectedFuncionarioId, setSelectedFuncionarioId] = useState("");
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["rh_users_with_roles"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("rh_get_all_users_with_roles");
       if (error) throw error;
-      return data as { id: string; email: string; role: string | null; created_at: string; nome: string }[];
+      return data as {
+        id: string; email: string; role: string | null; created_at: string; nome: string;
+        status: string | null; funcionario_id: string | null; funcionario_nome: string | null;
+      }[];
+    },
+  });
+
+  const { data: funcionarios = [] } = useQuery({
+    queryKey: ["rh_funcionarios_config"],
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
+      return data || [];
     },
   });
 
   const saveRoleMutation = useMutation({
     mutationFn: async () => {
       if (!editingUserId) return;
-      // Delete existing role first
       await supabase.from("rh_user_roles").delete().eq("user_id", editingUserId);
       if (selectedRole) {
-        const { error } = await supabase.from("rh_user_roles").insert({
+        const payload: any = {
           user_id: editingUserId,
           role: selectedRole as any,
-        });
+          status: selectedStatus,
+        };
+        if (selectedRole === "colaborador" && selectedFuncionarioId) {
+          payload.funcionario_id = selectedFuncionarioId;
+        }
+        const { error } = await supabase.from("rh_user_roles").insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_users_with_roles"] });
-      toast.success("Função do usuário atualizada.");
+      toast.success("Acesso do usuário atualizado.");
       setDialogOpen(false);
     },
-    onError: () => toast.error("Erro ao atualizar função."),
+    onError: (e: any) => toast.error(e.message || "Erro ao atualizar acesso."),
   });
 
-  const openEdit = (user: { id: string; role: string | null }) => {
-    setEditingUserId(user.id);
-    setSelectedRole(user.role || "");
+  const quickApprove = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.from("rh_user_roles").update({ status: "ativo" } as any).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rh_users_with_roles"] });
+      toast.success("Acesso aprovado.");
+    },
+    onError: () => toast.error("Erro ao aprovar."),
+  });
+
+  const openEdit = (u: any) => {
+    setEditingUserId(u.id);
+    setSelectedRole(u.role || "");
+    setSelectedStatus(u.status || "ativo");
+    setSelectedFuncionarioId(u.funcionario_id || "");
     setDialogOpen(true);
   };
 
@@ -171,42 +202,88 @@ function UsuariosTab() {
     admin: "Administrador",
     coordenador: "Coordenador",
     usuario: "Usuário",
+    colaborador: "Colaborador",
   };
-
+  const statusLabels: Record<string, string> = {
+    pendente: "Pendente",
+    ativo: "Ativo",
+    rejeitado: "Rejeitado",
+  };
   const roleBadgeVariant = (role: string | null) => {
     if (role === "admin") return "default" as const;
     if (role === "coordenador") return "secondary" as const;
-    if (role === "usuario") return "outline" as const;
+    if (role === "colaborador") return "outline" as const;
     return "outline" as const;
   };
 
+  const pendentes = (users as any[]).filter((u) => u.role === "colaborador" && u.status === "pendente");
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {pendentes.length > 0 && (
+        <Card className="border-amber-300 dark:border-amber-700">
+          <CardHeader>
+            <CardTitle className="text-base">
+              {pendentes.length} colaborador(es) aguardando aprovação
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Funcionário selecionado</TableHead>
+                  <TableHead className="text-right w-48">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendentes.map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">{u.email}</TableCell>
+                    <TableCell>{u.funcionario_nome || <span className="text-muted-foreground text-xs">não vinculado</span>}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button size="sm" onClick={() => quickApprove.mutate(u.id)}>Aprovar</Button>
+                      <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Email</TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>Função</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Funcionário</TableHead>
             <TableHead className="w-20 text-right">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading ? (
-            <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
           ) : users.length === 0 ? (
-            <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Nenhum usuário encontrado.</TableCell></TableRow>
-          ) : users.map((u) => (
+            <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum usuário encontrado.</TableCell></TableRow>
+          ) : (users as any[]).map((u) => (
             <TableRow key={u.id}>
               <TableCell className="font-medium">{u.email}</TableCell>
               <TableCell>{u.nome || "—"}</TableCell>
               <TableCell>
-                {u.role ? (
-                  <Badge variant={roleBadgeVariant(u.role)}>{roleLabels[u.role] || u.role}</Badge>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Sem função</span>
-                )}
+                {u.role
+                  ? <Badge variant={roleBadgeVariant(u.role)}>{roleLabels[u.role] || u.role}</Badge>
+                  : <span className="text-xs text-muted-foreground">Sem função</span>}
               </TableCell>
+              <TableCell>
+                {u.status
+                  ? <Badge variant={u.status === "ativo" ? "secondary" : u.status === "pendente" ? "outline" : "destructive"}>{statusLabels[u.status] || u.status}</Badge>
+                  : "—"}
+              </TableCell>
+              <TableCell className="text-xs">{u.funcionario_nome || "—"}</TableCell>
               <TableCell className="text-right">
                 <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
                   <UserCog className="h-4 w-4" />
@@ -219,7 +296,7 @@ function UsuariosTab() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Alterar Função do Usuário</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Alterar Acesso do Usuário</DialogTitle></DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Função</label>
@@ -229,12 +306,39 @@ function UsuariosTab() {
                   { value: "admin", label: "Administrador" },
                   { value: "coordenador", label: "Coordenador" },
                   { value: "usuario", label: "Usuário" },
+                  { value: "colaborador", label: "Colaborador (só lança KM)" },
                 ]}
                 value={selectedRole}
                 onValueChange={setSelectedRole}
                 placeholder="Selecione a função"
               />
             </div>
+            {selectedRole && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Combobox
+                  options={[
+                    { value: "ativo", label: "Ativo" },
+                    { value: "pendente", label: "Pendente" },
+                    { value: "rejeitado", label: "Rejeitado" },
+                  ]}
+                  value={selectedStatus}
+                  onValueChange={setSelectedStatus}
+                  placeholder="Status"
+                />
+              </div>
+            )}
+            {selectedRole === "colaborador" && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Funcionário vinculado</label>
+                <Combobox
+                  options={(funcionarios as any[]).map((f) => ({ value: f.id, label: f.nome_completo }))}
+                  value={selectedFuncionarioId}
+                  onValueChange={setSelectedFuncionarioId}
+                  placeholder="Selecione o funcionário"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>

@@ -301,6 +301,10 @@ export default function Funcionarios() {
             {TIPO_CONTRATO_OPTIONS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button variant="outline" onClick={exportarRelatorio} className="ml-auto">
+          <FileDown className="h-4 w-4 mr-2" />
+          Gerar relatório
+        </Button>
       </div>
 
       <Card>

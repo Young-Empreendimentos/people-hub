@@ -52,6 +52,7 @@ export default function Funcionarios() {
   const TIPO_CONTRATO_OPTIONS = [
     { value: "CLT", label: "CLT" },
     { value: "PJ", label: "PJ" },
+    { value: "Temporário", label: "Temporário" },
     { value: "Estágio", label: "Estágio" },
     { value: "Menor aprendiz", label: "Menor aprendiz" },
     { value: "S/ DOC", label: "S/ DOC" },

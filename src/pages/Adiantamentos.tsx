@@ -47,6 +47,23 @@ export default function Adiantamentos() {
     },
   });
 
+  // Folhas já lançadas (para identificar quais parcelas de adiantamento já foram descontadas)
+  const { data: folhas = [] } = useQuery({
+    queryKey: ["rh_folha_mensal_para_adiantamentos"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rh_folha_mensal")
+        .select("funcionario_id, mes_referencia");
+      if (error) throw error;
+      return data || [];
+    },
+  });
+  const folhasSet = useMemo(() => {
+    const s = new Set<string>();
+    for (const f of folhas as any[]) s.add(`${f.funcionario_id}|${String(f.mes_referencia).slice(0, 7)}`);
+    return s;
+  }, [folhas]);
+
   const { funcionarios, isActive } = useActiveEmployees();
 
   const saveMutation = useMutation({

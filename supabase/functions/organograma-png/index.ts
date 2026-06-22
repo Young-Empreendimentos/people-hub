@@ -156,9 +156,17 @@ async function ensureWasm() {
       ]);
       const bytes = await wasmRes.arrayBuffer();
       await initWasm(bytes);
-      fontBuffers = await Promise.all(
-        fontRes.map(async (r) => new Uint8Array(await r.arrayBuffer())),
-      );
+      fontBuffers = [];
+      for (const r of fontRes) {
+        if (!r.ok) {
+          console.error("font fetch failed", r.url, r.status);
+          continue;
+        }
+        const buf = new Uint8Array(await r.arrayBuffer());
+        console.log("loaded font", r.url, "bytes=", buf.byteLength);
+        fontBuffers.push(buf);
+      }
+      console.log("total font buffers:", fontBuffers.length);
     })();
   }
   await wasmReady;

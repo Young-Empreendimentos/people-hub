@@ -198,11 +198,20 @@ export default function FuncionarioDetalhes() {
 
   const downloadAnexo = async (filePath: string, fileName: string) => {
     const { data, error } = await supabase.storage.from("rh-anexos").download(filePath);
-    if (error) { toast.error("Erro ao baixar arquivo."); return; }
+    if (error || !data) {
+      console.error("Erro download anexo:", error);
+      toast.error(`Erro ao baixar arquivo: ${error?.message || "arquivo não encontrado"}`);
+      return;
+    }
     const url = URL.createObjectURL(data);
     const a = document.createElement("a");
-    a.href = url; a.download = fileName; a.click();
-    URL.revokeObjectURL(url);
+    a.href = url;
+    a.download = fileName || "anexo";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const lastEvent = historico[0];

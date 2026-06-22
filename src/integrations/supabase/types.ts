@@ -10134,7 +10134,7 @@ export type Database = {
       paver_app_role: "admin" | "engenharia"
       permuta_status: "incerto" | "nao" | "sim"
       registros_user_role: "gestor" | "operador" | "leitor"
-      rh_app_role: "admin" | "coordenador" | "usuario"
+      rh_app_role: "admin" | "coordenador" | "usuario" | "colaborador"
       tipo_anexo_gleba:
         | "pesquisa_mercado"
         | "planilha_viabilidade"
@@ -10310,7 +10310,7 @@ export const Constants = {
       paver_app_role: ["admin", "engenharia"],
       permuta_status: ["incerto", "nao", "sim"],
       registros_user_role: ["gestor", "operador", "leitor"],
-      rh_app_role: ["admin", "coordenador", "usuario"],
+      rh_app_role: ["admin", "coordenador", "usuario", "colaborador"],
       tipo_anexo_gleba: [
         "pesquisa_mercado",
         "planilha_viabilidade",

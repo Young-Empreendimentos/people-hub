@@ -1,0 +1,1 @@
+ALTER TYPE public.rh_app_role ADD VALUE IF NOT EXISTS 'colaborador';

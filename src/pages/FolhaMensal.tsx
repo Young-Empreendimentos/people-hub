@@ -1089,7 +1089,7 @@ export default function FolhaMensal() {
                   <div className="flex items-center justify-between gap-2 text-sm rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-900 px-2 py-1">
                     <div className="flex-1 truncate">
                       <span className="font-medium">Plano de Saúde</span> — <span className="tabular-nums">{fmt(planoSaudeCalculado.desconto)}</span>
-                      <span className="text-muted-foreground"> · 20% de {fmt(planoSaudeCalculado.total)} (cadastro do plano)</span>
+                      <span className="text-muted-foreground"> · Mensalidade {fmt(planoSaudeCalculado.mensalidade)} × 20% + Uso {fmt(planoSaudeCalculado.uso)} (integral)</span>
                     </div>
                   </div>
                 </div>

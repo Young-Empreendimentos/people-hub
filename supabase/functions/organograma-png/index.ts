@@ -21,7 +21,7 @@ const H_GAP = 32;
 const V_GAP = 80;
 const PADDING = 20;
 const TITLE_H = 40;
-const FONT = "Noto Sans, Helvetica, Arial, sans-serif";
+const FONT = "sans-serif";
 const ACCENT = "#F97316";   // brand orange (top bar of each card)
 const BORDER = "#cbd5e1";
 const NAME_COLOR = "#0f172a";
@@ -142,10 +142,11 @@ let wasmReady: Promise<void> | null = null;
 let fontBuffers: Uint8Array[] | null = null;
 
 const FONT_URLS = [
-  // Noto Sans (Latin) — regular & bold, full pt-BR accent coverage.
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-400-normal.ttf",
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-700-normal.ttf",
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans@5.0.22/files/noto-sans-latin-ext-400-normal.ttf",
+  // Static (non-variable) Noto Sans TTFs — resvg-wasm 2.6.x renders these
+  // reliably; variable fonts and WOFF/WOFF2 do not work.
+  "https://cdn.jsdelivr.net/npm/@expo-google-fonts/noto-sans@0.2.3/NotoSans_400Regular.ttf",
+  "https://cdn.jsdelivr.net/npm/@expo-google-fonts/noto-sans@0.2.3/NotoSans_700Bold.ttf",
+  "https://cdn.jsdelivr.net/npm/@expo-google-fonts/noto-sans@0.2.3/NotoSans_400Regular_Italic.ttf",
 ];
 
 async function ensureWasm() {
@@ -157,9 +158,17 @@ async function ensureWasm() {
       ]);
       const bytes = await wasmRes.arrayBuffer();
       await initWasm(bytes);
-      fontBuffers = await Promise.all(
-        fontRes.map(async (r) => new Uint8Array(await r.arrayBuffer())),
-      );
+      fontBuffers = [];
+      for (const r of fontRes) {
+        if (!r.ok) {
+          console.error("font fetch failed", r.url, r.status);
+          continue;
+        }
+        const buf = new Uint8Array(await r.arrayBuffer());
+        console.log("loaded font", r.url, "bytes=", buf.byteLength);
+        fontBuffers.push(buf);
+      }
+      console.log("total font buffers:", fontBuffers.length);
     })();
   }
   await wasmReady;

@@ -187,6 +187,7 @@ export default function Aniversarios() {
   };
 
   // Company anniversaries (next 6 months) — mantém comportamento original
+  // Company anniversaries — todos os marcos (3m, 6m, e anuais) que caem no ano selecionado
   const companyAnniversaries = useMemo(() => {
     const items: AnniversaryItem[] = [];
 
@@ -206,29 +207,50 @@ export default function Aniversarios() {
       for (const m of milestoneMonths) {
         const milestoneDate = new Date(admYear, admMonth + m, admDay);
         milestoneDate.setHours(0, 0, 0, 0);
-        if (milestoneDate < today) continue;
+        if (milestoneDate.getFullYear() !== ano) continue;
 
         const diffDays = daysUntilDate(milestoneDate, today);
 
-        if (diffDays <= 180) {
-          items.push({
-            id: f.id,
-            nome: f.nome_completo,
-            cargo: f.rh_cargos?.nome || null,
-            equipe: f.rh_equipes?.nome || null,
-            month: milestoneDate.getMonth() + 1,
-            day: milestoneDate.getDate(),
-            daysUntil: diffDays,
-            milestone: formatMilestone(m),
-            fullDate: formatDate(milestoneDate.getMonth() + 1, milestoneDate.getDate()),
-          });
-        }
+        items.push({
+          id: f.id,
+          nome: f.nome_completo,
+          cargo: f.rh_cargos?.nome || null,
+          equipe: f.rh_equipes?.nome || null,
+          month: milestoneDate.getMonth() + 1,
+          day: milestoneDate.getDate(),
+          daysUntil: diffDays,
+          milestone: formatMilestone(m),
+          fullDate: formatDate(milestoneDate.getMonth() + 1, milestoneDate.getDate()),
+        });
       }
     }
 
-    items.sort((a, b) => a.daysUntil - b.daysUntil);
+    items.sort((a, b) => a.month - b.month || a.day - b.day);
     return items;
-  }, [funcionarios, isActive, admissaoMap, today]);
+  }, [funcionarios, isActive, admissaoMap, today, ano]);
+
+  const companyByMonth = useMemo(() => {
+    const m: Record<number, AnniversaryItem[]> = {};
+    for (const b of companyAnniversaries) (m[b.month] ||= []).push(b);
+    return m;
+  }, [companyAnniversaries]);
+
+  const exportarAniversariosEmpresa = () => {
+    const rows = companyAnniversaries.map((b) => ({
+      "Mês": MONTHS_FULL[b.month - 1],
+      "Dia": b.day,
+      "Data": formatDate(b.month, b.day),
+      "Funcionário": b.nome,
+      "Marco": b.milestone || "—",
+      "Cargo": b.cargo || "—",
+      "Equipe": b.equipe || "—",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Aniversários Empresa ${ano}`);
+    XLSX.writeFile(wb, `aniversarios_empresa_${ano}.xlsx`);
+  };
+
 
   if (isLoading) {
     return <p className="text-muted-foreground py-8 text-center">Carregando...</p>;
@@ -291,11 +313,43 @@ export default function Aniversarios() {
 
       {tab === "empresa" && (
         <>
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Building2 className="h-4 w-4" />
-            <span>Próximos 6 meses — {companyAnniversaries.length} marco{companyAnniversaries.length !== 1 ? "s" : ""}</span>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Building2 className="h-4 w-4" />
+              <span>Janeiro a Dezembro de {ano} — {companyAnniversaries.length} marco{companyAnniversaries.length !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-32">
+                <Combobox
+                  options={anoOptions}
+                  value={String(ano)}
+                  onValueChange={(v) => setAno(parseInt(v, 10))}
+                  placeholder="Ano"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={exportarAniversariosEmpresa} disabled={companyAnniversaries.length === 0}>
+                <FileDown className="h-4 w-4 mr-1.5" /> Gerar relatório
+              </Button>
+            </div>
           </div>
-          <AnniversaryList items={companyAnniversaries} emptyMessage="Nenhum aniversário de empresa nos próximos 6 meses." />
+          {companyAnniversaries.length === 0 ? (
+            <AnniversaryList items={[]} emptyMessage={`Nenhum aniversário de empresa em ${ano}.`} />
+          ) : (
+            <div className="space-y-4">
+              {MONTHS_FULL.map((mName, i) => {
+                const monthItems = companyByMonth[i + 1] || [];
+                if (monthItems.length === 0) return null;
+                return (
+                  <div key={mName} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {mName} <span className="text-xs font-normal">({monthItems.length})</span>
+                    </h3>
+                    <AnniversaryList items={monthItems} emptyMessage="" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
     </div>

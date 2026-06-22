@@ -313,11 +313,43 @@ export default function Aniversarios() {
 
       {tab === "empresa" && (
         <>
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Building2 className="h-4 w-4" />
-            <span>Próximos 6 meses — {companyAnniversaries.length} marco{companyAnniversaries.length !== 1 ? "s" : ""}</span>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Building2 className="h-4 w-4" />
+              <span>Janeiro a Dezembro de {ano} — {companyAnniversaries.length} marco{companyAnniversaries.length !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-32">
+                <Combobox
+                  options={anoOptions}
+                  value={String(ano)}
+                  onValueChange={(v) => setAno(parseInt(v, 10))}
+                  placeholder="Ano"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={exportarAniversariosEmpresa} disabled={companyAnniversaries.length === 0}>
+                <FileDown className="h-4 w-4 mr-1.5" /> Gerar relatório
+              </Button>
+            </div>
           </div>
-          <AnniversaryList items={companyAnniversaries} emptyMessage="Nenhum aniversário de empresa nos próximos 6 meses." />
+          {companyAnniversaries.length === 0 ? (
+            <AnniversaryList items={[]} emptyMessage={`Nenhum aniversário de empresa em ${ano}.`} />
+          ) : (
+            <div className="space-y-4">
+              {MONTHS_FULL.map((mName, i) => {
+                const monthItems = companyByMonth[i + 1] || [];
+                if (monthItems.length === 0) return null;
+                return (
+                  <div key={mName} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {mName} <span className="text-xs font-normal">({monthItems.length})</span>
+                    </h3>
+                    <AnniversaryList items={monthItems} emptyMessage="" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
     </div>

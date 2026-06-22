@@ -14,7 +14,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, FileBarChart } from "lucide-react";
+import { Plus, Pencil, Trash2, FileBarChart, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -140,10 +140,20 @@ export default function Absenteismo() {
   };
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
 
+  const [sortFunc, setSortFunc] = useState<"none" | "asc" | "desc">("none");
+  const toggleSortFunc = () => setSortFunc((s) => s === "none" ? "asc" : s === "asc" ? "desc" : "none");
+
   const filtered = useMemo(() => {
-    if (!filterMes) return registros;
-    return registros.filter((r) => r.mes_referencia.startsWith(filterMes));
-  }, [registros, filterMes]);
+    const base = filterMes ? registros.filter((r) => r.mes_referencia.startsWith(filterMes)) : registros;
+    if (sortFunc === "none") return base;
+    const arr = [...base];
+    arr.sort((a, b) => {
+      const an = (a.rh_funcionarios?.nome_completo || "").toLowerCase();
+      const bn = (b.rh_funcionarios?.nome_completo || "").toLowerCase();
+      return sortFunc === "asc" ? an.localeCompare(bn) : bn.localeCompare(an);
+    });
+    return arr;
+  }, [registros, filterMes, sortFunc]);
 
   // Opções de meses disponíveis para filtro
   const mesesDisponiveis = useMemo(() => {
@@ -233,7 +243,18 @@ export default function Absenteismo() {
             <TableHeader>
               <TableRow>
                 <TableHead>Mês</TableHead>
-                <TableHead>Funcionário</TableHead>
+                <TableHead>
+                  <button
+                    type="button"
+                    onClick={toggleSortFunc}
+                    className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Funcionário
+                    {sortFunc === "asc" ? <ArrowUp className="h-3 w-3" />
+                      : sortFunc === "desc" ? <ArrowDown className="h-3 w-3" />
+                      : <ArrowUpDown className="h-3 w-3 opacity-50" />}
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Dias Trabalhados</TableHead>
                 <TableHead className="text-right">Dias de Falta</TableHead>
                 <TableHead className="text-right">Taxa</TableHead>

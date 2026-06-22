@@ -645,8 +645,9 @@ export default function FolhaMensal() {
 
         const isUsuario = role === "usuario";
         const novoStatus = isUsuario ? "pendente" : "aprovado";
-        const reembRowsInsert: any[] = reembolsosLista
-          .filter((d) => !d.id) // só novos
+        const novosManuais = reembolsosLista.filter((d) => !d.id);
+        const reembRowsInsert: any[] = novosManuais
+          .filter((d) => !d._kmIds)
           .map((d) => ({
             folha_id: folhaId,
             tipo: d.tipo,
@@ -658,6 +659,33 @@ export default function FolhaMensal() {
             aprovado_por: isUsuario ? null : (user?.id || null),
             aprovado_em: isUsuario ? null : new Date().toISOString(),
           }));
+        // Importação de KMs: insere com origem 'km' e vincula os lançamentos
+        const kmItens = novosManuais.filter((d) => d._kmIds && d._kmIds.length > 0);
+        for (const km of kmItens) {
+          const { data: inserted, error: insErr } = await supabase
+            .from("rh_folha_reembolsos")
+            .insert({
+              folha_id: folhaId,
+              tipo: km.tipo,
+              valor: parseFloat(km.valor) || 0,
+              observacao: km.observacao || null,
+              origem: "km",
+              status: novoStatus,
+              criado_por: user?.id || null,
+              aprovado_por: isUsuario ? null : (user?.id || null),
+              aprovado_em: isUsuario ? null : new Date().toISOString(),
+            })
+            .select("id")
+            .single();
+          if (insErr) throw insErr;
+          const reembId = (inserted as any).id;
+          const { error: upErr } = await supabase
+            .from("rh_km_lancamentos" as any)
+            .update({ status: "pago", folha_reembolso_id: reembId })
+            .in("id", km._kmIds as string[]);
+          if (upErr) throw upErr;
+        }
+
         // Atualiza valores/observação dos manuais existentes (mantém status)
         for (const d of reembolsosLista.filter((x) => x.id)) {
           const prev = existingManual.find((r: any) => r.id === d.id);

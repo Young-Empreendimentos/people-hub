@@ -4,7 +4,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Cake, Building2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Combobox } from "@/components/ui/combobox";
+import { Cake, Building2, FileDown } from "lucide-react";
+import * as XLSX from "xlsx";
 
 function getInitials(name: string) {
   const parts = name.split(" ").filter(Boolean);
@@ -19,21 +22,18 @@ function parseMonthDay(dateStr: string): { month: number; day: number } | null {
   return { month: parseInt(parts[1], 10), day: parseInt(parts[2], 10) };
 }
 
-function daysUntilBirthday(month: number, day: number, today: Date): number {
-  const thisYear = today.getFullYear();
-  let birthday = new Date(thisYear, month - 1, day);
-  if (birthday < today) {
-    birthday = new Date(thisYear + 1, month - 1, day);
-  }
-  return Math.ceil((birthday.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+function daysUntilDate(target: Date, today: Date): number {
+  return Math.ceil((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+const MONTHS_FULL = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+const MONTHS_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
 function formatDate(month: number, day: number): string {
-  const months = [
-    "Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-    "Jul", "Ago", "Set", "Out", "Nov", "Dez",
-  ];
-  return `${day} de ${months[month - 1]}`;
+  return `${day} de ${MONTHS_SHORT[month - 1]}`;
 }
 
 function formatMilestone(months: number): string {
@@ -52,6 +52,7 @@ interface AnniversaryItem {
   daysUntil: number;
   milestone?: string;
   fullDate?: string;
+  idade?: number;
 }
 
 function AnniversaryList({ items, emptyMessage }: { items: AnniversaryItem[]; emptyMessage: string }) {
@@ -84,20 +85,25 @@ function AnniversaryList({ items, emptyMessage }: { items: AnniversaryItem[]; em
             <div className="text-right shrink-0">
               <p className="text-sm font-medium">
                 {item.fullDate || formatDate(item.month, item.day)}
+                {item.idade !== undefined && (
+                  <span className="text-xs text-muted-foreground ml-1">({item.idade} anos)</span>
+                )}
               </p>
-              <div className="flex items-center gap-1 justify-end">
+              <div className="flex items-center gap-1 justify-end flex-wrap">
                 {item.milestone && (
                   <Badge variant="outline" className="text-xs">{item.milestone}</Badge>
                 )}
                 <Badge
-                  variant={item.daysUntil === 0 ? "default" : "secondary"}
+                  variant={item.daysUntil === 0 ? "default" : item.daysUntil < 0 ? "outline" : "secondary"}
                   className="text-xs"
                 >
                   {item.daysUntil === 0
                     ? "Hoje!"
                     : item.daysUntil === 1
                       ? "Amanhã"
-                      : `em ${item.daysUntil} dias`}
+                      : item.daysUntil < 0
+                        ? `há ${Math.abs(item.daysUntil)} dias`
+                        : `em ${item.daysUntil} dias`}
                 </Badge>
               </div>
             </div>
@@ -118,32 +124,69 @@ export default function Aniversarios() {
     return d;
   }, []);
 
-  // Birthday anniversaries (next 3 months)
+  const currentYear = today.getFullYear();
+  const [ano, setAno] = useState<number>(currentYear);
+
+  const anoOptions = useMemo(() => {
+    const arr: { value: string; label: string }[] = [];
+    for (let y = currentYear - 2; y <= currentYear + 5; y++) {
+      arr.push({ value: String(y), label: String(y) });
+    }
+    return arr;
+  }, [currentYear]);
+
+  // Birthdays for the whole selected year (Jan–Dec)
   const birthdays = useMemo(() => {
     const items: AnniversaryItem[] = [];
     for (const f of funcionarios as any[]) {
       if (!isActive(f.id)) continue;
       const md = parseMonthDay(f.aniversario);
       if (!md) continue;
-      const days = daysUntilBirthday(md.month, md.day, today);
-      if (days <= 90) {
-        items.push({
-          id: f.id,
-          nome: f.nome_completo,
-          cargo: f.rh_cargos?.nome || null,
-          equipe: f.rh_equipes?.nome || null,
-          month: md.month,
-          day: md.day,
-          daysUntil: days,
-        });
-      }
+      const birthday = new Date(ano, md.month - 1, md.day);
+      birthday.setHours(0, 0, 0, 0);
+      const days = daysUntilDate(birthday, today);
+      let idade: number | undefined;
+      const birthYearStr = f.aniversario?.split("-")[0];
+      const birthYear = birthYearStr ? parseInt(birthYearStr, 10) : NaN;
+      if (!isNaN(birthYear)) idade = ano - birthYear;
+      items.push({
+        id: f.id,
+        nome: f.nome_completo,
+        cargo: f.rh_cargos?.nome || null,
+        equipe: f.rh_equipes?.nome || null,
+        month: md.month,
+        day: md.day,
+        daysUntil: days,
+        idade,
+      });
     }
-    items.sort((a, b) => a.daysUntil - b.daysUntil);
+    items.sort((a, b) => a.month - b.month || a.day - b.day);
     return items;
-  }, [funcionarios, isActive, today]);
+  }, [funcionarios, isActive, today, ano]);
 
-  // Company anniversaries (next 6 months)
-  // Milestones: 3 months, 6 months, then yearly (12, 24, 36, ...)
+  const birthdaysByMonth = useMemo(() => {
+    const m: Record<number, AnniversaryItem[]> = {};
+    for (const b of birthdays) (m[b.month] ||= []).push(b);
+    return m;
+  }, [birthdays]);
+
+  const exportarAniversariantes = () => {
+    const rows = birthdays.map((b) => ({
+      "Mês": MONTHS_FULL[b.month - 1],
+      "Dia": b.day,
+      "Data": formatDate(b.month, b.day),
+      "Funcionário": b.nome,
+      "Idade": b.idade ?? "—",
+      "Cargo": b.cargo || "—",
+      "Equipe": b.equipe || "—",
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, `Aniversariantes ${ano}`);
+    XLSX.writeFile(wb, `aniversariantes_${ano}.xlsx`);
+  };
+
+  // Company anniversaries (next 6 months) — mantém comportamento original
   const companyAnniversaries = useMemo(() => {
     const items: AnniversaryItem[] = [];
 
@@ -154,11 +197,9 @@ export default function Aniversarios() {
 
       const [yearStr, monthStr, dayStr] = admDate.split("-");
       const admYear = parseInt(yearStr, 10);
-      const admMonth = parseInt(monthStr, 10) - 1; // 0-based
+      const admMonth = parseInt(monthStr, 10) - 1;
       const admDay = parseInt(dayStr, 10);
-      const admission = new Date(admYear, admMonth, admDay);
 
-      // Calculate milestones: 3m, 6m, 12m, 24m, 36m, ...
       const milestoneMonths = [3, 6];
       for (let y = 1; y <= 50; y++) milestoneMonths.push(y * 12);
 
@@ -167,8 +208,7 @@ export default function Aniversarios() {
         milestoneDate.setHours(0, 0, 0, 0);
         if (milestoneDate < today) continue;
 
-        const diffMs = milestoneDate.getTime() - today.getTime();
-        const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+        const diffDays = daysUntilDate(milestoneDate, today);
 
         if (diffDays <= 180) {
           items.push({
@@ -209,11 +249,43 @@ export default function Aniversarios() {
 
       {tab === "pessoal" && (
         <>
-          <div className="flex items-center gap-2 text-muted-foreground text-sm">
-            <Cake className="h-4 w-4" />
-            <span>Próximos 3 meses — {birthdays.length} aniversário{birthdays.length !== 1 ? "s" : ""}</span>
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <Cake className="h-4 w-4" />
+              <span>Janeiro a Dezembro de {ano} — {birthdays.length} aniversariante{birthdays.length !== 1 ? "s" : ""}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-32">
+                <Combobox
+                  options={anoOptions}
+                  value={String(ano)}
+                  onValueChange={(v) => setAno(parseInt(v, 10))}
+                  placeholder="Ano"
+                />
+              </div>
+              <Button variant="outline" size="sm" onClick={exportarAniversariantes} disabled={birthdays.length === 0}>
+                <FileDown className="h-4 w-4 mr-1.5" /> Gerar relatório
+              </Button>
+            </div>
           </div>
-          <AnniversaryList items={birthdays} emptyMessage="Nenhum aniversário nos próximos 3 meses." />
+          {birthdays.length === 0 ? (
+            <AnniversaryList items={[]} emptyMessage={`Nenhum aniversariante em ${ano}.`} />
+          ) : (
+            <div className="space-y-4">
+              {MONTHS_FULL.map((mName, i) => {
+                const monthItems = birthdaysByMonth[i + 1] || [];
+                if (monthItems.length === 0) return null;
+                return (
+                  <div key={mName} className="space-y-2">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      {mName} <span className="text-xs font-normal">({monthItems.length})</span>
+                    </h3>
+                    <AnniversaryList items={monthItems} emptyMessage="" />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
 

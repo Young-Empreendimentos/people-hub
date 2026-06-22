@@ -169,6 +169,35 @@ export default function FolhaMensal() {
     return m;
   }, [pendencias]);
 
+  // Totais agregados por folha (descontos aprovados/sem status pendente + reembolsos aprovados)
+  const { data: descontosAll = [] } = useQuery({
+    queryKey: ["rh_folha_descontos_all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_folha_descontos").select("folha_id, tipo, valor");
+      return data || [];
+    },
+  });
+  const { data: reembolsosAll = [] } = useQuery({
+    queryKey: ["rh_folha_reembolsos_all"],
+    queryFn: async () => {
+      const { data } = await supabase.from("rh_folha_reembolsos").select("folha_id, valor, status");
+      return data || [];
+    },
+  });
+  const totaisByFolha = useMemo(() => {
+    const m: Record<string, { desc: number; reemb: number }> = {};
+    for (const d of descontosAll as any[]) {
+      if ((d.tipo || "").trim() === "Horas Falta") continue; // horas falta é informativo
+      (m[d.folha_id] ||= { desc: 0, reemb: 0 }).desc += Number(d.valor || 0);
+    }
+    for (const r of reembolsosAll as any[]) {
+      if (r.status === "rejeitado") continue;
+      (m[r.folha_id] ||= { desc: 0, reemb: 0 }).reemb += Number(r.valor || 0);
+    }
+    return m;
+  }, [descontosAll, reembolsosAll]);
+
+
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
@@ -859,17 +888,31 @@ export default function FolhaMensal() {
       <Card><CardContent className="p-0 overflow-x-auto">
         <Table>
           <TableHeader><TableRow>
-            <TableHead>Mês</TableHead><TableHead>Funcionário</TableHead>
+            <TableHead>Mês</TableHead>
+            <TableHead>Funcionário</TableHead>
             <TableHead>Empresa</TableHead>
-            <TableHead>H. Extra</TableHead>
-            <TableHead>Pl. Saúde</TableHead>
-            <TableHead>Comissões</TableHead><TableHead>PLR</TableHead>
+            <TableHead className="text-right">Salário Base</TableHead>
+            <TableHead className="text-right">Bruto</TableHead>
+            <TableHead className="text-right">Líquido</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
-            : filtered.map((f: any) => (
+            {isLoading ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+            : filtered.map((f: any) => {
+              const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
+              const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
+              const salarioBase = cargo?.remuneracao || 0;
+              const tot = totaisByFolha[f.id] || { desc: 0, reemb: 0 };
+              const bruto = salarioBase
+                + Number(f.valor_comissoes || 0)
+                + Number(f.valor_plr || 0)
+                + Number(f.valor_vr || 0)
+                + tot.reemb;
+              const liquido = bruto
+                - Number(f.plano_saude || 0)
+                - tot.desc;
+              return (
               <TableRow key={f.id}>
                 <TableCell>{f.mes_referencia?.slice(0, 7)}</TableCell>
                 <TableCell className="font-medium">
@@ -883,10 +926,9 @@ export default function FolhaMensal() {
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">{getEmpresaNome(f.funcionario_id, f.mes_referencia)}</TableCell>
-                <TableCell>{Number(f.horas_extra).toFixed(1)}h</TableCell>
-                <TableCell className="tabular-nums">{fmt(Number(f.plano_saude))}</TableCell>
-                <TableCell className="tabular-nums">{fmt(Number(f.valor_comissoes))}</TableCell>
-                <TableCell className="tabular-nums">{fmt(Number(f.valor_plr))}</TableCell>
+                <TableCell className="tabular-nums text-right">{fmt(salarioBase)}</TableCell>
+                <TableCell className="tabular-nums text-right font-medium">{fmt(bruto)}</TableCell>
+                <TableCell className="tabular-nums text-right font-semibold text-primary">{fmt(liquido)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(f)} disabled={!canEditFolha(f)} title={!canEditFolha(f) ? "Edição liberada apenas até 30 dias após o lançamento" : undefined}><Pencil className="h-4 w-4" /></Button>
@@ -894,7 +936,8 @@ export default function FolhaMensal() {
                   </div>
                 </TableCell>
               </TableRow>
-            ))}
+              );
+            })}
           </TableBody>
         </Table>
       </CardContent></Card>

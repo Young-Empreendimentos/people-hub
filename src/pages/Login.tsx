@@ -1,32 +1,11 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await signIn(email, password);
-    setLoading(false);
-    if (error) {
-      console.error("Login error:", error);
-      toast.error(error.message || "Credenciais inválidas. Verifique seu email e senha.");
-    } else {
-      navigate("/");
-    }
-  };
 
   const handleGoogle = async () => {
     setGoogleLoading(true);
@@ -61,7 +40,7 @@ export default function Login() {
             variant="outline"
             className="w-full"
             onClick={handleGoogle}
-            disabled={googleLoading || loading}
+            disabled={googleLoading}
           >
             <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.76h3.56c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -71,43 +50,9 @@ export default function Login() {
             </svg>
             {googleLoading ? "Abrindo Google..." : "Entrar com Google"}
           </Button>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">ou com email</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="email">Email</label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium" htmlFor="password">Senha</label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={loading || googleLoading}>
-              {loading ? "Entrando..." : "Entrar"}
-            </Button>
-          </form>
+          <p className="text-xs text-center text-muted-foreground">
+            Apenas contas autorizadas pela Young Empreendimentos têm acesso.
+          </p>
         </CardContent>
       </Card>
     </div>

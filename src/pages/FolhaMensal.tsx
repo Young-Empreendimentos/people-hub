@@ -471,11 +471,13 @@ export default function FolhaMensal() {
 
   const planoSaudeCalculado = useMemo(() => {
     if (!planoSaudeMes) return null;
-    const total = Number((planoSaudeMes as any).valor_saude || 0)
-      + Number((planoSaudeMes as any).valor_odonto || 0)
-      + Number((planoSaudeMes as any).uso_plano || 0);
-    const desconto = +(total * 0.2).toFixed(2);
-    return { total, desconto };
+    const mensalidade = Number((planoSaudeMes as any).valor_saude || 0)
+      + Number((planoSaudeMes as any).valor_odonto || 0);
+    const uso = Number((planoSaudeMes as any).uso_plano || 0);
+    const total = mensalidade + uso;
+    // Mensalidade: 20% de coparticipação · Uso do plano: valor integral
+    const desconto = +(mensalidade * 0.2 + uso).toFixed(2);
+    return { total, mensalidade, uso, desconto };
   }, [planoSaudeMes]);
 
   // Auto-preenche o campo Plano de Saúde com o desconto mensal (20% do total)

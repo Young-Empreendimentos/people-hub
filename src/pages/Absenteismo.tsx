@@ -140,10 +140,20 @@ export default function Absenteismo() {
   };
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
 
+  const [sortFunc, setSortFunc] = useState<"none" | "asc" | "desc">("none");
+  const toggleSortFunc = () => setSortFunc((s) => s === "none" ? "asc" : s === "asc" ? "desc" : "none");
+
   const filtered = useMemo(() => {
-    if (!filterMes) return registros;
-    return registros.filter((r) => r.mes_referencia.startsWith(filterMes));
-  }, [registros, filterMes]);
+    const base = filterMes ? registros.filter((r) => r.mes_referencia.startsWith(filterMes)) : registros;
+    if (sortFunc === "none") return base;
+    const arr = [...base];
+    arr.sort((a, b) => {
+      const an = (a.rh_funcionarios?.nome_completo || "").toLowerCase();
+      const bn = (b.rh_funcionarios?.nome_completo || "").toLowerCase();
+      return sortFunc === "asc" ? an.localeCompare(bn) : bn.localeCompare(an);
+    });
+    return arr;
+  }, [registros, filterMes, sortFunc]);
 
   // Opções de meses disponíveis para filtro
   const mesesDisponiveis = useMemo(() => {

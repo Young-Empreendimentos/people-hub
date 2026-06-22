@@ -7506,6 +7506,7 @@ export type Database = {
           telefone: string | null
           tipo_contrato: string | null
           updated_at: string
+          valor_km: number
         }
         Insert: {
           aniversario?: string | null
@@ -7526,6 +7527,7 @@ export type Database = {
           telefone?: string | null
           tipo_contrato?: string | null
           updated_at?: string
+          valor_km?: number
         }
         Update: {
           aniversario?: string | null
@@ -7546,6 +7548,7 @@ export type Database = {
           telefone?: string | null
           tipo_contrato?: string | null
           updated_at?: string
+          valor_km?: number
         }
         Relationships: [
           {
@@ -7601,6 +7604,75 @@ export type Database = {
           {
             foreignKeyName: "rh_grupos_atividades_responsavel_id_fkey"
             columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_km_lancamentos: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          created_at: string
+          criado_por: string | null
+          data: string
+          descricao: string | null
+          folha_reembolso_id: string | null
+          funcionario_id: string
+          id: string
+          km: number
+          motivo_rejeicao: string | null
+          status: string
+          updated_at: string
+          valor_km_snapshot: number
+          valor_total: number
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          descricao?: string | null
+          folha_reembolso_id?: string | null
+          funcionario_id: string
+          id?: string
+          km: number
+          motivo_rejeicao?: string | null
+          status?: string
+          updated_at?: string
+          valor_km_snapshot?: number
+          valor_total?: number
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          descricao?: string | null
+          folha_reembolso_id?: string | null
+          funcionario_id?: string
+          id?: string
+          km?: number
+          motivo_rejeicao?: string | null
+          status?: string
+          updated_at?: string
+          valor_km_snapshot?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_km_lancamentos_folha_reembolso_id_fkey"
+            columns: ["folha_reembolso_id"]
+            isOneToOne: false
+            referencedRelation: "rh_folha_reembolsos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_km_lancamentos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
             isOneToOne: false
             referencedRelation: "rh_funcionarios"
             referencedColumns: ["id"]
@@ -7793,24 +7865,38 @@ export type Database = {
       }
       rh_user_roles: {
         Row: {
+          funcionario_id: string | null
           id: string
           nome: string | null
           role: Database["public"]["Enums"]["rh_app_role"]
+          status: string
           user_id: string
         }
         Insert: {
+          funcionario_id?: string | null
           id?: string
           nome?: string | null
           role?: Database["public"]["Enums"]["rh_app_role"]
+          status?: string
           user_id: string
         }
         Update: {
+          funcionario_id?: string | null
           id?: string
           nome?: string | null
           role?: Database["public"]["Enums"]["rh_app_role"]
+          status?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "rh_user_roles_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sienge_clientes: {
         Row: {
@@ -10040,6 +10126,7 @@ export type Database = {
       }
       registros_manutencao_diaria: { Args: never; Returns: Json }
       registros_refresh_mv_valor_pago: { Args: never; Returns: undefined }
+      rh_current_funcionario_id: { Args: never; Returns: string }
       rh_get_all_users_with_roles: {
         Args: never
         Returns: {

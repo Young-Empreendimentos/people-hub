@@ -237,7 +237,7 @@ export default function MeusKms() {
             />
           </div>
           <div className="flex justify-end">
-            <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending}>
+            <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || dataForaDoPeriodo || !data}>
               {addMutation.isPending ? "Enviando..." : "Enviar para aprovação"}
             </Button>
           </div>

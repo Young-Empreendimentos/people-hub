@@ -452,16 +452,25 @@ export default function FolhaMensal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalAdiantamentosPrevistos]);
 
-  // Plano de Saúde lançado no módulo "Plano de Saúde" para o funcionário no mês de referência
+  // Plano de Saúde é cobrado um mês adiantado: a folha do mês M desconta o plano lançado para M+1
+  // (ex.: plano de julho é descontado na folha de junho).
+  const planoSaudeMesRef = useMemo(() => {
+    if (!mesRef) return null;
+    const [y, m] = mesRef.split("-").map(Number);
+    if (!y || !m) return null;
+    const next = new Date(y, m, 1); // mês seguinte (mes é 1-12, Date espera 0-11, então m já é o próximo)
+    return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-01`;
+  }, [mesRef]);
+
   const { data: planoSaudeMes = null } = useQuery({
-    queryKey: ["rh_plano_saude_mes", funcId, mesRef],
-    enabled: !!funcId && !!mesRef,
+    queryKey: ["rh_plano_saude_mes", funcId, planoSaudeMesRef],
+    enabled: !!funcId && !!planoSaudeMesRef,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("rh_plano_saude")
         .select("valor_saude, valor_odonto, uso_plano")
         .eq("funcionario_id", funcId)
-        .eq("mes_referencia", mesRef + "-01")
+        .eq("mes_referencia", planoSaudeMesRef!)
         .order("created_at", { ascending: false })
         .limit(1);
       if (error) { console.error("[plano_saude]", error); return null; }

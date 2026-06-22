@@ -142,9 +142,11 @@ let wasmReady: Promise<void> | null = null;
 let fontBuffers: Uint8Array[] | null = null;
 
 const FONT_URLS = [
-  // Static TTF builds straight from the official Google Fonts repo.
-  // These are guaranteed TTFs (resvg-wasm cannot parse WOFF/WOFF2).
-  "https://raw.githubusercontent.com/google/fonts/main/ofl/notosans/NotoSans%5Bwdth,wght%5D.ttf",
+  // Static (non-variable) Noto Sans TTFs — resvg-wasm 2.6.x renders these
+  // reliably; variable fonts and WOFF/WOFF2 do not work.
+  "https://cdn.jsdelivr.net/npm/@expo-google-fonts/noto-sans@0.2.3/NotoSans_400Regular.ttf",
+  "https://cdn.jsdelivr.net/npm/@expo-google-fonts/noto-sans@0.2.3/NotoSans_700Bold.ttf",
+  "https://cdn.jsdelivr.net/npm/@expo-google-fonts/noto-sans@0.2.3/NotoSans_400Regular_Italic.ttf",
 ];
 
 async function ensureWasm() {

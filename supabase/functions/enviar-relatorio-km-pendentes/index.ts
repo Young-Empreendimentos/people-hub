@@ -14,7 +14,7 @@ const FROM = "Young RH <rh@youngempreendimentos.com.br>";
 
 const DESTINATARIOS = {
   comercial: { email: "caroline@youngempreendimentos.com.br", nome: "Caroline" },
-  outros: { email: "eduardo@youngempreendimentos.com.br", nome: "Eduardo" },
+  outros: { email: "elen@youngempreendimentos.com.br", nome: "Elen" },
 };
 
 const fmtBRL = (v: number) =>

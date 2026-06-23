@@ -64,6 +64,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {(canConfig || isAuditor) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive(auditoriasItem.url)}>
+                    <NavLink to={auditoriasItem.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                      <auditoriasItem.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {!collapsed && <span>{auditoriasItem.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               {canConfig && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive(configItem.url)}>

@@ -61,9 +61,20 @@ export default function MeusKms() {
     queryKey: ["meus_kms_opcoes_func"],
     enabled: !funcionarioId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("rh_list_funcionarios_para_vinculo" as any);
+      const [{ data, error }, { data: admDesl, error: errAdm }] = await Promise.all([
+        supabase.rpc("rh_list_funcionarios_para_vinculo" as any),
+        supabase
+          .from("rh_admissoes_desligamentos")
+          .select("funcionario_id, tipo, data")
+          .order("data", { ascending: false }),
+      ]);
       if (error) throw error;
-      return (data || []) as any[];
+      if (errAdm) throw errAdm;
+      const statusMap: Record<string, string> = {};
+      for (const row of (admDesl || []) as any[]) {
+        if (!statusMap[row.funcionario_id]) statusMap[row.funcionario_id] = row.tipo;
+      }
+      return ((data || []) as any[]).filter((f) => statusMap[f.id] !== "desligamento");
     },
   });
 

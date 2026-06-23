@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { DollarSign, Receipt, HandCoins } from "lucide-react";
+import { DollarSign, Receipt, HandCoins, Car } from "lucide-react";
 
 const options = [
   {
@@ -20,6 +20,12 @@ const options = [
     description: "Histórico de reembolsos e gratificações lançados nas folhas.",
     url: "/reembolsos",
     icon: HandCoins,
+  },
+  {
+    title: "Aprovações de KM",
+    description: "Aprove ou rejeite as solicitações de quilometragem dos funcionários.",
+    url: "/aprovacoes-km",
+    icon: Car,
   },
 ];
 

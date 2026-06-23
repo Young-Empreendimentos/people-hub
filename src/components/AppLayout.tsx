@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ShieldAlert, LogOut } from "lucide-react";
 
 export function AppLayout() {
-  const { user, role, roleStatus, loading, signOut, isColaborador } = useAuth();
+  const { user, role, roleStatus, loading, signOut, isColaborador, isAuditor } = useAuth();
   const location = useLocation();
 
   if (loading) {

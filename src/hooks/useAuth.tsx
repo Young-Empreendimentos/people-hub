@@ -18,6 +18,7 @@ interface AuthContextType {
   refreshRole: () => Promise<void>;
   isColaborador: boolean;
   isStaff: boolean;
+  isAuditor: boolean;
   canDelete: boolean;
   canConfig: boolean;
   canManageCargos: boolean;

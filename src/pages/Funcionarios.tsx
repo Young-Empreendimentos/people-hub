@@ -96,6 +96,27 @@ export default function Funcionarios() {
     },
   });
 
+  const { data: planoSaudePorFunc = {} } = useQuery({
+    queryKey: ["rh_plano_saude_ultimo"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rh_plano_saude")
+        .select("funcionario_id, mes_referencia, valor_saude, valor_odonto")
+        .order("mes_referencia", { ascending: false });
+      const map: Record<string, { valor_saude: number | null; valor_odonto: number | null; mes: string }> = {};
+      for (const row of (data as any[]) || []) {
+        if (!map[row.funcionario_id]) {
+          map[row.funcionario_id] = {
+            valor_saude: row.valor_saude,
+            valor_odonto: row.valor_odonto,
+            mes: row.mes_referencia,
+          };
+        }
+      }
+      return map;
+    },
+  });
+
   const cargoMap = Object.fromEntries(cargos.map((c: any) => [c.id, c]));
   const empresaMap = Object.fromEntries(empresas.map((e: any) => [e.id, e]));
   const equipeMap = Object.fromEntries(equipes.map((e: any) => [e.id, e]));
@@ -323,28 +344,40 @@ export default function Funcionarios() {
                 <TableHead>Nome</TableHead>
                 <TableHead>CPF</TableHead>
                 <TableHead>Empresa</TableHead>
-                <TableHead>Equipe</TableHead>
                 <TableHead>Cargo</TableHead>
-                <TableHead>Salário</TableHead>
+                <TableHead>Tipo Contrato</TableHead>
+                <TableHead>Parque</TableHead>
+                <TableHead>Plano de Saúde</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="w-28 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Nenhum funcionário encontrado.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Nenhum funcionário encontrado.</TableCell></TableRow>
               ) : filtered.map((f: any) => {
                 const eff = getEffective(f);
+                const ps = (planoSaudePorFunc as any)[f.id];
+                const valorPs = ps ? (Number(ps.valor_saude || 0) + Number(ps.valor_odonto || 0)) : 0;
                 return (
                 <TableRow key={f.id}>
                   <TableCell className="font-medium">{f.nome_completo}</TableCell>
                   <TableCell>{f.cpf || "—"}</TableCell>
                   <TableCell>{eff.empresa_id ? (empresaMap[eff.empresa_id]?.nome || "—") : "—"}</TableCell>
-                  <TableCell>{eff.equipe_id ? (equipeMap[eff.equipe_id]?.nome || "—") : "—"}</TableCell>
                   <TableCell>{eff.cargo_id ? formatCargoLabel(cargoMap[eff.cargo_id]) : "—"}</TableCell>
-                  <TableCell className="tabular-nums">{(() => { const s = getSalario(f); return s != null ? formatCurrency(s) : "—"; })()}</TableCell>
+                  <TableCell>{f.tipo_contrato || "—"}</TableCell>
+                  <TableCell>{eff.equipe_id ? (equipeMap[eff.equipe_id]?.nome || "—") : "—"}</TableCell>
+                  <TableCell className="tabular-nums">
+                    {ps && valorPs > 0 ? (
+                      <Badge variant="secondary" className="font-normal tabular-nums">
+                        {formatCurrency(valorPs)}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>{getStatusBadge(f.id)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">

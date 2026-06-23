@@ -535,12 +535,14 @@ export default function FolhaMensal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [totalAdiantamentosPrevistos]);
 
-  // Plano de Saúde do mesmo mês de referência da folha
+  // Plano de Saúde é cobrado um mês adiantado: a folha do mês M desconta o plano lançado para M+1
+  // (ex.: plano de julho é descontado na folha de junho).
   const planoSaudeMesRef = useMemo(() => {
     if (!mesRef) return null;
     const [y, m] = mesRef.split("-").map(Number);
     if (!y || !m) return null;
-    return `${y}-${String(m).padStart(2, "0")}-01`;
+    const next = new Date(y, m, 1); // mês seguinte (m é 1-12, Date espera 0-11, então m já é o próximo)
+    return `${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, "0")}-01`;
   }, [mesRef]);
 
   const { data: planoSaudeMes = null } = useQuery({

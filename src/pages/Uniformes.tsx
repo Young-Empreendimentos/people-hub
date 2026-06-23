@@ -338,7 +338,7 @@ function EncomendasTab() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Funcionário</label>
               <Combobox
-                options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))}
+                options={ativos.map((f: any) => ({ value: f.id, label: f.nome_completo }))}
                 value={funcId} onValueChange={setFuncId} placeholder="Selecione"
               />
             </div>

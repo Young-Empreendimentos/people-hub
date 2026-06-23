@@ -419,7 +419,7 @@ export default function PlanoSaude() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Funcionário *</label>
               <Combobox
-                options={funcionarios.filter((f: any) => isActive(f.id) || f.id === funcId).map((f: any) => ({ value: f.id, label: f.nome_completo }))}
+                options={funcionarios.filter((f: any) => (isActive(f.id) && (f as any).tem_plano_saude) || f.id === funcId).map((f: any) => ({ value: f.id, label: f.nome_completo }))}
                 value={funcId}
                 onValueChange={setFuncId}
                 placeholder="Selecione"

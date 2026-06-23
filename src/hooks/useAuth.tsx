@@ -73,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRoleStatus(null);
           setFuncionarioId(null);
           setUserName(null);
+          setIsAuditor(false);
         }
         setLoading(false);
       }

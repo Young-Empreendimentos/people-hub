@@ -251,9 +251,10 @@ function VinculoAuditoresButton() {
               <div>
                 <label className="text-sm">Equipe</label>
                 <Combobox
-                  options={(equipes as any[]).map((e) => ({ value: e.id, label: e.nome }))}
+                  options={equipesDisponiveis.map((e) => ({ value: e.id, label: e.nome }))}
                   value={equipeId} onValueChange={setEquipeId}
-                  placeholder="Selecionar equipe" emptyMessage="—"
+                  placeholder={userId ? "Selecionar equipe" : "Escolha o auditor primeiro"}
+                  emptyMessage="—"
                 />
               </div>
               <Button onClick={addVinculo} disabled={!userId || !equipeId}>Vincular</Button>

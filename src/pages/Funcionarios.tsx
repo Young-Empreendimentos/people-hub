@@ -369,13 +369,11 @@ export default function Funcionarios() {
                   <TableCell>{eff.cargo_id ? formatCargoLabel(cargoMap[eff.cargo_id]) : "—"}</TableCell>
                   <TableCell>{f.tipo_contrato || "—"}</TableCell>
                   <TableCell>{eff.equipe_id ? (equipeMap[eff.equipe_id]?.nome || "—") : "—"}</TableCell>
-                  <TableCell className="tabular-nums">
+                  <TableCell>
                     {ps && valorPs > 0 ? (
-                      <Badge variant="secondary" className="font-normal tabular-nums">
-                        {formatCurrency(valorPs)}
-                      </Badge>
+                      <Badge className="bg-primary hover:bg-primary/90">Sim</Badge>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <Badge variant="secondary">Não</Badge>
                     )}
                   </TableCell>
                   <TableCell>{getStatusBadge(f.id)}</TableCell>

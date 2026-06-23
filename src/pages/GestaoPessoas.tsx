@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX, HeartPulse, Cake } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX, HeartPulse, Cake, Shirt } from "lucide-react";
 
 const options = [
   {
@@ -50,6 +50,12 @@ const options = [
     description: "Registre mês a mês os valores de plano de saúde e odontológico.",
     url: "/gestao-pessoas/plano-saude",
     icon: HeartPulse,
+  },
+  {
+    title: "Uniformes",
+    description: "Controle de estoque, encomendas e entrega de uniformes com recibo.",
+    url: "/gestao-pessoas/uniformes",
+    icon: Shirt,
   },
 ];
 

@@ -105,7 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isColaborador = role === "colaborador";
   const isStaff = role === "admin" || role === "coordenador" || role === "usuario";
   const canDelete = role === "admin" || role === "coordenador";
-  const canConfig = role === "admin";
+  const canConfig = role === "admin" || role === "coordenador";
   const canManageCargos = role === "admin" || role === "coordenador";
   const canManageBeneficiosMoradia = role === "admin" || role === "coordenador";
   const canEditCargoSalario = role === "admin" || role === "coordenador";

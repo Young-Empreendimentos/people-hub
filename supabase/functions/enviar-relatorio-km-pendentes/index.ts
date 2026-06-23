@@ -9,8 +9,8 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const APP_URL = "https://id-preview--6752548d-da6b-42dc-83aa-8a694a502eb1.lovable.app";
-const FROM = "Young RH <rh@youngempreendimentos.com.br>";
+const APP_URL = "https://pilares.youngempreendimentos.com.br";
+const FROM = "Young RH <carla@youngempreendimentos.com.br>";
 
 const DESTINATARIOS = {
   comercial: { email: "caroline@youngempreendimentos.com.br", nome: "Caroline" },
@@ -24,7 +24,7 @@ const fmtDate = (s: string) => {
   return `${d}/${m}/${y}`;
 };
 
-function buildHtml(nome: string, setor: string, itens: any[], total: number) {
+function buildHtml(nome: string, itens: any[], total: number) {
   const rows = itens
     .map(
       (l) => `
@@ -39,8 +39,8 @@ function buildHtml(nome: string, setor: string, itens: any[], total: number) {
     .join("");
 
   return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#222;">
-    <h2>Olá, ${nome}!</h2>
-    <p>Existem <b>${itens.length} lançamento(s) de KM pendente(s)</b> de aprovação no setor <b>${setor}</b>.</p>
+    <p>Olá, ${nome}!</p>
+    <p>Existem <b>${itens.length} lançamento(s) de KM pendente(s)</b> de aprovação.</p>
     <p>Por favor, revise e aprove para que possam entrar na folha do mês.</p>
     <table style="border-collapse:collapse;width:100%;margin-top:12px;font-size:13px;">
       <thead><tr style="background:#f5f5f5;">
@@ -57,11 +57,9 @@ function buildHtml(nome: string, setor: string, itens: any[], total: number) {
       </tr></tfoot>
     </table>
     <p style="margin-top:20px;">
-      <a href="${APP_URL}/aprovacoes-km" style="background:#0f172a;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">
-        Abrir aprovações de KM
-      </a>
+      Acesse para aprovar:
+      <a href="${APP_URL}/aprovacoes-km">${APP_URL}/aprovacoes-km</a>
     </p>
-    <p style="color:#666;font-size:12px;margin-top:24px;">Mensagem automática — Young Empreendimentos</p>
   </body></html>`;
 }
 
@@ -136,10 +134,10 @@ Deno.serve(async (req) => {
         continue;
       }
       const total = itens.reduce((s, i) => s + Number(i.valor_total || 0), 0);
-      const html = buildHtml(dest.nome, setor, itens, total);
+      const html = buildHtml(dest.nome, itens, total);
       await sendEmail(
         dest.email,
-        `[Young RH] ${itens.length} aprovação(ões) de KM pendente(s) — ${setor}`,
+        `Aprovação de KM pendente(s)`,
         html,
       );
       sentReports.push({ setor, pendentes: itens.length, total, enviado: true, para: dest.email });

@@ -33,6 +33,7 @@ import Advertencias from "./pages/Advertencias";
 import BeneficiosMoradia from "./pages/BeneficiosMoradia";
 import Absenteismo from "./pages/Absenteismo";
 import PlanoSaude from "./pages/PlanoSaude";
+import Uniformes from "./pages/Uniformes";
 import NotFound from "./pages/NotFound";
 import PrimeiroAcesso from "./pages/PrimeiroAcesso";
 import MeusKms from "./pages/MeusKms";
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/gestao-pessoas/beneficios-moradia" element={<BeneficiosMoradia />} />
               <Route path="/gestao-pessoas/absenteismo" element={<Absenteismo />} />
               <Route path="/gestao-pessoas/plano-saude" element={<PlanoSaude />} />
+              <Route path="/gestao-pessoas/uniformes" element={<Uniformes />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

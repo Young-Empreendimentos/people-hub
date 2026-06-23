@@ -20,8 +20,7 @@ export function AppLayout() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  // Usuário logado sem nenhum papel cadastrado → bloqueio (NÃO manda para /primeiro-acesso)
-  // /primeiro-acesso é exclusivo do fluxo de cadastro de novos colaboradores.
+  // Usuário logado sem nenhum papel cadastrado → oferece conclusão do primeiro acesso.
   if (!role) {
     if (location.pathname === "/primeiro-acesso") return <Outlet />;
     return (
@@ -37,8 +36,11 @@ export function AppLayout() {
           </CardHeader>
           <CardContent className="space-y-4 text-center">
             <p className="text-sm text-muted-foreground">
-              <span className="font-medium">{user.email}</span> ainda não tem permissão neste sistema. Procure o RH para liberação.
+              <span className="font-medium">{user.email}</span> ainda não concluiu o primeiro acesso. Selecione seu nome para solicitar a liberação do RH.
             </p>
+            <Button asChild className="w-full">
+              <Link to="/primeiro-acesso">Concluir primeiro acesso</Link>
+            </Button>
             <Button variant="outline" className="w-full" onClick={signOut}>Sair</Button>
           </CardContent>
         </Card>

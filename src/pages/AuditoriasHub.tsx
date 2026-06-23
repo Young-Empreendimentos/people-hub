@@ -12,7 +12,7 @@ const options = [
   {
     title: "Gestão de Auditorias",
     description: "Crie, execute e acompanhe as auditorias das equipes.",
-    url: "/auditorias",
+    url: "/auditorias/lista",
     icon: FileCheck2,
   },
 ];

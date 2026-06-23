@@ -134,10 +134,10 @@ Deno.serve(async (req) => {
         continue;
       }
       const total = itens.reduce((s, i) => s + Number(i.valor_total || 0), 0);
-      const html = buildHtml(dest.nome, setor, itens, total);
+      const html = buildHtml(dest.nome, itens, total);
       await sendEmail(
         dest.email,
-        `[Young RH] ${itens.length} aprovação(ões) de KM pendente(s) — ${setor}`,
+        `Aprovação de KM pendente(s)`,
         html,
       );
       sentReports.push({ setor, pendentes: itens.length, total, enviado: true, para: dest.email });

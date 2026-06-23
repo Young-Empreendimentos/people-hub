@@ -7114,6 +7114,261 @@ export type Database = {
           },
         ]
       }
+      rh_atividades_auditoria: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          grupo_id: string
+          id: string
+          indicadores: string | null
+          manuais: string | null
+          metodo_auditoria: string | null
+          nome: string
+          normas: string | null
+          ordem: number
+          peso: number
+          responsavel_funcionario_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          grupo_id: string
+          id?: string
+          indicadores?: string | null
+          manuais?: string | null
+          metodo_auditoria?: string | null
+          nome: string
+          normas?: string | null
+          ordem?: number
+          peso?: number
+          responsavel_funcionario_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          grupo_id?: string
+          id?: string
+          indicadores?: string | null
+          manuais?: string | null
+          metodo_auditoria?: string | null
+          nome?: string
+          normas?: string | null
+          ordem?: number
+          peso?: number
+          responsavel_funcionario_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_atividades_auditoria_grupo_id_fkey"
+            columns: ["grupo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_grupos_atividades_auditoria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_atividades_auditoria_responsavel_funcionario_id_fkey"
+            columns: ["responsavel_funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_auditor_equipes: {
+        Row: {
+          created_at: string
+          equipe_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipe_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          equipe_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_auditor_equipes_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "rh_equipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_auditoria_itens: {
+        Row: {
+          atividade_id: string
+          auditoria_id: string
+          avaliado_em: string | null
+          comentario: string | null
+          created_at: string
+          evidencia_url: string | null
+          id: string
+          status: Database["public"]["Enums"]["rh_auditoria_item_status"]
+          updated_at: string
+        }
+        Insert: {
+          atividade_id: string
+          auditoria_id: string
+          avaliado_em?: string | null
+          comentario?: string | null
+          created_at?: string
+          evidencia_url?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["rh_auditoria_item_status"]
+          updated_at?: string
+        }
+        Update: {
+          atividade_id?: string
+          auditoria_id?: string
+          avaliado_em?: string | null
+          comentario?: string | null
+          created_at?: string
+          evidencia_url?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["rh_auditoria_item_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_auditoria_itens_atividade_id_fkey"
+            columns: ["atividade_id"]
+            isOneToOne: false
+            referencedRelation: "rh_atividades_auditoria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rh_auditoria_itens_auditoria_id_fkey"
+            columns: ["auditoria_id"]
+            isOneToOne: false
+            referencedRelation: "rh_auditorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_auditoria_resultado_snapshot: {
+        Row: {
+          atividade_id: string
+          auditoria_id: string
+          comentario: string | null
+          created_at: string
+          evidencia_url: string | null
+          grupo_id: string
+          id: string
+          nome_atividade: string
+          nome_grupo: string
+          peso_atividade: number
+          peso_grupo: number
+          status: Database["public"]["Enums"]["rh_auditoria_item_status"]
+        }
+        Insert: {
+          atividade_id: string
+          auditoria_id: string
+          comentario?: string | null
+          created_at?: string
+          evidencia_url?: string | null
+          grupo_id: string
+          id?: string
+          nome_atividade: string
+          nome_grupo: string
+          peso_atividade: number
+          peso_grupo: number
+          status: Database["public"]["Enums"]["rh_auditoria_item_status"]
+        }
+        Update: {
+          atividade_id?: string
+          auditoria_id?: string
+          comentario?: string | null
+          created_at?: string
+          evidencia_url?: string | null
+          grupo_id?: string
+          id?: string
+          nome_atividade?: string
+          nome_grupo?: string
+          peso_atividade?: number
+          peso_grupo?: number
+          status?: Database["public"]["Enums"]["rh_auditoria_item_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_auditoria_resultado_snapshot_auditoria_id_fkey"
+            columns: ["auditoria_id"]
+            isOneToOne: false
+            referencedRelation: "rh_auditorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_auditorias: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          auditor_user_id: string
+          created_at: string
+          criado_por: string
+          data_referencia: string
+          equipe_id: string | null
+          id: string
+          observacao_geral: string | null
+          percentual_final: number | null
+          rejeitado_motivo: string | null
+          status: Database["public"]["Enums"]["rh_auditoria_status"]
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          auditor_user_id: string
+          created_at?: string
+          criado_por?: string
+          data_referencia?: string
+          equipe_id?: string | null
+          id?: string
+          observacao_geral?: string | null
+          percentual_final?: number | null
+          rejeitado_motivo?: string | null
+          status?: Database["public"]["Enums"]["rh_auditoria_status"]
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          auditor_user_id?: string
+          created_at?: string
+          criado_por?: string
+          data_referencia?: string
+          equipe_id?: string | null
+          id?: string
+          observacao_geral?: string | null
+          percentual_final?: number | null
+          rejeitado_motivo?: string | null
+          status?: Database["public"]["Enums"]["rh_auditoria_status"]
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_auditorias_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "rh_equipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_avaliacoes: {
         Row: {
           anexo_name: string | null
@@ -7606,6 +7861,47 @@ export type Database = {
             columns: ["responsavel_id"]
             isOneToOne: false
             referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_grupos_atividades_auditoria: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          equipe_id: string | null
+          id: string
+          nome: string
+          ordem: number
+          peso: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          equipe_id?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          peso?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          equipe_id?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          peso?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_grupos_atividades_auditoria_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "rh_equipes"
             referencedColumns: ["id"]
           },
         ]
@@ -10126,7 +10422,20 @@ export type Database = {
       }
       registros_manutencao_diaria: { Args: never; Returns: Json }
       registros_refresh_mv_valor_pago: { Args: never; Returns: undefined }
+      rh_auditor_em_equipe: {
+        Args: { _equipe_id: string; _uid: string }
+        Returns: boolean
+      }
+      rh_criar_auditoria: {
+        Args: {
+          p_data_referencia?: string
+          p_equipe_id: string
+          p_titulo: string
+        }
+        Returns: string
+      }
       rh_current_funcionario_id: { Args: never; Returns: string }
+      rh_fechar_auditoria: { Args: { p_auditoria_id: string }; Returns: number }
       rh_get_all_users_with_roles: {
         Args: never
         Returns: {
@@ -10148,12 +10457,35 @@ export type Database = {
         }
         Returns: boolean
       }
+      rh_is_auditor: { Args: { _uid: string }; Returns: boolean }
       rh_list_funcionarios_para_vinculo: {
         Args: never
         Returns: {
           cpf_masked: string
           id: string
           nome_completo: string
+        }[]
+      }
+      rh_listar_atividades_auditoria: {
+        Args: never
+        Returns: {
+          ativo: boolean
+          created_at: string
+          equipe_id: string
+          grupo_id: string
+          grupo_nome: string
+          grupo_ordem: number
+          grupo_peso: number
+          id: string
+          indicadores: string
+          manuais: string
+          metodo_auditoria: string
+          nome: string
+          normas: string
+          ordem: number
+          peso: number
+          responsavel_funcionario_id: string
+          updated_at: string
         }[]
       }
       rh_set_my_funcionario: {
@@ -10243,6 +10575,16 @@ export type Database = {
         | "usuario"
         | "colaborador"
         | "auditor"
+      rh_auditoria_item_status:
+        | "pendente"
+        | "positivo"
+        | "inconformidade"
+        | "nao_aplica"
+      rh_auditoria_status:
+        | "em_andamento"
+        | "finalizada"
+        | "aprovada"
+        | "rejeitada"
       tipo_anexo_gleba:
         | "pesquisa_mercado"
         | "planilha_viabilidade"
@@ -10424,6 +10766,18 @@ export const Constants = {
         "usuario",
         "colaborador",
         "auditor",
+      ],
+      rh_auditoria_item_status: [
+        "pendente",
+        "positivo",
+        "inconformidade",
+        "nao_aplica",
+      ],
+      rh_auditoria_status: [
+        "em_andamento",
+        "finalizada",
+        "aprovada",
+        "rejeitada",
       ],
       tipo_anexo_gleba: [
         "pesquisa_mercado",

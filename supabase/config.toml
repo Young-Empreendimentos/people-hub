@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.organograma-png]
 verify_jwt = false
+
+[functions.enviar-relatorio-km-pendentes]
+verify_jwt = false

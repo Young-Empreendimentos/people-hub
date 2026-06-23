@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { SortAlphaToggle, sortByName } from "@/components/SortAlphaToggle";
 
 export default function FolhaMensal() {
   const queryClient = useQueryClient();
@@ -831,7 +832,7 @@ export default function FolhaMensal() {
 
   const closeDialog = () => { setDialogOpen(false); setEditingId(null); };
   const filtered = useMemo(() => {
-    return (folhas as any[]).filter((f) => {
+    const base = (folhas as any[]).filter((f) => {
       if (filterFunc && f.funcionario_id !== filterFunc) return false;
       if (filterEmpresa) {
         const empAt = getEmpresaAtDate(f.funcionario_id, f.mes_referencia);
@@ -844,7 +845,8 @@ export default function FolhaMensal() {
       if (fim && data > fim) return false;
       return true;
     });
-  }, [folhas, filterFunc, filterEmpresa, filterDataIni, filterDataFim, funcionariosAll, aditivosByFunc]);
+    return sortByName(base, (f: any) => f.rh_funcionarios?.nome_completo || "", sortAlpha);
+  }, [folhas, filterFunc, filterEmpresa, filterDataIni, filterDataFim, funcionariosAll, aditivosByFunc, sortAlpha]);
   const fmt = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
   const canEditFolha = (f: any) => {
     if (role !== "usuario") return true;
@@ -1000,13 +1002,14 @@ export default function FolhaMensal() {
           </PopoverContent>
         </Popover>
       </div>
-      {(filterEmpresa || filterFunc || filterDataIni || filterDataFim) && (
-        <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <SortAlphaToggle value={sortAlpha} onChange={setSortAlpha} />
+        {(filterEmpresa || filterFunc || filterDataIni || filterDataFim) && (
           <Button variant="ghost" size="sm" onClick={() => { setFilterEmpresa(""); setFilterFunc(""); setFilterDataIni(undefined); setFilterDataFim(undefined); }}>
             Limpar filtros
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
       <Card><CardContent className="p-0 overflow-x-auto">
         <Table>

@@ -24,7 +24,7 @@ const fmtDate = (s: string) => {
   return `${d}/${m}/${y}`;
 };
 
-function buildHtml(nome: string, setor: string, itens: any[], total: number) {
+function buildHtml(nome: string, itens: any[], total: number) {
   const rows = itens
     .map(
       (l) => `
@@ -39,8 +39,8 @@ function buildHtml(nome: string, setor: string, itens: any[], total: number) {
     .join("");
 
   return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#222;">
-    <h2>Olá, ${nome}!</h2>
-    <p>Existem <b>${itens.length} lançamento(s) de KM pendente(s)</b> de aprovação no setor <b>${setor}</b>.</p>
+    <p>Olá, ${nome}!</p>
+    <p>Existem <b>${itens.length} lançamento(s) de KM pendente(s)</b> de aprovação.</p>
     <p>Por favor, revise e aprove para que possam entrar na folha do mês.</p>
     <table style="border-collapse:collapse;width:100%;margin-top:12px;font-size:13px;">
       <thead><tr style="background:#f5f5f5;">
@@ -57,11 +57,9 @@ function buildHtml(nome: string, setor: string, itens: any[], total: number) {
       </tr></tfoot>
     </table>
     <p style="margin-top:20px;">
-      <a href="${APP_URL}/aprovacoes-km" style="background:#0f172a;color:#fff;padding:10px 16px;border-radius:6px;text-decoration:none;">
-        Abrir aprovações de KM
-      </a>
+      Acesse para aprovar:
+      <a href="${APP_URL}/aprovacoes-km">${APP_URL}/aprovacoes-km</a>
     </p>
-    <p style="color:#666;font-size:12px;margin-top:24px;">Mensagem automática — Young Empreendimentos</p>
   </body></html>`;
 }
 

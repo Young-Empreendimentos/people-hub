@@ -1,5 +1,5 @@
 import {
-  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car,
+  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car, ClipboardList, FileCheck2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -23,7 +23,10 @@ const mainItems = [
   { title: "Aprovações de KM", url: "/aprovacoes-km", icon: Car },
 
   { title: "Atividades", url: "/atividades", icon: ListChecks },
+  { title: "Atividades (Auditoria)", url: "/atividades-auditoria", icon: ClipboardList },
 ];
+
+const auditoriasItem = { title: "Auditorias", url: "/auditorias", icon: FileCheck2 };
 
 const configItem = { title: "Configurações", url: "/configuracoes", icon: Settings };
 

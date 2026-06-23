@@ -9,8 +9,8 @@ const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-const APP_URL = "https://id-preview--6752548d-da6b-42dc-83aa-8a694a502eb1.lovable.app";
-const FROM = "Young RH <rh@youngempreendimentos.com.br>";
+const APP_URL = "https://pilares.youngempreendimentos.com.br";
+const FROM = "Young RH <carla@youngempreendimentos.com.br>";
 
 const DESTINATARIOS = {
   comercial: { email: "caroline@youngempreendimentos.com.br", nome: "Caroline" },

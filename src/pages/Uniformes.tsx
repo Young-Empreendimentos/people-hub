@@ -174,7 +174,8 @@ function EstoqueTab() {
 function EncomendasTab() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
-  const { funcionarios } = useActiveEmployees();
+  const { funcionarios, isActive } = useActiveEmployees();
+  const ativos = useMemo(() => funcionarios.filter((f: any) => isActive(f.id)), [funcionarios, isActive]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
 

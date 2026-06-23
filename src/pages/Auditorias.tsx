@@ -82,14 +82,17 @@ export default function Auditorias() {
 
   return (
     <div className="space-y-6 max-w-6xl">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Auditorias</h1>
           <p className="text-sm text-muted-foreground">Execução, finalização e histórico de auditorias.</p>
         </div>
-        {podeCriar && (
-          <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova auditoria</Button>
-        )}
+        <div className="flex gap-2">
+          {canConfig && <VinculoAuditoresButton />}
+          {podeCriar && (
+            <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova auditoria</Button>
+          )}
+        </div>
       </div>
 
       <Card>

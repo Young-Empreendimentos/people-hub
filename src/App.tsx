@@ -40,6 +40,7 @@ import AprovacoesKm from "./pages/AprovacoesKm";
 import AtividadesAuditoria from "./pages/AtividadesAuditoria";
 import Auditorias from "./pages/Auditorias";
 import AuditoriaExecutar from "./pages/AuditoriaExecutar";
+import AuditoriasHub from "./pages/AuditoriasHub";
 
 const queryClient = new QueryClient();
 

@@ -18,6 +18,7 @@ interface AuthContextType {
   refreshRole: () => Promise<void>;
   isColaborador: boolean;
   isStaff: boolean;
+  isAuditor: boolean;
   canDelete: boolean;
   canConfig: boolean;
   canManageCargos: boolean;
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roleStatus, setRoleStatus] = useState<RoleStatus | null>(null);
   const [funcionarioId, setFuncionarioId] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [isAuditor, setIsAuditor] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string) => {
@@ -42,14 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("role, nome, status, funcionario_id")
       .eq("user_id", userId);
     const rows = (data ?? []) as any[];
-    if (rows.length === 0) {
+    setIsAuditor(rows.some((r) => r.role === "auditor"));
+    const nonAuditor = rows.filter((r) => r.role !== "auditor");
+    if (nonAuditor.length === 0) {
       setRole(null); setUserName(null); setRoleStatus(null); setFuncionarioId(null);
       return;
     }
     // Prioridade: admin > coordenador > usuario > colaborador
     const priority: Record<string, number> = { admin: 4, coordenador: 3, usuario: 2, colaborador: 1 };
-    rows.sort((a, b) => (priority[b.role] ?? 0) - (priority[a.role] ?? 0));
-    const best = rows[0];
+    nonAuditor.sort((a, b) => (priority[b.role] ?? 0) - (priority[a.role] ?? 0));
+    const best = nonAuditor[0];
     setRole((best.role as RhRole) ?? null);
     setUserName((best.nome as string) ?? null);
     setRoleStatus((best.status as RoleStatus) ?? null);
@@ -69,6 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setRoleStatus(null);
           setFuncionarioId(null);
           setUserName(null);
+          setIsAuditor(false);
         }
         setLoading(false);
       }
@@ -109,7 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       session, user, role, roleStatus, funcionarioId, userName, loading,
       signIn, signOut, refreshRole,
-      isColaborador, isStaff,
+      isColaborador, isStaff, isAuditor,
       canDelete, canConfig, canManageCargos, canManageBeneficiosMoradia, canEditCargoSalario,
     }}>
       {children}

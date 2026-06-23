@@ -1,5 +1,5 @@
 import {
-  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car,
+  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car, ClipboardList, FileCheck2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -23,7 +23,10 @@ const mainItems = [
   { title: "Aprovações de KM", url: "/aprovacoes-km", icon: Car },
 
   { title: "Atividades", url: "/atividades", icon: ListChecks },
+  { title: "Atividades (Auditoria)", url: "/atividades-auditoria", icon: ClipboardList },
 ];
+
+const auditoriasItem = { title: "Auditorias", url: "/auditorias", icon: FileCheck2 };
 
 const configItem = { title: "Configurações", url: "/configuracoes", icon: Settings };
 
@@ -31,7 +34,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { canConfig, signOut, user, userName } = useAuth();
+  const { canConfig, signOut, user, userName, isAuditor } = useAuth();
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -61,6 +64,16 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {(canConfig || isAuditor) && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive(auditoriasItem.url)}>
+                    <NavLink to={auditoriasItem.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                      <auditoriasItem.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {!collapsed && <span>{auditoriasItem.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               {canConfig && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive(configItem.url)}>

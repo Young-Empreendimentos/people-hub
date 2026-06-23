@@ -174,7 +174,8 @@ function EstoqueTab() {
 function EncomendasTab() {
   const queryClient = useQueryClient();
   const { canDelete } = useAuth();
-  const { funcionarios } = useActiveEmployees();
+  const { funcionarios, isActive } = useActiveEmployees();
+  const ativos = useMemo(() => funcionarios.filter((f: any) => isActive(f.id)), [funcionarios, isActive]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
 
@@ -337,7 +338,7 @@ function EncomendasTab() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Funcionário</label>
               <Combobox
-                options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))}
+                options={ativos.map((f: any) => ({ value: f.id, label: f.nome_completo }))}
                 value={funcId} onValueChange={setFuncId} placeholder="Selecione"
               />
             </div>

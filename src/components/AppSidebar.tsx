@@ -22,7 +22,6 @@ const mainItems = [
   { title: "Meus KMs", url: "/meus-kms", icon: Car },
 
   { title: "Atividades", url: "/atividades", icon: ListChecks },
-  { title: "Atividades (Auditoria)", url: "/atividades-auditoria", icon: ClipboardList },
 ];
 
 const auditoriasItem = { title: "Auditorias", url: "/auditorias", icon: FileCheck2 };

@@ -374,9 +374,15 @@ export default function Funcionarios() {
                   <TableCell>{eff.empresa_id ? (empresaMap[eff.empresa_id]?.nome || "—") : "—"}</TableCell>
                   <TableCell>{eff.cargo_id ? formatCargoLabel(cargoMap[eff.cargo_id]) : "—"}</TableCell>
                   <TableCell>{f.tipo_contrato || "—"}</TableCell>
-                  <TableCell>{eff.equipe_id ? (equipeMap[eff.equipe_id]?.nome || "—") : "—"}</TableCell>
                   <TableCell>
-                    {ps && valorPs > 0 ? (
+                    {f.tem_desconto_parque ? (
+                      <Badge className="bg-primary hover:bg-primary/90">Sim</Badge>
+                    ) : (
+                      <Badge variant="secondary">Não</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {f.tem_plano_saude ? (
                       <Badge className="bg-primary hover:bg-primary/90">Sim</Badge>
                     ) : (
                       <Badge variant="secondary">Não</Badge>

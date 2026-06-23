@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { SortAlphaToggle, sortByName, type SortAlpha } from "@/components/SortAlphaToggle";
 
 type Parcela = { mes_ano: string; valor: number };
 
@@ -25,6 +26,7 @@ export default function Adiantamentos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterFunc, setFilterFunc] = useState("");
+  const [sortAlpha, setSortAlpha] = useState<SortAlpha>("none");
 
   const [funcId, setFuncId] = useState("");
   const [data, setData] = useState("");
@@ -204,7 +206,8 @@ export default function Adiantamentos() {
     return `${mes}/${y}`;
   };
 
-  const filtered = filterFunc ? adiantamentos.filter((a: any) => a.funcionario_id === filterFunc) : adiantamentos;
+  const filteredBase = filterFunc ? adiantamentos.filter((a: any) => a.funcionario_id === filterFunc) : adiantamentos;
+  const filtered = sortByName(filteredBase, (a: any) => a.rh_funcionarios?.nome_completo || "", sortAlpha);
   const formatCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 
   const renderParcelasResumo = (a: any) => {
@@ -252,8 +255,11 @@ export default function Adiantamentos() {
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" /> Novo Adiantamento</Button>
       </div>
 
-      <div className="max-w-sm">
-        <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="max-w-sm flex-1 min-w-[220px]">
+          <Combobox options={funcionarios.map((f: any) => ({ value: f.id, label: f.nome_completo }))} value={filterFunc} onValueChange={setFilterFunc} placeholder="Filtrar por funcionário" />
+        </div>
+        <SortAlphaToggle value={sortAlpha} onChange={setSortAlpha} />
       </div>
 
       <Card><CardContent className="p-0">

@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { Pencil, Trash2, Search, Eye, Users, FileDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { maskCPF, maskRG, maskPhone, isValidCPF } from "@/lib/masks";
+import { SortAlphaToggle, sortByName, type SortAlpha } from "@/components/SortAlphaToggle";
 
 export default function Funcionarios() {
   const queryClient = useQueryClient();
@@ -195,7 +196,8 @@ export default function Funcionarios() {
     if (validateForm()) saveMutation.mutate();
   };
 
-  const filtered = funcionarios.filter((f: any) => {
+  const [sortAlpha, setSortAlpha] = useState<SortAlpha>("none");
+  const filteredBase = funcionarios.filter((f: any) => {
     const eff = getEffective(f);
     if (statusFilter === "ativos" && !isActive(f.id)) return false;
     if (statusFilter === "inativos" && isActive(f.id)) return false;
@@ -204,6 +206,7 @@ export default function Funcionarios() {
     if (filterTipoContrato && f.tipo_contrato !== filterTipoContrato) return false;
     return f.nome_completo.toLowerCase().includes(search.toLowerCase());
   });
+  const filtered = sortByName(filteredBase, (f: any) => f.nome_completo || "", sortAlpha);
 
   const getStatusBadge = (funcId: string) => {
     const st = (statusMap as Record<string, string>)[funcId];
@@ -305,7 +308,8 @@ export default function Funcionarios() {
             {TIPO_CONTRATO_OPTIONS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Button variant="outline" onClick={exportarRelatorio} className="ml-auto">
+        <SortAlphaToggle value={sortAlpha} onChange={setSortAlpha} className="ml-auto" />
+        <Button variant="outline" onClick={exportarRelatorio}>
           <FileDown className="h-4 w-4 mr-2" />
           Gerar relatório
         </Button>

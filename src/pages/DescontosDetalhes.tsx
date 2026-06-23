@@ -9,6 +9,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft } from "lucide-react";
+import { SortAlphaToggle, sortByName, type SortAlpha } from "@/components/SortAlphaToggle";
 
 export const TIPOS_DESCONTO = [
   "Plano de Saúde",
@@ -25,6 +26,7 @@ export default function DescontosDetalhes() {
   const [filterFunc, setFilterFunc] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState("");
   const [filterTipo, setFilterTipo] = useState("");
+  const [sortAlpha, setSortAlpha] = useState<SortAlpha>("none");
 
   const { data: descontos = [], isLoading } = useQuery({
     queryKey: ["rh_folha_descontos_detalhes", mes],
@@ -62,7 +64,7 @@ export default function DescontosDetalhes() {
   });
 
   const filtered = useMemo(() => {
-    return (descontos as any[]).filter((d) => {
+    const base = (descontos as any[]).filter((d) => {
       const funcId = d.rh_folha_mensal?.funcionario_id;
       const empresaId = d.rh_folha_mensal?.rh_funcionarios?.empresa_id;
       if (filterFunc && funcId !== filterFunc) return false;
@@ -70,7 +72,8 @@ export default function DescontosDetalhes() {
       if (filterTipo && d.tipo !== filterTipo) return false;
       return true;
     });
-  }, [descontos, filterFunc, filterEmpresa, filterTipo]);
+    return sortByName(base, (d: any) => d.rh_folha_mensal?.rh_funcionarios?.nome_completo || "", sortAlpha);
+  }, [descontos, filterFunc, filterEmpresa, filterTipo, sortAlpha]);
 
   const total = useMemo(
     () => filtered.reduce((s, d: any) => s + Number(d.valor || 0), 0),

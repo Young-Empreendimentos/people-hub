@@ -12,6 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { ArrowLeft, Check } from "lucide-react";
+import { SortAlphaToggle, sortByName, type SortAlpha } from "@/components/SortAlphaToggle";
 
 export const TIPOS_REEMBOLSO = [
   "Gratificação",
@@ -28,6 +29,7 @@ export default function ReembolsosDetalhes() {
   const [filterFunc, setFilterFunc] = useState("");
   const [filterEmpresa, setFilterEmpresa] = useState("");
   const [filterTipo, setFilterTipo] = useState("");
+  const [sortAlpha, setSortAlpha] = useState<SortAlpha>("none");
 
   const { data: reembolsos = [], isLoading } = useQuery({
     queryKey: ["rh_folha_reembolsos_detalhes", mes],
@@ -101,7 +103,7 @@ export default function ReembolsosDetalhes() {
   });
 
   const filtered = useMemo(() => {
-    return (reembolsos as any[]).filter((d) => {
+    const base = (reembolsos as any[]).filter((d) => {
       const funcId = d.rh_folha_mensal?.funcionario_id;
       const empresaId = d.rh_folha_mensal?.rh_funcionarios?.empresa_id;
       if (filterFunc && funcId !== filterFunc) return false;
@@ -109,7 +111,8 @@ export default function ReembolsosDetalhes() {
       if (filterTipo && d.tipo !== filterTipo) return false;
       return true;
     });
-  }, [reembolsos, filterFunc, filterEmpresa, filterTipo]);
+    return sortByName(base, (d: any) => d.rh_folha_mensal?.rh_funcionarios?.nome_completo || "", sortAlpha);
+  }, [reembolsos, filterFunc, filterEmpresa, filterTipo, sortAlpha]);
 
   const total = useMemo(
     () => filtered.reduce((s, d: any) => s + Number(d.valor || 0), 0),

@@ -105,9 +105,13 @@ export function AppLayout() {
     );
   }
 
-  // Colaborador ativo → layout reduzido, sem sidebar; só acessa /meus-kms
+  // Colaborador ativo → layout reduzido, sem sidebar; acessa /meus-kms (e /auditorias* se for auditor)
   if (isColaborador) {
-    if (location.pathname !== "/meus-kms") return <Navigate to="/meus-kms" replace />;
+    const allowed =
+      location.pathname === "/meus-kms" ||
+      (isAuditor && location.pathname.startsWith("/auditorias")) ||
+      (isAuditor && location.pathname.startsWith("/atividades-auditoria"));
+    if (!allowed) return <Navigate to="/meus-kms" replace />;
     return (
       <div className="min-h-screen flex flex-col">
         <header className="border-b bg-card">
@@ -119,9 +123,19 @@ export function AppLayout() {
                 <p className="text-[10px] text-muted-foreground">Reembolso de KM</p>
               </div>
             </Link>
-            <Button variant="ghost" size="sm" onClick={signOut}>
-              <LogOut className="mr-2 h-4 w-4" /> Sair
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button asChild variant="ghost" size="sm">
+                <Link to="/meus-kms">Meus KMs</Link>
+              </Button>
+              {isAuditor && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/auditorias">Auditorias</Link>
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={signOut}>
+                <LogOut className="mr-2 h-4 w-4" /> Sair
+              </Button>
+            </div>
           </div>
         </header>
         <main className="flex-1 container mx-auto p-4 sm:p-6"><Outlet /></main>

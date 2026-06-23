@@ -49,6 +49,8 @@ export default function Funcionarios() {
   const [gestorId, setGestorId] = useState("");
   const [tipoContrato, setTipoContrato] = useState("");
   const [valorKm, setValorKm] = useState("");
+  const [temPlanoSaude, setTemPlanoSaude] = useState(false);
+  const [temDescontoParque, setTemDescontoParque] = useState(false);
   const [cpfError, setCpfError] = useState("");
 
   const TIPO_CONTRATO_OPTIONS = [

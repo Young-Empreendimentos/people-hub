@@ -163,3 +163,99 @@ export default function Auditorias() {
     </div>
   );
 }
+
+function VinculoAuditoresButton() {
+  const [open, setOpen] = useState(false);
+  const qc = useQueryClient();
+  const [userId, setUserId] = useState("");
+  const [equipeId, setEquipeId] = useState("");
+
+  const { data: auditores = [] } = useQuery({
+    queryKey: ["lista_auditores"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_get_all_users_with_roles");
+      if (error) throw error;
+      return ((data ?? []) as any[]).filter((u) => u.is_auditor);
+    },
+    enabled: open,
+  });
+
+  const { data: equipes = [] } = useQuery({
+    queryKey: ["rh_equipes"],
+    queryFn: async () => (await supabase.from("rh_equipes").select("id, nome").order("nome")).data ?? [],
+    enabled: open,
+  });
+
+  const { data: vinculos = [], refetch } = useQuery({
+    queryKey: ["rh_auditor_equipes_all"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rh_auditor_equipes").select("*");
+      if (error) throw error;
+      return data as any[];
+    },
+    enabled: open,
+  });
+
+  const addVinculo = async () => {
+    if (!userId || !equipeId) return;
+    const { error } = await supabase.from("rh_auditor_equipes").insert({ user_id: userId, equipe_id: equipeId });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Vinculado.");
+    setUserId(""); setEquipeId(""); refetch();
+  };
+
+  const removeVinculo = async (id: string) => {
+    const { error } = await supabase.from("rh_auditor_equipes").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    refetch();
+  };
+
+  return (
+    <>
+      <Button variant="outline" onClick={() => setOpen(true)}><Users className="mr-2 h-4 w-4" />Vincular auditores</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Auditores ↔ Equipes</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+              <div>
+                <label className="text-sm">Auditor</label>
+                <Combobox
+                  options={(auditores as any[]).map((u) => ({ value: u.id, label: `${u.nome || u.email} (${u.email})` }))}
+                  value={userId} onValueChange={setUserId}
+                  placeholder="Selecionar auditor" emptyMessage="Nenhum auditor cadastrado"
+                />
+              </div>
+              <div>
+                <label className="text-sm">Equipe</label>
+                <Combobox
+                  options={(equipes as any[]).map((e) => ({ value: e.id, label: e.nome }))}
+                  value={equipeId} onValueChange={setEquipeId}
+                  placeholder="Selecionar equipe" emptyMessage="—"
+                />
+              </div>
+              <Button onClick={addVinculo} disabled={!userId || !equipeId}>Vincular</Button>
+            </div>
+            <div className="border-t pt-3">
+              <p className="text-sm font-medium mb-2">Vínculos existentes</p>
+              {vinculos.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum.</p> : (
+                <ul className="space-y-1 text-sm">
+                  {vinculos.map((v: any) => {
+                    const u = (auditores as any[]).find((x) => x.id === v.user_id);
+                    const e = (equipes as any[]).find((x) => x.id === v.equipe_id);
+                    return (
+                      <li key={v.id} className="flex items-center justify-between border rounded px-3 py-1.5">
+                        <span>{u?.nome || u?.email || v.user_id} → {e?.nome || v.equipe_id}</span>
+                        <Button size="sm" variant="ghost" onClick={() => removeVinculo(v.id)}>Remover</Button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

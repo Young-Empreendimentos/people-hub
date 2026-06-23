@@ -25,13 +25,26 @@ export default function PrimeiroAcesso() {
   const { data: funcionarios = [], isLoading } = useQuery({
     queryKey: ["funcionarios_primeiro_acesso"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("rh_list_funcionarios_para_vinculo" as any);
+      const [{ data, error }, { data: admDesl, error: errAdm }] = await Promise.all([
+        supabase.rpc("rh_list_funcionarios_para_vinculo" as any),
+        supabase
+          .from("rh_admissoes_desligamentos")
+          .select("funcionario_id, tipo, data")
+          .order("data", { ascending: false }),
+      ]);
       if (error) throw error;
-      return (data || []).map((f: any) => ({
-        id: f.id,
-        nome_completo: f.nome_completo,
-        cpf: f.cpf_masked,
-      }));
+      if (errAdm) throw errAdm;
+      const statusMap: Record<string, string> = {};
+      for (const row of (admDesl || []) as any[]) {
+        if (!statusMap[row.funcionario_id]) statusMap[row.funcionario_id] = row.tipo;
+      }
+      return (data || [])
+        .filter((f: any) => statusMap[f.id] !== "desligamento")
+        .map((f: any) => ({
+          id: f.id,
+          nome_completo: f.nome_completo,
+          cpf: f.cpf_masked,
+        }));
     },
   });
 

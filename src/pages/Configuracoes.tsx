@@ -127,12 +127,15 @@ function TiposAditivoTab() {
 /* ============ Gerenciamento de Usuários Tab ============ */
 function UsuariosTab() {
   const queryClient = useQueryClient();
+  const { role: currentRole } = useAuth();
+  const isAdmin = currentRole === "admin";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ativo");
   const [selectedFuncionarioId, setSelectedFuncionarioId] = useState("");
   const [isAuditor, setIsAuditor] = useState(false);
+
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["rh_users_with_roles"],
@@ -303,10 +306,13 @@ function UsuariosTab() {
               </TableCell>
               <TableCell className="text-xs">{u.funcionario_nome || "—"}</TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
-                  <UserCog className="h-4 w-4" />
-                </Button>
+                {(isAdmin || u.role !== "admin") && (
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
+                    <UserCog className="h-4 w-4" />
+                  </Button>
+                )}
               </TableCell>
+
             </TableRow>
           ))}
         </TableBody>
@@ -321,11 +327,12 @@ function UsuariosTab() {
               <Combobox
                 options={[
                   { value: "", label: "Sem função" },
-                  { value: "admin", label: "Administrador" },
+                  ...(isAdmin ? [{ value: "admin", label: "Administrador" }] : []),
                   { value: "coordenador", label: "Coordenador" },
                   { value: "usuario", label: "Usuário" },
                   { value: "colaborador", label: "Colaborador (só lança KM)" },
                 ]}
+
                 value={selectedRole}
                 onValueChange={setSelectedRole}
                 placeholder="Selecione a função"

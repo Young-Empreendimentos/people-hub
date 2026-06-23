@@ -186,6 +186,12 @@ function VinculoAuditoresButton() {
     enabled: open,
   });
 
+  const { data: funcionarios = [] } = useQuery({
+    queryKey: ["rh_funcionarios_equipe_map"],
+    queryFn: async () => (await supabase.from("rh_funcionarios").select("id, equipe_id")).data ?? [],
+    enabled: open,
+  });
+
   const { data: vinculos = [], refetch } = useQuery({
     queryKey: ["rh_auditor_equipes_all"],
     queryFn: async () => {
@@ -196,8 +202,24 @@ function VinculoAuditoresButton() {
     enabled: open,
   });
 
+  // Equipe do auditor selecionado (não pode auditar a própria equipe)
+  const equipeDoAuditor = (() => {
+    const auditor = (auditores as any[]).find((u) => u.id === userId);
+    if (!auditor?.funcionario_id) return null;
+    const f = (funcionarios as any[]).find((x) => x.id === auditor.funcionario_id);
+    return f?.equipe_id ?? null;
+  })();
+
+  const equipesDisponiveis = equipeDoAuditor
+    ? (equipes as any[]).filter((e) => e.id !== equipeDoAuditor)
+    : (equipes as any[]);
+
   const addVinculo = async () => {
     if (!userId || !equipeId) return;
+    if (equipeDoAuditor && equipeId === equipeDoAuditor) {
+      toast.error("Um auditor não pode ser vinculado à própria equipe.");
+      return;
+    }
     const { error } = await supabase.from("rh_auditor_equipes").insert({ user_id: userId, equipe_id: equipeId });
     if (error) { toast.error(error.message); return; }
     toast.success("Vinculado.");

@@ -1308,104 +1308,6 @@ export type Database = {
         }
         Relationships: []
       }
-      comercial_corretores: {
-        Row: {
-          ativo: boolean
-          bairro: string | null
-          banco_agencia: string | null
-          banco_chave_pix: string | null
-          banco_conta: string | null
-          banco_nome: string | null
-          banco_tipo: string | null
-          cep: string | null
-          cidade: string | null
-          cnpj: string | null
-          cpf: string | null
-          created_at: string
-          creci: string | null
-          dados_bancarios: string | null
-          email: string | null
-          email_secundario: string | null
-          endereco: string | null
-          id: string
-          imobiliaria_origem_id: string | null
-          is_cadastro_completo: boolean
-          nome: string
-          nome_exibicao: string | null
-          razao_social: string | null
-          telefone: string | null
-          tipo: string | null
-          uf: string | null
-          updated_at: string
-        }
-        Insert: {
-          ativo?: boolean
-          bairro?: string | null
-          banco_agencia?: string | null
-          banco_chave_pix?: string | null
-          banco_conta?: string | null
-          banco_nome?: string | null
-          banco_tipo?: string | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string | null
-          cpf?: string | null
-          created_at?: string
-          creci?: string | null
-          dados_bancarios?: string | null
-          email?: string | null
-          email_secundario?: string | null
-          endereco?: string | null
-          id?: string
-          imobiliaria_origem_id?: string | null
-          is_cadastro_completo?: boolean
-          nome: string
-          nome_exibicao?: string | null
-          razao_social?: string | null
-          telefone?: string | null
-          tipo?: string | null
-          uf?: string | null
-          updated_at?: string
-        }
-        Update: {
-          ativo?: boolean
-          bairro?: string | null
-          banco_agencia?: string | null
-          banco_chave_pix?: string | null
-          banco_conta?: string | null
-          banco_nome?: string | null
-          banco_tipo?: string | null
-          cep?: string | null
-          cidade?: string | null
-          cnpj?: string | null
-          cpf?: string | null
-          created_at?: string
-          creci?: string | null
-          dados_bancarios?: string | null
-          email?: string | null
-          email_secundario?: string | null
-          endereco?: string | null
-          id?: string
-          imobiliaria_origem_id?: string | null
-          is_cadastro_completo?: boolean
-          nome?: string
-          nome_exibicao?: string | null
-          razao_social?: string | null
-          telefone?: string | null
-          tipo?: string | null
-          uf?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "comercial_corretores_imobiliaria_origem_id_fkey"
-            columns: ["imobiliaria_origem_id"]
-            isOneToOne: false
-            referencedRelation: "imobiliarias"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       comercial_corretores_backup_pre_view: {
         Row: {
           ativo: boolean | null
@@ -3149,6 +3051,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_deals_corretor_fk"
+            columns: ["responsavel_venda_corretor_id"]
+            isOneToOne: false
+            referencedRelation: "comercial_corretores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_deals_corretor_fk"
+            columns: ["responsavel_venda_corretor_id"]
+            isOneToOne: false
+            referencedRelation: "comissoes_sienge_corretores"
+            referencedColumns: ["crm_uuid"]
+          },
+          {
             foreignKeyName: "crm_deals_empreendimento_id_fkey"
             columns: ["empreendimento_id"]
             isOneToOne: false
@@ -3167,13 +3083,6 @@ export type Database = {
             columns: ["motivo_perda_id"]
             isOneToOne: false
             referencedRelation: "crm_motivos_perda"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crm_deals_responsavel_venda_corretor_id_fkey"
-            columns: ["responsavel_venda_corretor_id"]
-            isOneToOne: false
-            referencedRelation: "comercial_corretores"
             referencedColumns: ["id"]
           },
         ]
@@ -9977,6 +9886,96 @@ export type Database = {
       }
     }
     Views: {
+      comercial_corretores: {
+        Row: {
+          ativo: boolean | null
+          bairro: string | null
+          banco_agencia: string | null
+          banco_chave_pix: string | null
+          banco_conta: string | null
+          banco_nome: string | null
+          banco_tipo: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string | null
+          creci: string | null
+          dados_bancarios: string | null
+          email: string | null
+          email_secundario: string | null
+          endereco: string | null
+          id: string | null
+          imobiliaria_origem_id: string | null
+          is_cadastro_completo: boolean | null
+          nome: string | null
+          nome_exibicao: string | null
+          razao_social: string | null
+          telefone: string | null
+          tipo: string | null
+          uf: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: never
+          bairro?: string | null
+          banco_agencia?: string | null
+          banco_chave_pix?: string | null
+          banco_conta?: string | null
+          banco_nome?: string | null
+          banco_tipo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          creci?: string | null
+          dados_bancarios?: string | null
+          email?: string | null
+          email_secundario?: string | null
+          endereco?: string | null
+          id?: string | null
+          imobiliaria_origem_id?: string | null
+          is_cadastro_completo?: boolean | null
+          nome?: string | null
+          nome_exibicao?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: string | null
+          uf?: string | null
+          updated_at?: never
+        }
+        Update: {
+          ativo?: never
+          bairro?: string | null
+          banco_agencia?: string | null
+          banco_chave_pix?: string | null
+          banco_conta?: string | null
+          banco_nome?: string | null
+          banco_tipo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          creci?: string | null
+          dados_bancarios?: string | null
+          email?: string | null
+          email_secundario?: string | null
+          endereco?: string | null
+          id?: string | null
+          imobiliaria_origem_id?: string | null
+          is_cadastro_completo?: boolean | null
+          nome?: string | null
+          nome_exibicao?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: string | null
+          uf?: string | null
+          updated_at?: never
+        }
+        Relationships: []
+      }
       comissoes_sienge_contratos: {
         Row: {
           atualizado_em: string | null

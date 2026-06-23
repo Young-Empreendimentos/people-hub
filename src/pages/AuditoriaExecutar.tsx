@@ -147,7 +147,7 @@ export default function AuditoriaExecutar() {
     <div className="space-y-4 max-w-5xl">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <Button asChild variant="ghost" size="sm"><Link to="/auditorias"><ArrowLeft className="mr-1 h-4 w-4" />Voltar</Link></Button>
+          <Button asChild variant="ghost" size="sm"><Link to="/auditorias/lista"><ArrowLeft className="mr-1 h-4 w-4" />Voltar</Link></Button>
           <h1 className="text-2xl font-bold mt-1">{auditoria.titulo}</h1>
           <p className="text-sm text-muted-foreground">
             {auditoria.rh_equipes?.nome ?? "Sem equipe"} • {new Date(auditoria.data_referencia).toLocaleDateString("pt-BR")} • Status: <strong>{auditoria.status}</strong>

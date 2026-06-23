@@ -40,6 +40,7 @@ import AprovacoesKm from "./pages/AprovacoesKm";
 import AtividadesAuditoria from "./pages/AtividadesAuditoria";
 import Auditorias from "./pages/Auditorias";
 import AuditoriaExecutar from "./pages/AuditoriaExecutar";
+import AuditoriasHub from "./pages/AuditoriasHub";
 
 const queryClient = new QueryClient();
 
@@ -69,7 +70,8 @@ const App = () => (
               <Route path="/folha" element={<FolhaMensal />} />
               <Route path="/atividades" element={<Atividades />} />
               <Route path="/atividades-auditoria" element={<AtividadesAuditoria />} />
-              <Route path="/auditorias" element={<Auditorias />} />
+              <Route path="/auditorias" element={<AuditoriasHub />} />
+              <Route path="/auditorias/lista" element={<Auditorias />} />
               <Route path="/auditorias/:id" element={<AuditoriaExecutar />} />
               <Route path="/organograma" element={<Organograma />} />
               <Route path="/aniversarios" element={<Aniversarios />} />

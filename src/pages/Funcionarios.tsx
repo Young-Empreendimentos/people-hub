@@ -490,6 +490,19 @@ export default function Funcionarios() {
                 </p>
               </div>
             </div>
+            <div className="space-y-2 rounded-md border p-3">
+              <p className="text-sm font-medium">Benefícios / Descontos fixos</p>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="h-4 w-4" checked={temPlanoSaude} onChange={(e) => setTemPlanoSaude(e.target.checked)} />
+                Possui Plano de Saúde
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="h-4 w-4" checked={temDescontoParque} onChange={(e) => setTemDescontoParque(e.target.checked)} />
+                Possui Desconto Parque da Guarda
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                Controla quem aparece nos lançamentos de Plano de Saúde e no desconto "Parque da Guarda".
+              </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancelar</Button>

@@ -34,6 +34,7 @@ export default function FolhaMensal() {
   const [filterEmpresa, setFilterEmpresa] = useState("");
   const [filterDataIni, setFilterDataIni] = useState<Date | undefined>(undefined);
   const [filterDataFim, setFilterDataFim] = useState<Date | undefined>(undefined);
+  const [sortAlpha, setSortAlpha] = useState<import("@/components/SortAlphaToggle").SortAlpha>("none");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [dialogEmpresaId, setDialogEmpresaId] = useState("");

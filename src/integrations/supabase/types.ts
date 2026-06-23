@@ -7758,6 +7758,8 @@ export type Database = {
           rg: string | null
           seguro_vida: boolean
           telefone: string | null
+          tem_desconto_parque: boolean
+          tem_plano_saude: boolean
           tipo_contrato: string | null
           updated_at: string
           valor_km: number
@@ -7779,6 +7781,8 @@ export type Database = {
           rg?: string | null
           seguro_vida?: boolean
           telefone?: string | null
+          tem_desconto_parque?: boolean
+          tem_plano_saude?: boolean
           tipo_contrato?: string | null
           updated_at?: string
           valor_km?: number
@@ -7800,6 +7804,8 @@ export type Database = {
           rg?: string | null
           seguro_vida?: boolean
           telefone?: string | null
+          tem_desconto_parque?: boolean
+          tem_plano_saude?: boolean
           tipo_contrato?: string | null
           updated_at?: string
           valor_km?: number

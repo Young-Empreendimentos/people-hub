@@ -286,7 +286,7 @@ export default function FolhaMensal() {
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato").order("nome_completo");
+      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato, tem_plano_saude, tem_desconto_parque").order("nome_completo");
       return data || [];
     },
   });
@@ -1216,10 +1216,18 @@ export default function FolhaMensal() {
                   </div>
                 </div>
               )}
+              {(() => {
+                const selFunc = funcionariosAll.find((x: any) => x.id === funcId) as any;
+                const tiposFiltrados = TIPOS_DESCONTO.filter((t) => {
+                  if (t === "Parque da Guarda") return !!selFunc?.tem_desconto_parque;
+                  if (t === "Plano de Saúde") return !!selFunc?.tem_plano_saude;
+                  return true;
+                });
+                return (
               <div className="grid grid-cols-2 md:grid-cols-12 gap-2 items-end">
                 <div className="md:col-span-4">
                   <Combobox
-                    options={TIPOS_DESCONTO.map((t) => ({ value: t, label: t }))}
+                    options={tiposFiltrados.map((t) => ({ value: t, label: t }))}
                     value={novoDescontoTipo}
                     onValueChange={setNovoDescontoTipo}
                     placeholder="Tipo de desconto"
@@ -1245,6 +1253,7 @@ export default function FolhaMensal() {
                   </Button>
                 </div>
               </div>
+                ); })()}
               {descontosLista.length > 0 && (
                 <div className="space-y-1 pt-2">
                   {descontosLista.map((d, idx) => (

@@ -49,6 +49,8 @@ export default function Funcionarios() {
   const [gestorId, setGestorId] = useState("");
   const [tipoContrato, setTipoContrato] = useState("");
   const [valorKm, setValorKm] = useState("");
+  const [temPlanoSaude, setTemPlanoSaude] = useState(false);
+  const [temDescontoParque, setTemDescontoParque] = useState(false);
   const [cpfError, setCpfError] = useState("");
 
   const TIPO_CONTRATO_OPTIONS = [
@@ -168,6 +170,8 @@ export default function Funcionarios() {
         gestor_id: gestorId || null,
         tipo_contrato: tipoContrato || null,
         valor_km: parseFloat(valorKm.replace(",", ".")) || 0,
+        tem_plano_saude: temPlanoSaude,
+        tem_desconto_parque: temDescontoParque,
       };
       if (editingId) {
         const { error } = await supabase.from("rh_funcionarios").update(payload).eq("id", editingId);
@@ -207,6 +211,8 @@ export default function Funcionarios() {
     setGestorId(f.gestor_id || "");
     setTipoContrato(f.tipo_contrato || "");
     setValorKm(f.valor_km != null ? String(f.valor_km) : "");
+    setTemPlanoSaude(!!f.tem_plano_saude);
+    setTemDescontoParque(!!f.tem_desconto_parque);
     setCpfError("");
     setDialogOpen(true);
   };
@@ -489,6 +495,20 @@ export default function Funcionarios() {
                   Usado quando o colaborador lança km no Pilares.
                 </p>
               </div>
+            </div>
+            <div className="space-y-2 rounded-md border p-3">
+              <p className="text-sm font-medium">Benefícios / Descontos fixos</p>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="h-4 w-4" checked={temPlanoSaude} onChange={(e) => setTemPlanoSaude(e.target.checked)} />
+                Possui Plano de Saúde
+              </label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" className="h-4 w-4" checked={temDescontoParque} onChange={(e) => setTemDescontoParque(e.target.checked)} />
+                Possui Desconto Parque da Guarda
+              </label>
+              <p className="text-[11px] text-muted-foreground">
+                Controla quem aparece nos lançamentos de Plano de Saúde e no desconto "Parque da Guarda".
+              </p>
             </div>
           </div>
           <DialogFooter>

@@ -1406,6 +1406,96 @@ export type Database = {
           },
         ]
       }
+      comercial_corretores_backup_pre_view: {
+        Row: {
+          ativo: boolean | null
+          bairro: string | null
+          banco_agencia: string | null
+          banco_chave_pix: string | null
+          banco_conta: string | null
+          banco_nome: string | null
+          banco_tipo: string | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          cpf: string | null
+          created_at: string | null
+          creci: string | null
+          dados_bancarios: string | null
+          email: string | null
+          email_secundario: string | null
+          endereco: string | null
+          id: string | null
+          imobiliaria_origem_id: string | null
+          is_cadastro_completo: boolean | null
+          nome: string | null
+          nome_exibicao: string | null
+          razao_social: string | null
+          telefone: string | null
+          tipo: string | null
+          uf: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          bairro?: string | null
+          banco_agencia?: string | null
+          banco_chave_pix?: string | null
+          banco_conta?: string | null
+          banco_nome?: string | null
+          banco_tipo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          creci?: string | null
+          dados_bancarios?: string | null
+          email?: string | null
+          email_secundario?: string | null
+          endereco?: string | null
+          id?: string | null
+          imobiliaria_origem_id?: string | null
+          is_cadastro_completo?: boolean | null
+          nome?: string | null
+          nome_exibicao?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: string | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          bairro?: string | null
+          banco_agencia?: string | null
+          banco_chave_pix?: string | null
+          banco_conta?: string | null
+          banco_nome?: string | null
+          banco_tipo?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          creci?: string | null
+          dados_bancarios?: string | null
+          email?: string | null
+          email_secundario?: string | null
+          endereco?: string | null
+          id?: string | null
+          imobiliaria_origem_id?: string | null
+          is_cadastro_completo?: boolean | null
+          nome?: string | null
+          nome_exibicao?: string | null
+          razao_social?: string | null
+          telefone?: string | null
+          tipo?: string | null
+          uf?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       comercial_dados_bancarios: {
         Row: {
           dados_bancarios: string

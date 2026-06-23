@@ -503,6 +503,7 @@ export default function Funcionarios() {
               <p className="text-[11px] text-muted-foreground">
                 Controla quem aparece nos lançamentos de Plano de Saúde e no desconto "Parque da Guarda".
               </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={closeDialog}>Cancelar</Button>

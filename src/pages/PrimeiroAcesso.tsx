@@ -70,6 +70,18 @@ export default function PrimeiroAcesso() {
       }
       const { error } = await supabase.from("rh_user_roles").insert(rows as any);
       if (error) throw error;
+      // Notifica Suelen por email (não bloqueia o fluxo se falhar)
+      try {
+        await supabase.functions.invoke("notificar-novo-cadastro", {
+          body: {
+            nome: func?.nome_completo ?? user.email,
+            email: user.email,
+            role: isAuditor ? "colaborador + auditor" : "colaborador",
+          },
+        });
+      } catch (e) {
+        console.error("Falha ao notificar novo cadastro:", e);
+      }
     },
     onSuccess: async () => {
       toast.success("Solicitação enviada! Aguarde a aprovação do RH.");

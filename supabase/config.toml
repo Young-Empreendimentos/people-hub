@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.enviar-relatorio-km-pendentes]
 verify_jwt = false
+
+[functions.notificar-novo-cadastro]
+verify_jwt = false

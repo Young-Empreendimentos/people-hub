@@ -170,6 +170,8 @@ export default function Funcionarios() {
         gestor_id: gestorId || null,
         tipo_contrato: tipoContrato || null,
         valor_km: parseFloat(valorKm.replace(",", ".")) || 0,
+        tem_plano_saude: temPlanoSaude,
+        tem_desconto_parque: temDescontoParque,
       };
       if (editingId) {
         const { error } = await supabase.from("rh_funcionarios").update(payload).eq("id", editingId);
@@ -209,6 +211,8 @@ export default function Funcionarios() {
     setGestorId(f.gestor_id || "");
     setTipoContrato(f.tipo_contrato || "");
     setValorKm(f.valor_km != null ? String(f.valor_km) : "");
+    setTemPlanoSaude(!!f.tem_plano_saude);
+    setTemDescontoParque(!!f.tem_desconto_parque);
     setCpfError("");
     setDialogOpen(true);
   };

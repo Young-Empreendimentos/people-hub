@@ -37,6 +37,9 @@ import NotFound from "./pages/NotFound";
 import PrimeiroAcesso from "./pages/PrimeiroAcesso";
 import MeusKms from "./pages/MeusKms";
 import AprovacoesKm from "./pages/AprovacoesKm";
+import AtividadesAuditoria from "./pages/AtividadesAuditoria";
+import Auditorias from "./pages/Auditorias";
+import AuditoriaExecutar from "./pages/AuditoriaExecutar";
 
 const queryClient = new QueryClient();
 

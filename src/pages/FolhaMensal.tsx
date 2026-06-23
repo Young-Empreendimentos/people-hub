@@ -1253,6 +1253,7 @@ export default function FolhaMensal() {
                   </Button>
                 </div>
               </div>
+                ); })()}
               {descontosLista.length > 0 && (
                 <div className="space-y-1 pt-2">
                   {descontosLista.map((d, idx) => (

@@ -306,10 +306,13 @@ function UsuariosTab() {
               </TableCell>
               <TableCell className="text-xs">{u.funcionario_nome || "—"}</TableCell>
               <TableCell className="text-right">
-                <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
-                  <UserCog className="h-4 w-4" />
-                </Button>
+                {(isAdmin || u.role !== "admin") && (
+                  <Button variant="ghost" size="icon" onClick={() => openEdit(u)}>
+                    <UserCog className="h-4 w-4" />
+                  </Button>
+                )}
               </TableCell>
+
             </TableRow>
           ))}
         </TableBody>

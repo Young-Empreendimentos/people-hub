@@ -1,66 +1,91 @@
-## Objetivo
 
-Permitir que funcionários da empresa entrem no Pilares via Google, lancem seus próprios km/data e, após aprovação do RH, esses valores virem reembolso na folha do mês vigente (período de competência: dia 20 do mês anterior → dia 19 do mês atual).
+## Avaliação da sua proposta
+
+Sua proposta original já está **bem desenhada** — segui ela quase inteira. Pontos que sugiro ajustar:
+
+1. **Versionamento de pesos**: em vez de "salvar memória de cálculo no fechamento", crio a tabela `rh_auditoria_resultado_itens` que copia peso do grupo + peso da atividade + status no momento do fechamento. Resultado fica imutável e auditável. Mais simples e robusto.
+2. **Pesos de grupo no tempo**: além disso, deixo o peso do grupo e da atividade editáveis a qualquer momento — só novas auditorias usam o novo peso; auditorias finalizadas mantêm o que foi congelado.
+3. **Print/screenshot**: bucket Supabase Storage `auditoria-evidencias` privado, com link assinado.
+4. **Aprovação**: qualquer admin pode aprovar (sua escolha).
+5. **E-mails**: Resend (você precisará criar a conta + verificar o domínio; eu peço a API key na hora certa).
+6. **Auditor por equipe**: tabela de vínculo `rh_auditor_equipes`. Métodos só aparecem para auditor cuja equipe bate com a equipe do grupo.
 
 ---
 
-## Mudanças no banco (migration)
+## FASE 1 — Cadastros + Execução da auditoria
 
-1. **Enum `app_role`**: adicionar valor `'colaborador'`.
-2. **Tabela `rh_user_roles`** — adicionar colunas:
-   - `funcionario_id uuid` (FK → `rh_funcionarios`, nullable) — qual funcionário esse usuário representa.
-   - `status text` default `'pendente'` — `pendente` | `ativo` | `rejeitado`.
-3. **Tabela `rh_funcionarios`** — adicionar:
-   - `valor_km numeric(10,4)` default `0` — R$ por km do funcionário.
-4. **Nova tabela `rh_km_lancamentos`**:
-   - `funcionario_id`, `data` (date do trajeto), `km numeric`, `valor_km_snapshot` (R$/km no momento do lançamento), `valor_total` (km × snapshot), `descricao` text, `status` (`pendente`/`aprovado`/`rejeitado`/`pago`), `criado_por`, `aprovado_por`, `aprovado_em`, `motivo_rejeicao`, `folha_reembolso_id` (preenchido quando virar linha de folha), timestamps.
-   - GRANT + RLS:
-     - `colaborador` lê/cria/edita/deleta apenas lançamentos **com status `pendente`** vinculados ao seu próprio `funcionario_id` (via `rh_user_roles`).
-     - `admin`/`coordenador`/`usuario` leem tudo; aprovam/rejeitam/editam.
-5. **RLS de `rh_user_roles`**: colaborador pode criar a **própria linha** com `role='colaborador'` e `status='pendente'` (autocadastro). Admin atualiza para `ativo`.
+### 1.1 Banco (uma migração)
 
-## Frontend
+Tabelas novas:
+- `rh_grupos_atividades_auditoria` — nome, equipe_id (FK rh_equipes), peso, ativo. *Distinta da `rh_grupos_atividades` atual, que é de outro contexto.*
+- `rh_atividades_auditoria` — grupo_id, nome, peso, responsavel_funcionario_id (FK), normas (text), manuais (text), indicadores (text), metodo_auditoria (text — restrito), ordem.
+- `rh_auditor_equipes` — user_id, equipe_id (vincula auditor às equipes).
+- `rh_auditorias` — titulo, equipe_id, auditor_user_id, data_referencia, status (`em_andamento` | `finalizada` | `aprovada` | `rejeitada`), observacao_geral, aprovado_por, aprovado_em, criado_por, percentual_final (preenchido no fechamento).
+- `rh_auditoria_itens` — auditoria_id, atividade_id, status (`positivo` | `inconformidade` | `nao_aplica` | `pendente`), comentario, evidencia_url, avaliado_em.
+- `rh_auditoria_resultado_snapshot` — auditoria_id, atividade_id, nome_atividade, nome_grupo, peso_grupo, peso_atividade, status. Preenchido **no fechamento** (memória de cálculo congelada).
 
-### Auth (`useAuth.tsx`)
-- `RhRole` passa a incluir `"colaborador"`.
-- Expor `funcionarioId`, `roleStatus`, `isColaborador`.
-- Helpers `canDelete/canConfig/...` continuam falsos para colaborador.
+Functions/policies:
+- `rh_is_auditor(uid)` — checa role `auditor` ativa.
+- `rh_auditor_em_equipe(uid, equipe_id)` — checa vínculo em `rh_auditor_equipes`.
+- RLS:
+  - `rh_grupos_atividades_auditoria` + `rh_atividades_auditoria`: SELECT para todo usuário autenticado (todos veem as atividades). INSERT/UPDATE/DELETE: admin.
+  - Campo `metodo_auditoria` (`rh_atividades_auditoria`): SELECT só admin **ou** auditor com vínculo na equipe do grupo. Implementado por **view** `rh_atividades_auditoria_visiveis` que omite `metodo_auditoria` para quem não tem direito; UI consome a view. (Postgres não tem column-level RLS prático aqui.)
+  - `rh_auditor_equipes`: admin gerencia, usuário vê o próprio vínculo.
+  - `rh_auditorias`: admin tudo; auditor lê/edita só as suas e enquanto `em_andamento`; demais leem após aprovada.
+  - `rh_auditoria_itens`: idem.
+  - `rh_auditoria_resultado_snapshot`: leitura para todos autenticados; escrita só via função `rh_fechar_auditoria(p_id)`.
+- Bucket `auditoria-evidencias` (privado), com policy: auditor pode upload/leitura nos arquivos das suas auditorias; admin tudo.
 
-### Roteamento (`App.tsx`)
-- Nova rota `/meus-kms` (tela do colaborador).
-- Nova rota `/primeiro-acesso` (seleção do próprio cadastro).
-- Em `Reembolsos`, nova aba/seção "Aprovações de KM" para admin/coordenador/usuario.
+### 1.2 Frontend (Fase 1)
 
-### `AppLayout.tsx`
-- Se logado **sem role**: redirecionar para `/primeiro-acesso` (em vez da tela "acesso pendente").
-- Se role = `colaborador` + status `pendente`: tela "aguardando aprovação do RH".
-- Se role = `colaborador` + status `ativo`: layout reduzido (sem sidebar completo) — só link "Meus KMs" e Sair. Qualquer rota fora de `/meus-kms` redireciona pra lá.
-- Demais roles: comportamento atual.
+Novas páginas/sidebar:
+- **Atividades** (`/atividades-auditoria`)
+  - 3 visões via Tabs: por **Grupo**, por **Responsável**, por **Equipe**.
+  - Combobox de filtro (padrão do projeto). Coluna "Método" só aparece para quem tem direito.
+  - Admin: botões CRUD para grupos e atividades (peso, responsável, normas, manuais, indicadores, método).
+- **Auditorias** (`/auditorias`)
+  - Listagem com status, equipe, auditor, data, % final.
+  - Botão "Nova auditoria" (admin ou auditor): escolhe equipe → cria registro `em_andamento` com itens auto-gerados a partir das atividades ativas daquela equipe (status inicial `pendente`).
+  - Página de execução `/auditorias/:id`:
+    - Lista por grupo, cada atividade com botões Positivo / Inconformidade / N/A, campo de comentário, upload de print (drag-drop ou colar Ctrl+V — uso `onPaste` capturando image/png), preview do print salvo.
+    - Botão "Finalizar" desabilitado se houver `pendente`. Ao finalizar: chama `rh_fechar_auditoria` (gera snapshot + calcula `percentual_final` com pesos atuais) e muda status para `finalizada`.
 
-### Páginas novas
-- **`PrimeiroAcesso.tsx`**: combobox com funcionários ativos (nome + cpf mascarado), botão "Confirmar". Cria registro em `rh_user_roles` (role `colaborador`, status `pendente`, funcionario_id selecionado, nome = nome do funcionário). Mostra confirmação "aguarde aprovação".
-- **`MeusKms.tsx`**: 
-  - Form: data (date), km (number), descrição (opcional) → INSERT com `valor_km_snapshot` lido de `rh_funcionarios.valor_km`.
-  - Lista dos próprios lançamentos com status colorido (pendente/aprovado/rejeitado/pago) e motivo de rejeição quando houver.
-  - Editar/excluir só se status `pendente`.
-  - Resumo do período vigente (20→19) com total de km e R$ previsto.
+### 1.3 Cálculo
+- Por grupo: `Σ(peso_atividade × valor_status) / Σ(peso_atividade)`, onde `positivo=1`, `inconformidade=0`, `nao_aplica` é excluído.
+- Total: `Σ(peso_grupo × resultado_grupo) / Σ(peso_grupo)`. Usado tanto na tela ao vivo (com pesos atuais) quanto no fechamento (sobre o snapshot).
 
-### Aprovações (admin/coordenador/usuario)
-- Em `src/pages/Reembolsos.tsx`, adicionar card/aba **"KM a aprovar"** com lista agrupada por funcionário, filtros por status e período. Ações: aprovar, rejeitar (com motivo), editar km/valor.
+---
 
-### Configurações
-- Em `src/pages/Configuracoes.tsx` → seção Usuários: mostrar pedidos pendentes (`rh_user_roles.status='pendente'`) com botão Aprovar / Rejeitar / Alterar role. Mostrar funcionário vinculado.
-- Em cadastro de funcionário (`FuncionarioDetalhes`): novo campo `valor_km` editável por admin/coord.
+## FASE 2 — Aprovação, e-mails, relatórios
 
-### Folha mensal
-- Em `FolhaMensal.tsx`, ao gerar/abrir a folha de um mês, somar `rh_km_lancamentos` **aprovados** com `data` entre `dia 20 do mês anterior` e `dia 19 do mês de referência`, e inserir/atualizar uma linha em `rh_folha_reembolsos` (tipo `KM`, origem `lancamento_colaborador`) com o total. Marcar os lançamentos com `folha_reembolso_id` e `status='pago'` quando a folha for fechada.
+### 2.1 Banco
+- Migração menor: triggers/condições adicionais se necessário; tabela `rh_auditoria_anexos_relatorio` opcional.
 
-## Pontos técnicos
+### 2.2 Fluxo de aprovação
+- Status `finalizada` → admins veem na fila "Aguardando aprovação".
+- Botões "Aprovar" / "Rejeitar com motivo".
+- Ao aprovar: status = `aprovada`, dispara edge function `enviar-relatorio-auditoria`.
 
-- Período de competência calculado por helper `getPeriodoKm(mesReferencia: Date) → { inicio: Date, fim: Date }` que retorna `[ano-mês-anterior-20, ano-mês-19]`.
-- Lock: lançamentos com status `pago` não podem ser editados nem por admin.
-- Snapshot do valor_km evita que mudanças posteriores no cadastro alterem reembolsos já aprovados.
+### 2.3 E-mails (Resend)
+- Edge function `notificar-auditoria-finalizada`: dispara ao finalizar → e-mail para todos admins.
+- Edge function `enviar-relatorio-auditoria`: dispara ao aprovar → e-mail para o auditor e para cada responsável das atividades auditadas, com o relatório (HTML) + link da auditoria.
+- Secret `RESEND_API_KEY` será solicitada no início da Fase 2; domínio remetente verificado pelo usuário.
 
-## Fora de escopo
-- Anexo de comprovante / foto do hodômetro (pode entrar depois).
-- Notificação por email ao colaborador quando aprovado/rejeitado.
+### 2.4 Relatórios / dashboard
+- **`/auditorias/:id/relatorio`**: relatório com cabeçalho, resultado por grupo, atividades positivas/inconformidades, prints, comentários, % final — pronto para impressão.
+- **`/auditorias-resultados`**: dashboard (semelhante ao "Dashboard" da sua planilha) com filtros por auditor/equipe/período, evolução do % final no tempo (linha), última auditoria de cada equipe, ranking de inconformidades mais frequentes.
+
+---
+
+## Considerações técnicas
+
+- **Snapshot vs recálculo dinâmico**: snapshot é a fonte da verdade do `percentual_final` aprovado. Mexer em pesos depois nunca altera relatório fechado.
+- **`metodo_auditoria` confidencial**: implementado por view porque RLS por coluna é frágil; qualquer query direta na tabela fica restrita a admin via RLS.
+- **Colar print (Ctrl+V)**: handler `onPaste` no card da atividade — converte blob → `supabase.storage.upload`.
+- **Sidebar**: "Atividades" visível para todos; "Auditorias" visível para admin + auditor; "Resultados de Auditoria" para todos após Fase 2.
+- Tabela `rh_grupos_atividades` atual permanece intocada (é outro contexto). Por isso uso o sufixo `_auditoria`.
+
+## Fora de escopo desta entrega
+- Importar a planilha histórica (posso fazer depois, sob demanda).
+- App mobile nativo (a UI será responsiva).
+- Assinatura digital do relatório.

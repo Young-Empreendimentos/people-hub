@@ -324,11 +324,12 @@ function UsuariosTab() {
               <Combobox
                 options={[
                   { value: "", label: "Sem função" },
-                  { value: "admin", label: "Administrador" },
+                  ...(isAdmin ? [{ value: "admin", label: "Administrador" }] : []),
                   { value: "coordenador", label: "Coordenador" },
                   { value: "usuario", label: "Usuário" },
                   { value: "colaborador", label: "Colaborador (só lança KM)" },
                 ]}
+
                 value={selectedRole}
                 onValueChange={setSelectedRole}
                 placeholder="Selecione a função"

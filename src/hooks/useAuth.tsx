@@ -44,14 +44,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("role, nome, status, funcionario_id")
       .eq("user_id", userId);
     const rows = (data ?? []) as any[];
-    if (rows.length === 0) {
+    setIsAuditor(rows.some((r) => r.role === "auditor"));
+    const nonAuditor = rows.filter((r) => r.role !== "auditor");
+    if (nonAuditor.length === 0) {
       setRole(null); setUserName(null); setRoleStatus(null); setFuncionarioId(null);
       return;
     }
     // Prioridade: admin > coordenador > usuario > colaborador
     const priority: Record<string, number> = { admin: 4, coordenador: 3, usuario: 2, colaborador: 1 };
-    rows.sort((a, b) => (priority[b.role] ?? 0) - (priority[a.role] ?? 0));
-    const best = rows[0];
+    nonAuditor.sort((a, b) => (priority[b.role] ?? 0) - (priority[a.role] ?? 0));
+    const best = nonAuditor[0];
     setRole((best.role as RhRole) ?? null);
     setUserName((best.nome as string) ?? null);
     setRoleStatus((best.status as RoleStatus) ?? null);

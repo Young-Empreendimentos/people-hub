@@ -127,12 +127,15 @@ function TiposAditivoTab() {
 /* ============ Gerenciamento de Usuários Tab ============ */
 function UsuariosTab() {
   const queryClient = useQueryClient();
+  const { role: currentRole } = useAuth();
+  const isAdmin = currentRole === "admin";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [selectedRole, setSelectedRole] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("ativo");
   const [selectedFuncionarioId, setSelectedFuncionarioId] = useState("");
   const [isAuditor, setIsAuditor] = useState(false);
+
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ["rh_users_with_roles"],

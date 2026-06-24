@@ -145,6 +145,24 @@ export type Database = {
           },
         ]
       }
+      bot_sessoes: {
+        Row: {
+          estado: string
+          numero: string
+          updated_at: string | null
+        }
+        Insert: {
+          estado?: string
+          numero: string
+          updated_at?: string | null
+        }
+        Update: {
+          estado?: string
+          numero?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       cidades: {
         Row: {
           codigo_ibge: number | null

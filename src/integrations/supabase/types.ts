@@ -10421,6 +10421,16 @@ export type Database = {
       }
     }
     Functions: {
+      crm_get_all_users_with_roles: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+          role: Database["public"]["Enums"]["crm_app_role"]
+        }[]
+      }
       crm_has_role: {
         Args: {
           _role: Database["public"]["Enums"]["crm_app_role"]

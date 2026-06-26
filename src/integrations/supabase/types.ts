@@ -59,47 +59,6 @@ export type Database = {
         }
         Relationships: []
       }
-      aditivo_taxa_regras: {
-        Row: {
-          bracket_pago: string
-          created_at: string
-          data_contrato_fim: string | null
-          data_contrato_ini: string | null
-          empreendimento_id: string
-          id: string
-          taxa_mensal: number
-          terreno_registrado: boolean
-        }
-        Insert: {
-          bracket_pago: string
-          created_at?: string
-          data_contrato_fim?: string | null
-          data_contrato_ini?: string | null
-          empreendimento_id: string
-          id?: string
-          taxa_mensal: number
-          terreno_registrado: boolean
-        }
-        Update: {
-          bracket_pago?: string
-          created_at?: string
-          data_contrato_fim?: string | null
-          data_contrato_ini?: string | null
-          empreendimento_id?: string
-          id?: string
-          taxa_mensal?: number
-          terreno_registrado?: boolean
-        }
-        Relationships: [
-          {
-            foreignKeyName: "aditivo_taxa_regras_empreendimento_id_fkey"
-            columns: ["empreendimento_id"]
-            isOneToOne: false
-            referencedRelation: "aditivo_empreendimentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       atividades: {
         Row: {
           created_at: string
@@ -2653,53 +2612,6 @@ export type Database = {
         }
         Relationships: []
       }
-      contratos_venda: {
-        Row: {
-          cliente_id: number | null
-          data_assinatura: string | null
-          empreendimento: string | null
-          id: string
-          numero: string | null
-          status: string | null
-          unidade: string | null
-          updated_at: string | null
-          valor_pago: number | null
-          valor_total: number | null
-        }
-        Insert: {
-          cliente_id?: number | null
-          data_assinatura?: string | null
-          empreendimento?: string | null
-          id: string
-          numero?: string | null
-          status?: string | null
-          unidade?: string | null
-          updated_at?: string | null
-          valor_pago?: number | null
-          valor_total?: number | null
-        }
-        Update: {
-          cliente_id?: number | null
-          data_assinatura?: string | null
-          empreendimento?: string | null
-          id?: string
-          numero?: string | null
-          status?: string | null
-          unidade?: string | null
-          updated_at?: string | null
-          valor_pago?: number | null
-          valor_total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "contratos_venda_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "sienge_clientes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       corretores_externos_sessoes: {
         Row: {
           ativo: boolean | null
@@ -3446,6 +3358,27 @@ export type Database = {
           },
         ]
       }
+      crm_user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["crm_app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["crm_app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["crm_app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       dashboard_comunicados: {
         Row: {
           autor_id: string
@@ -3943,60 +3876,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
-      }
-      financeiro_receber: {
-        Row: {
-          cliente_id: number | null
-          contrato_id: string | null
-          data_pagamento: string | null
-          id: string
-          numero_titulo: string | null
-          parcela: number | null
-          status: string | null
-          updated_at: string | null
-          valor: number | null
-          vencimento: string | null
-        }
-        Insert: {
-          cliente_id?: number | null
-          contrato_id?: string | null
-          data_pagamento?: string | null
-          id: string
-          numero_titulo?: string | null
-          parcela?: number | null
-          status?: string | null
-          updated_at?: string | null
-          valor?: number | null
-          vencimento?: string | null
-        }
-        Update: {
-          cliente_id?: number | null
-          contrato_id?: string | null
-          data_pagamento?: string | null
-          id?: string
-          numero_titulo?: string | null
-          parcela?: number | null
-          status?: string | null
-          updated_at?: string | null
-          valor?: number | null
-          vencimento?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "financeiro_receber_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "sienge_clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "financeiro_receber_contrato_id_fkey"
-            columns: ["contrato_id"]
-            isOneToOne: false
-            referencedRelation: "contratos_venda"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       frota_abastecimentos: {
         Row: {
@@ -10542,6 +10421,13 @@ export type Database = {
       }
     }
     Functions: {
+      crm_has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["crm_app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       enriquecer_deals: { Args: { p_data: Json }; Returns: Json }
       esquadro_has_role: {
         Args: {
@@ -10795,6 +10681,7 @@ export type Database = {
         | "Jardim do Parque"
       cobrancas_responsavel: "Gabrielle" | "Antonio" | "Lais" | "Suelen"
       cobrancas_role: "admin" | "comum"
+      crm_app_role: "admin" | "user"
       crm_deal_status:
         | "lead_recebido"
         | "contato_feito"
@@ -10984,6 +10871,7 @@ export const Constants = {
       ],
       cobrancas_responsavel: ["Gabrielle", "Antonio", "Lais", "Suelen"],
       cobrancas_role: ["admin", "comum"],
+      crm_app_role: ["admin", "user"],
       crm_deal_status: [
         "lead_recebido",
         "contato_feito",

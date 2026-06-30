@@ -10,4 +10,4 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.notificar-novo-cadastro]
-verify_jwt = false
+verify_jwt = true

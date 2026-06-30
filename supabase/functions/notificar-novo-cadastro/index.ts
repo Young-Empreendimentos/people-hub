@@ -8,14 +8,24 @@ const FROM = "Young RH <carla@youngempreendimentos.com.br>";
 const TO = "suelen@youngempreendimentos.com.br";
 const APP_URL = "https://pilares.youngempreendimentos.com.br";
 
+// Escapa texto antes de interpolar no HTML do e-mail (evita injeção de HTML / phishing).
+function escapeHtml(s: unknown): string {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
-    const nome = body.nome || "—";
-    const email = body.email || "—";
-    const role = body.role || "—";
+    const nome = escapeHtml(body.nome || "—");
+    const email = escapeHtml(body.email || "—");
+    const role = escapeHtml(body.role || "—");
 
     const html = `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#222;">
       <p>Olá, Suelen!</p>

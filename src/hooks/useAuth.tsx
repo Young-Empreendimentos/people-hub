@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select("role, nome, status, funcionario_id")
       .eq("user_id", userId);
     const rows = (data ?? []) as any[];
-    setIsAuditor(rows.some((r) => r.role === "auditor"));
+    setIsAuditor(rows.some((r) => r.role === "auditor" && r.status === "ativo"));
     const nonAuditor = rows.filter((r) => r.role !== "auditor");
     if (nonAuditor.length === 0) {
       setRole(null); setUserName(null); setRoleStatus(null); setFuncionarioId(null);

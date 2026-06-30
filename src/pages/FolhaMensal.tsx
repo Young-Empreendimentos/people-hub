@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
+import { hhmmToHours, hoursToHHMM, calcDescontoPlanoSaude, calcAuxilioMoradia, calcValorKm } from "@/lib/folha";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -69,18 +70,6 @@ export default function FolhaMensal() {
   const [novoDescontoTipo, setNovoDescontoTipo] = useState("");
   const [novoDescontoValor, setNovoDescontoValor] = useState("");
   const [novoDescontoObs, setNovoDescontoObs] = useState("");
-  const hhmmToHours = (s: string) => {
-    const m = /^(\d{1,3}):(\d{2})$/.exec(s.trim());
-    if (!m) return NaN;
-    return parseInt(m[1], 10) + parseInt(m[2], 10) / 60;
-  };
-  const hoursToHHMM = (h: number) => {
-    if (!isFinite(h)) return "00:00";
-    const total = Math.round(h * 60);
-    const hh = Math.floor(total / 60);
-    const mm = total % 60;
-    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-  };
   const addDescontoItem = () => {
     if (!novoDescontoTipo) {
       toast.error("Selecione o tipo do desconto.");
@@ -180,7 +169,7 @@ export default function FolhaMensal() {
       for (const r of rows) {
         let vt = Number(r.valor_total || 0);
         if (vt === 0 && vkAtual > 0) {
-          const novo = +(Number(r.km) * vkAtual).toFixed(2);
+          const novo = calcValorKm(Number(r.km), vkAtual);
           vt = novo;
           idsParaAtualizar.push({ id: r.id, valor_total: novo, valor_km_snapshot: vkAtual });
         }
@@ -520,7 +509,7 @@ export default function FolhaMensal() {
     const aluguel = Number((beneficioMoradia as any).valor_reembolso_aluguel) || 0;
     const perc = Number((beneficioMoradia as any).percentual_auxilio_moradia) || 0;
     const remun = selectedFuncCargo?.remuneracao ?? 0;
-    const auxilio = remun * (perc / 100);
+    const auxilio = calcAuxilioMoradia(remun, perc);
     return { aluguel, auxilio, perc, remun };
   }, [beneficioMoradia, selectedFuncCargo]);
 
@@ -568,7 +557,7 @@ export default function FolhaMensal() {
     const uso = Number((planoSaudeMes as any).uso_plano || 0);
     const total = mensalidade + uso;
     // Mensalidade: 20% de coparticipação · Uso do plano: valor integral
-    const desconto = +(mensalidade * 0.2 + uso).toFixed(2);
+    const desconto = calcDescontoPlanoSaude(mensalidade, 0, uso);
     return { total, mensalidade, uso, desconto };
   }, [planoSaudeMes]);
 

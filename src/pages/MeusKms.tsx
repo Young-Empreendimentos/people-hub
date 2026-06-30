@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { periodoKm } from "@/lib/folha";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,25 +19,6 @@ const fmtDate = (s: string) => {
   const [y, m, d] = s.split("-");
   return `${d}/${m}/${y}`;
 };
-
-function getPeriodoAtual() {
-  const hoje = new Date();
-  const dia = hoje.getDate();
-  const y = hoje.getFullYear();
-  const m = hoje.getMonth(); // 0-based
-  // Se >= 20: período começa dia 20 deste mês e vai até dia 19 do próximo
-  // Se < 20: período começou dia 20 do mês anterior e vai até dia 19 deste mês
-  let ini: Date, fim: Date;
-  if (dia >= 20) {
-    ini = new Date(y, m, 20);
-    fim = new Date(y, m + 1, 19);
-  } else {
-    ini = new Date(y, m - 1, 20);
-    fim = new Date(y, m, 19);
-  }
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  return { ini: iso(ini), fim: iso(fim) };
-}
 
 const statusBadge = (s: string) => {
   const map: Record<string, { label: string; variant: any; className?: string }> = {
@@ -123,7 +105,7 @@ export default function MeusKms() {
     },
   });
 
-  const periodo = useMemo(() => getPeriodoAtual(), []);
+  const periodo = useMemo(() => periodoKm(new Date()), []);
   const resumoPeriodo = useMemo(() => {
     const items = (lancamentos as any[]).filter(
       (l) => l.data >= periodo.ini && l.data <= periodo.fim && l.status !== "rejeitado"

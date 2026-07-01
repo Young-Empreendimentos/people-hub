@@ -239,17 +239,17 @@ function VinculoAuditoresButton() {
         <DialogContent className="max-w-2xl">
           <DialogHeader><DialogTitle>Auditores ↔ Equipes</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-              <div>
-                <label className="text-sm">Auditor</label>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 sm:items-end">
+              <div className="space-y-1 min-w-0">
+                <label className="block text-sm">Auditor</label>
                 <Combobox
                   options={(auditores as any[]).map((u) => ({ value: u.id, label: `${u.nome || u.email} (${u.email})` }))}
                   value={userId} onValueChange={setUserId}
                   placeholder="Selecionar auditor" emptyMessage="Nenhum auditor cadastrado"
                 />
               </div>
-              <div>
-                <label className="text-sm">Equipe</label>
+              <div className="space-y-1 min-w-0">
+                <label className="block text-sm">Equipe</label>
                 <Combobox
                   options={equipesDisponiveis.map((e) => ({ value: e.id, label: e.nome }))}
                   value={equipeId} onValueChange={setEquipeId}
@@ -257,7 +257,7 @@ function VinculoAuditoresButton() {
                   emptyMessage="—"
                 />
               </div>
-              <Button onClick={addVinculo} disabled={!userId || !equipeId}>Vincular</Button>
+              <Button className="w-full sm:w-auto" onClick={addVinculo} disabled={!userId || !equipeId}>Vincular</Button>
             </div>
             <div className="border-t pt-3">
               <p className="text-sm font-medium mb-2">Vínculos existentes</p>

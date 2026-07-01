@@ -7363,6 +7363,94 @@ export type Database = {
           },
         ]
       }
+      rh_mapeamento_alternativas: {
+        Row: {
+          aderencia: string
+          aprovado_em: string | null
+          aprovado_por: string | null
+          aprovado_por_nome: string | null
+          cargo_atual: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          mapeamento_cargo_id: string
+          nome: string
+          observacoes: string | null
+          origem: string
+          talents_candidate_id: string | null
+          talents_mapping_id: string | null
+        }
+        Insert: {
+          aderencia?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          cargo_atual?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mapeamento_cargo_id: string
+          nome: string
+          observacoes?: string | null
+          origem: string
+          talents_candidate_id?: string | null
+          talents_mapping_id?: string | null
+        }
+        Update: {
+          aderencia?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          cargo_atual?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mapeamento_cargo_id?: string
+          nome?: string
+          observacoes?: string | null
+          origem?: string
+          talents_candidate_id?: string | null
+          talents_mapping_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_mapeamento_alternativas_mapeamento_cargo_id_fkey"
+            columns: ["mapeamento_cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_mapeamento_cargos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_mapeamento_cargos: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_mapeamento_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_cargos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rh_empresas: {
         Row: {
           created_at: string
@@ -10582,6 +10670,8 @@ export type Database = {
         }
         Returns: string
       }
+      rh_aprovar_alternativa: { Args: { p_id: string }; Returns: undefined }
+      rh_revogar_alternativa: { Args: { p_id: string }; Returns: undefined }
       rh_current_funcionario_id: { Args: never; Returns: string }
       rh_fechar_auditoria: { Args: { p_auditoria_id: string }; Returns: number }
       rh_get_all_users_with_roles: {

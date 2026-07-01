@@ -42,6 +42,7 @@ import AtividadesAuditoria from "./pages/AtividadesAuditoria";
 import Auditorias from "./pages/Auditorias";
 import AuditoriaExecutar from "./pages/AuditoriaExecutar";
 import AuditoriasHub from "./pages/AuditoriasHub";
+import MapeamentoAlternativas from "./pages/MapeamentoAlternativas";
 
 const queryClient = new QueryClient();
 
@@ -89,6 +90,7 @@ const App = () => (
               <Route path="/gestao-pessoas/absenteismo" element={<Absenteismo />} />
               <Route path="/gestao-pessoas/plano-saude" element={<PlanoSaude />} />
               <Route path="/gestao-pessoas/uniformes" element={<Uniformes />} />
+              <Route path="/gestao-pessoas/mapeamento-alternativas" element={<MapeamentoAlternativas />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX, HeartPulse, Cake, Shirt } from "lucide-react";
+import { AlertTriangle, Users, UserPlus, FileText, Home, CalendarX, HeartPulse, Cake, Shirt, Network } from "lucide-react";
 
 const options = [
   {
@@ -56,6 +56,12 @@ const options = [
     description: "Controle de estoque, encomendas e entrega de uniformes com recibo.",
     url: "/gestao-pessoas/uniformes",
     icon: Shirt,
+  },
+  {
+    title: "Mapeamento de Alternativas",
+    description: "Mapeie candidatos externos para substituição de cargos estratégicos.",
+    url: "/gestao-pessoas/mapeamento-alternativas",
+    icon: Network,
   },
 ];
 

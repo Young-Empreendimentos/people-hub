@@ -18,6 +18,7 @@ interface AuthContextType {
   refreshRole: () => Promise<void>;
   isColaborador: boolean;
   isStaff: boolean;
+  isAdmin: boolean;
   isAuditor: boolean;
   canDelete: boolean;
   canConfig: boolean;
@@ -104,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isColaborador = role === "colaborador";
   const isStaff = role === "admin" || role === "coordenador" || role === "usuario";
+  const isAdmin = role === "admin";
   const canDelete = role === "admin" || role === "coordenador";
   const canConfig = role === "admin" || role === "coordenador";
   const canManageCargos = role === "admin" || role === "coordenador";
@@ -114,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{
       session, user, role, roleStatus, funcionarioId, userName, loading,
       signIn, signOut, refreshRole,
-      isColaborador, isStaff, isAuditor,
+      isColaborador, isStaff, isAdmin, isAuditor,
       canDelete, canConfig, canManageCargos, canManageBeneficiosMoradia, canEditCargoSalario,
     }}>
       {children}

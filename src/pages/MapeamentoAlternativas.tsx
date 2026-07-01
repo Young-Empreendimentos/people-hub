@@ -147,17 +147,26 @@ export default function MapeamentoAlternativas() {
     return Math.round((n / total) * 100);
   };
 
-  const mappedCargoIds = useMemo(() => new Set(mappedCargos.map((c) => c.cargo_id)), [mappedCargos]);
-  const cargoOptions = useMemo(
-    () =>
-      (allCargos as any[])
-        .filter((c) => !mappedCargoIds.has(c.id))
-        .map((c) => ({
-          value: c.id,
-          label: `${c.rh_trilhas_cargo?.nome ?? "Sem trilha"} — ${c.nome} (nível ${c.nivel})`,
-        })),
-    [allCargos, mappedCargoIds]
+  // rh_cargos tem registros repetidos (mesmo cargo/nível com salários diferentes por
+  // empresa). Para o mapeamento o salário não importa, então agrupamos o filtro por
+  // trilha + cargo + nível, mostrando uma única opção por cargo e escondendo os que já
+  // foram mapeados.
+  const mappedKeys = useMemo(
+    () => new Set(mappedCargos.map((c) => `${c.trilhaNome}|${c.cargoNome}|${c.nivel}`)),
+    [mappedCargos]
   );
+  const cargoOptions = useMemo(() => {
+    const seen = new Set<string>();
+    const opts: { value: string; label: string }[] = [];
+    for (const c of allCargos as any[]) {
+      const trilha = c.rh_trilhas_cargo?.nome ?? "Sem trilha";
+      const key = `${trilha}|${c.nome}|${c.nivel}`;
+      if (seen.has(key) || mappedKeys.has(key)) continue;
+      seen.add(key);
+      opts.push({ value: c.id, label: `${trilha} — ${c.nome} (nível ${c.nivel})` });
+    }
+    return opts.sort((a, b) => a.label.localeCompare(b.label));
+  }, [allCargos, mappedKeys]);
 
   // --- Mutations ---
   const addCargo = useMutation({

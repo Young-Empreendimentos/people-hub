@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, MinusCircle, Upload, Loader2, Trash2 } from "lucide-react";
+import { ArrowLeft, Check, X, MinusCircle, Upload, Loader2, Trash2, Search } from "lucide-react";
 
 type Item = {
   id: string; auditoria_id: string; atividade_id: string;
@@ -20,6 +20,8 @@ type Item = {
 type Atividade = {
   id: string; grupo_id: string; nome: string; peso: number;
   grupo_nome: string; grupo_peso: number; grupo_ordem: number; ordem: number;
+  metodo_auditoria: string | null;
+  normas: string | null; manuais: string | null; indicadores: string | null;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -275,6 +277,20 @@ function ItemEditor({ item, atv, editavel, onChange }: {
           <StatusBtn s="nao_aplica" label="N/A" icon={MinusCircle} />
         </div>
       </div>
+
+      {(atv.metodo_auditoria || atv.normas || atv.manuais || atv.indicadores) && (
+        <div className="rounded-md border bg-muted/40 p-2 space-y-1.5 text-xs">
+          {atv.metodo_auditoria && (
+            <div className="flex gap-1.5 text-amber-800 dark:text-amber-300">
+              <Search className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <p className="whitespace-pre-line"><span className="font-semibold">Como auditar:</span> {atv.metodo_auditoria}</p>
+            </div>
+          )}
+          {atv.normas && <p className="whitespace-pre-line text-muted-foreground"><span className="font-medium">Normas:</span> {atv.normas}</p>}
+          {atv.manuais && <p className="whitespace-pre-line text-muted-foreground"><span className="font-medium">Manuais:</span> {atv.manuais}</p>}
+          {atv.indicadores && <p className="whitespace-pre-line text-muted-foreground"><span className="font-medium">Indicadores:</span> {atv.indicadores}</p>}
+        </div>
+      )}
 
       <Textarea rows={2} placeholder="Comentário (opcional)…"
         value={comentario}

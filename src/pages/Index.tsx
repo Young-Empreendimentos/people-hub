@@ -53,6 +53,22 @@ export default function Index() {
     onError: () => toast.error("Erro ao aprovar."),
   });
 
+  const recusar = useMutation({
+    mutationFn: async (userId: string) => {
+      // Recusa e limpa o funcionário escolhido (libera o vínculo para nova solicitação).
+      const { error } = await supabase.from("rh_user_roles")
+        .update({ status: "rejeitado", funcionario_id: null } as any)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rh_pendentes_home"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_users_with_roles"] });
+      toast.success("Acesso recusado.");
+    },
+    onError: () => toast.error("Erro ao recusar."),
+  });
+
   const cards = [
     { title: "Funcionários", icon: Users, value: counts?.funcionarios ?? "—", desc: "Total de colaboradores" },
     { title: "Equipes", icon: Building2, value: counts?.equipes ?? "—", desc: "Equipes cadastradas" },
@@ -97,9 +113,20 @@ export default function Index() {
                     {u.funcionario_nome || "não vinculado"}
                   </p>
                 </div>
-                <Button size="sm" onClick={() => aprovar.mutate(u.id)} disabled={aprovar.isPending}>
-                  Aprovar
-                </Button>
+                <div className="flex shrink-0 gap-2">
+                  <Button size="sm" onClick={() => aprovar.mutate(u.id)} disabled={aprovar.isPending}>
+                    Aprovar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive"
+                    onClick={() => recusar.mutate(u.id)}
+                    disabled={recusar.isPending}
+                  >
+                    Recusar
+                  </Button>
+                </div>
               </div>
             ))}
             {pendentes.length > 5 && (

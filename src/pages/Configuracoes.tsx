@@ -206,6 +206,21 @@ function UsuariosTab() {
     onError: () => toast.error("Erro ao aprovar."),
   });
 
+  const quickReject = useMutation({
+    mutationFn: async (userId: string) => {
+      // Recusa e limpa o funcionário escolhido (libera o vínculo para nova solicitação).
+      const { error } = await supabase.from("rh_user_roles")
+        .update({ status: "rejeitado", funcionario_id: null } as any)
+        .eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rh_users_with_roles"] });
+      toast.success("Acesso recusado.");
+    },
+    onError: () => toast.error("Erro ao recusar."),
+  });
+
   const openEdit = (u: any) => {
     setEditingUserId(u.id);
     setSelectedRole(u.role || "");
@@ -260,7 +275,8 @@ function UsuariosTab() {
                     <TableCell className="font-medium">{u.email}</TableCell>
                     <TableCell>{u.funcionario_nome || <span className="text-muted-foreground text-xs">não vinculado</span>}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      <Button size="sm" onClick={() => quickApprove.mutate(u.id)}>Aprovar</Button>
+                      <Button size="sm" onClick={() => quickApprove.mutate(u.id)} disabled={quickApprove.isPending}>Aprovar</Button>
+                      <Button size="sm" variant="outline" className="text-destructive" onClick={() => quickReject.mutate(u.id)} disabled={quickReject.isPending}>Recusar</Button>
                       <Button size="sm" variant="outline" onClick={() => openEdit(u)}>Editar</Button>
                     </TableCell>
                   </TableRow>

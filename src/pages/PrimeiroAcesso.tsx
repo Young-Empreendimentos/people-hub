@@ -18,7 +18,7 @@ const maskCpf = (cpf?: string | null) => {
 
 export default function PrimeiroAcesso() {
   const navigate = useNavigate();
-  const { user, signOut, refreshRole } = useAuth();
+  const { user, signOut, refreshRole, roleStatus } = useAuth();
   const [funcId, setFuncId] = useState("");
   const [isAuditor, setIsAuditor] = useState(false);
 
@@ -53,22 +53,13 @@ export default function PrimeiroAcesso() {
     mutationFn: async () => {
       if (!user || !funcId) throw new Error("Selecione seu nome.");
       const func = (funcionarios as any[]).find((f) => f.id === funcId);
-      const rows: any[] = [{
-        user_id: user.id,
-        role: "colaborador",
-        status: "pendente",
-        funcionario_id: funcId,
-        nome: func?.nome_completo ?? null,
-      }];
-      if (isAuditor) {
-        rows.push({
-          user_id: user.id,
-          role: "auditor",
-          status: "pendente",
-          nome: func?.nome_completo ?? null,
-        });
-      }
-      const { error } = await supabase.from("rh_user_roles").insert(rows as any);
+      // RPC SECURITY DEFINER: cria (ou recria, se recusado antes) o pedido pendente
+      // do próprio usuário. Necessária porque o RLS não permite auto-update/delete
+      // e o UNIQUE(user_id, role) impediria um novo INSERT sobre a linha recusada.
+      const { error } = await supabase.rpc("rh_solicitar_acesso", {
+        p_funcionario_id: funcId,
+        p_is_auditor: isAuditor,
+      });
       if (error) throw error;
       // Notifica Suelen por email (não bloqueia o fluxo se falhar)
       try {
@@ -101,6 +92,11 @@ export default function PrimeiroAcesso() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {roleStatus === "rejeitado" && (
+            <div className="rounded-md border border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40 p-3 text-sm text-amber-800 dark:text-amber-300">
+              Seu acesso anterior foi recusado ou desativado. Você pode solicitar novamente abaixo.
+            </div>
+          )}
           <div className="space-y-2">
             <label className="text-sm font-medium">Selecione seu nome</label>
             <Combobox

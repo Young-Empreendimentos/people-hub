@@ -10671,6 +10671,10 @@ export type Database = {
         Returns: string
       }
       rh_aprovar_alternativa: { Args: { p_id: string }; Returns: undefined }
+      rh_solicitar_acesso: {
+        Args: { p_funcionario_id: string; p_is_auditor?: boolean }
+        Returns: undefined
+      }
       rh_revogar_alternativa: { Args: { p_id: string }; Returns: undefined }
       rh_current_funcionario_id: { Args: never; Returns: string }
       rh_fechar_auditoria: { Args: { p_auditoria_id: string }; Returns: number }

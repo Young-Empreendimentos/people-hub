@@ -1,11 +1,15 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Building2, Briefcase, ClipboardCheck } from "lucide-react";
+import { Users, Building2, Briefcase, ClipboardCheck, UserCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Index() {
-  const { user, role } = useAuth();
+  const { user, role, canConfig } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: counts } = useQuery({
     queryKey: ["rh_dashboard_counts"],
@@ -23,6 +27,30 @@ export default function Index() {
         avaliacoes: avalRes.count ?? 0,
       };
     },
+  });
+
+  // Colaboradores aguardando aprovação — visível só para quem gerencia acessos.
+  const { data: pendentes = [] } = useQuery({
+    queryKey: ["rh_pendentes_home"],
+    enabled: canConfig,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_get_all_users_with_roles");
+      if (error) throw error;
+      return (data as any[]).filter((u) => u.role === "colaborador" && u.status === "pendente");
+    },
+  });
+
+  const aprovar = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase.from("rh_user_roles").update({ status: "ativo" } as any).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rh_pendentes_home"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_users_with_roles"] });
+      toast.success("Acesso aprovado.");
+    },
+    onError: () => toast.error("Erro ao aprovar."),
   });
 
   const cards = [
@@ -48,6 +76,40 @@ export default function Index() {
           </Card>
         ))}
       </div>
+
+      {canConfig && pendentes.length > 0 && (
+        <Card className="border-amber-300 dark:border-amber-700">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base flex items-center gap-2">
+              <UserCheck className="h-4 w-4 text-amber-600" />
+              {pendentes.length} acesso(s) aguardando aprovação
+            </CardTitle>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/configuracoes">Ver todos</Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(pendentes as any[]).slice(0, 5).map((u) => (
+              <div key={u.id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{u.email}</p>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {u.funcionario_nome || "não vinculado"}
+                  </p>
+                </div>
+                <Button size="sm" onClick={() => aprovar.mutate(u.id)} disabled={aprovar.isPending}>
+                  Aprovar
+                </Button>
+              </div>
+            ))}
+            {pendentes.length > 5 && (
+              <p className="text-xs text-muted-foreground">
+                e mais {pendentes.length - 5}… veja em Configurações.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="pt-6">

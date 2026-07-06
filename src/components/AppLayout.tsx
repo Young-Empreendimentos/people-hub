@@ -20,9 +20,12 @@ export function AppLayout() {
 
   if (!user) return <Navigate to="/login" replace />;
 
+  // Pode (re)solicitar acesso: quem não tem papel OU colaborador recusado/desativado.
+  const podeResolicitar = !role || (isColaborador && roleStatus === "rejeitado");
+  if (podeResolicitar && location.pathname === "/primeiro-acesso") return <Outlet />;
+
   // Usuário logado sem nenhum papel cadastrado → oferece conclusão do primeiro acesso.
   if (!role) {
-    if (location.pathname === "/primeiro-acesso") return <Outlet />;
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <Card className="w-full max-w-md">
@@ -76,18 +79,9 @@ export function AppLayout() {
     );
   }
 
+  // Colaborador recusado/desativado → reabre o formulário de solicitação no login.
   if (isColaborador && roleStatus === "rejeitado") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center"><CardTitle>Acesso recusado</CardTitle></CardHeader>
-          <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">Procure o RH para mais informações.</p>
-            <Button variant="outline" className="w-full" onClick={signOut}>Sair</Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <Navigate to="/primeiro-acesso" replace />;
   }
 
   // Outros papéis sem status definido (legacy) — bloqueio antigo

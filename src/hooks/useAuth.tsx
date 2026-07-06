@@ -63,31 +63,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
+    let mounted = true;
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {
-          setTimeout(() => fetchRole(session.user.id), 0);
+          // Adia a consulta para fora do callback (evita deadlock do supabase-js)
+          // e só libera a tela DEPOIS de ter o papel — senão o loading termina antes
+          // do fetchRole e pisca a tela de "sem acesso/aguardando aprovação".
+          setTimeout(async () => {
+            try {
+              await fetchRole(session.user.id);
+            } finally {
+              if (mounted) setLoading(false);
+            }
+          }, 0);
         } else {
           setRole(null);
           setRoleStatus(null);
           setFuncionarioId(null);
           setUserName(null);
           setIsAuditor(false);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchRole(session.user.id);
-      setLoading(false);
+      try {
+        if (session?.user) await fetchRole(session.user.id);
+      } finally {
+        if (mounted) setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => { mounted = false; subscription.unsubscribe(); };
   }, []);
 
   const signIn = async (email: string, password: string) => {

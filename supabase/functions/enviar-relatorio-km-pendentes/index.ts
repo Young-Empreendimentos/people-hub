@@ -17,6 +17,12 @@ const DESTINATARIOS = {
   outros: { email: "eduardo@youngempreendimentos.com.br", nome: "Eduardo" },
 };
 
+// Aprovadores não aprovam os próprios KMs. A Caroline Bortoluzzi é a aprovadora do
+// Comercial, então os lançamentos DELA vão para o Eduardo, não para ela mesma.
+const KM_PARA_EDUARDO = new Set<string>([
+  "3e473215-07c5-645b-e365-7df85760fd9c", // CAROLINE MONTADO BORTOLUZZI DE FREITAS
+]);
+
 const fmtBRL = (v: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
 const fmtDate = (s: string) => {
@@ -119,7 +125,8 @@ Deno.serve(async (req) => {
         funcionario: f.nome,
         equipe: f.equipe,
       };
-      if (f.equipe.toLowerCase().includes("comercial")) comercial.push(item);
+      const ehComercial = f.equipe.toLowerCase().includes("comercial");
+      if (ehComercial && !KM_PARA_EDUARDO.has(l.funcionario_id)) comercial.push(item);
       else outros.push(item);
     }
 

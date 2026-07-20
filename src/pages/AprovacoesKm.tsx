@@ -26,7 +26,13 @@ const STATUS_OPTS = [
 
 export default function AprovacoesKm() {
   const qc = useQueryClient();
-  const { user, isStaff } = useAuth();
+  const { user, isStaff, canConfig } = useAuth();
+  const todayISO = (() => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  })();
+  const [retroDate, setRetroDate] = useState(todayISO);
   const [statusFilter, setStatusFilter] = useState("pendente");
   const [funcFilter, setFuncFilter] = useState("");
   const [iniFilter, setIniFilter] = useState("");
@@ -59,6 +65,30 @@ export default function AprovacoesKm() {
       if (error) throw error;
       return (data as any[]) || [];
     },
+  });
+
+  // Liberação de lançamento retroativo (config única)
+  const { data: kmConfig } = useQuery({
+    queryKey: ["rh_km_config"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rh_km_config").select("retroativo_ate").maybeSingle();
+      if (error) throw error;
+      return data as { retroativo_ate: string | null } | null;
+    },
+  });
+
+  const saveRetro = useMutation({
+    mutationFn: async (value: string | null) => {
+      const { error } = await supabase.from("rh_km_config")
+        .update({ retroativo_ate: value, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+        .eq("id", 1);
+      if (error) throw error;
+    },
+    onSuccess: (_d, value) => {
+      qc.invalidateQueries({ queryKey: ["rh_km_config"] });
+      toast.success(value ? "Lançamento retroativo liberado." : "Liberação desligada.");
+    },
+    onError: () => toast.error("Erro ao atualizar (apenas admin/coordenador)."),
   });
 
   const approveMutation = useMutation({
@@ -127,6 +157,43 @@ export default function AprovacoesKm() {
           Aprove ou rejeite os lançamentos enviados pelos colaboradores.
         </p>
       </div>
+
+      {canConfig && (
+        <Card className="border-amber-300 dark:border-amber-700">
+          <CardHeader>
+            <CardTitle className="text-base">Liberar lançamento retroativo</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Enquanto a data abaixo não passar, os colaboradores podem lançar no "Meus KMs" também as datas do período anterior. Depois da data, fecha sozinho.
+            </p>
+            <p className="text-sm">
+              {kmConfig?.retroativo_ate ? (
+                <>
+                  Situação: liberado até <strong>{fmtDate(kmConfig.retroativo_ate)}</strong>{" "}
+                  {kmConfig.retroativo_ate >= todayISO
+                    ? <Badge variant="secondary">ativo</Badge>
+                    : <Badge variant="outline">expirado</Badge>}
+                </>
+              ) : (
+                <span className="text-muted-foreground">Situação: nenhuma liberação ativa.</span>
+              )}
+            </p>
+            <div className="flex flex-wrap items-end gap-2">
+              <div>
+                <label className="text-xs text-muted-foreground">Liberar até</label>
+                <Input type="date" value={retroDate} min={todayISO} onChange={(e) => setRetroDate(e.target.value)} />
+              </div>
+              <Button onClick={() => saveRetro.mutate(retroDate || null)} disabled={!retroDate || saveRetro.isPending}>
+                Liberar
+              </Button>
+              <Button variant="outline" onClick={() => saveRetro.mutate(null)} disabled={saveRetro.isPending || !kmConfig?.retroativo_ate}>
+                Desligar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-4 gap-3">

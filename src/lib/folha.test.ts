@@ -8,6 +8,7 @@ import {
   somaKmTotal,
   proximoMesPrimeiroDia,
   periodoKm,
+  periodoKmAnterior,
 } from "./folha";
 
 describe("hhmmToHours", () => {
@@ -121,5 +122,19 @@ describe("periodoKm (ciclo dia 20 → 19)", () => {
   it("vira o ano nas pontas (dez/jan)", () => {
     expect(periodoKm(new Date(2026, 11, 25))).toEqual({ ini: "2026-12-20", fim: "2027-01-19" });
     expect(periodoKm(new Date(2026, 0, 10))).toEqual({ ini: "2025-12-20", fim: "2026-01-19" });
+  });
+});
+
+describe("periodoKmAnterior (período que acabou de fechar)", () => {
+  it("em 20/07 o anterior é 20/06–19/07", () => {
+    expect(periodoKmAnterior(new Date(2026, 6, 20))).toEqual({ ini: "2026-06-20", fim: "2026-07-19" });
+  });
+  it("é sempre um ciclo antes do período atual", () => {
+    // atual em 25/06 = 20/06–19/07; anterior = 20/05–19/06
+    expect(periodoKmAnterior(new Date(2026, 5, 25))).toEqual({ ini: "2026-05-20", fim: "2026-06-19" });
+  });
+  it("vira o ano corretamente", () => {
+    // atual em 10/01/2026 = 20/12/2025–19/01/2026; anterior = 20/11–19/12/2025
+    expect(periodoKmAnterior(new Date(2026, 0, 10))).toEqual({ ini: "2025-11-20", fim: "2025-12-19" });
   });
 });

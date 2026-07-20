@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { periodoKm } from "@/lib/folha";
+import { periodoKm, periodoKmAnterior } from "@/lib/folha";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +106,26 @@ export default function MeusKms() {
   });
 
   const periodo = useMemo(() => periodoKm(new Date()), []);
+  const periodoAnterior = useMemo(() => periodoKmAnterior(new Date()), []);
+  const hojeISO = useMemo(() => {
+    const d = new Date();
+    const p = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }, []);
+
+  // Liberação de lançamento retroativo (definida pelo RH). Enquanto hoje <= data,
+  // o formulário também aceita o período anterior.
+  const { data: kmConfig } = useQuery({
+    queryKey: ["rh_km_config"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("rh_km_config").select("retroativo_ate").maybeSingle();
+      if (error) throw error;
+      return data as { retroativo_ate: string | null } | null;
+    },
+  });
+  const retroAtivo = !!kmConfig?.retroativo_ate && hojeISO <= kmConfig.retroativo_ate;
+  const minData = retroAtivo ? periodoAnterior.ini : periodo.ini;
+
   const resumoPeriodo = useMemo(() => {
     const items = (lancamentos as any[]).filter(
       (l) => l.data >= periodo.ini && l.data <= periodo.fim && l.status !== "rejeitado"
@@ -115,16 +135,16 @@ export default function MeusKms() {
     return { km, total, qtd: items.length };
   }, [lancamentos, periodo]);
 
-  const dataForaDoPeriodo = !!data && (data < periodo.ini || data > periodo.fim);
+  const dataForaDoPeriodo = !!data && (data < minData || data > periodo.fim);
 
   const addMutation = useMutation({
     mutationFn: async () => {
       if (!funcionarioId) throw new Error("Funcionário não vinculado.");
       const kmN = parseFloat(km.replace(",", "."));
       if (!data) throw new Error("Informe a data.");
-      if (data < periodo.ini || data > periodo.fim) {
+      if (data < minData || data > periodo.fim) {
         throw new Error(
-          `A data precisa estar no período atual (${fmtDate(periodo.ini)} a ${fmtDate(periodo.fim)}).`
+          `A data precisa estar entre ${fmtDate(minData)} e ${fmtDate(periodo.fim)}.`
         );
       }
       if (!kmN || kmN <= 0) throw new Error("Informe um valor de km válido.");
@@ -238,6 +258,12 @@ export default function MeusKms() {
           <CardTitle className="text-base">Novo lançamento</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {retroAtivo && (
+            <div className="rounded-md border border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40 p-3 text-sm text-emerald-800 dark:text-emerald-300">
+              Lançamento retroativo liberado até {fmtDate(kmConfig!.retroativo_ate!)}: você pode lançar datas a partir de{" "}
+              <strong>{fmtDate(periodoAnterior.ini)}</strong> (período anterior).
+            </div>
+          )}
           {valorKm <= 0 && (
             <p className="text-xs text-amber-600">
               Atenção: seu valor por KM ainda não foi definido pelo RH. Você ainda pode lançar; o valor R$ será aplicado quando o RH configurar.
@@ -249,13 +275,13 @@ export default function MeusKms() {
               <Input
                 type="date"
                 value={data}
-                min={periodo.ini}
+                min={minData}
                 max={periodo.fim}
                 onChange={(e) => setData(e.target.value)}
               />
               {dataForaDoPeriodo && (
                 <p className="text-xs text-destructive">
-                  Data fora do período atual ({fmtDate(periodo.ini)} a {fmtDate(periodo.fim)}).
+                  Data fora do período permitido ({fmtDate(minData)} a {fmtDate(periodo.fim)}).
                 </p>
               )}
             </div>

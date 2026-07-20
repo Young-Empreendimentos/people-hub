@@ -87,3 +87,19 @@ export function periodoKm(hoje: Date): { ini: string; fim: string } {
   }
   return { ini: iso(ini), fim: iso(fim) };
 }
+
+/**
+ * Período de KM imediatamente anterior ao atual (o que "acabou de fechar").
+ * Ex.: em 20/07 o período atual é 20/07–19/08 e o anterior é 20/06–19/07.
+ * Usado quando o RH libera lançamento retroativo.
+ */
+export function periodoKmAnterior(hoje: Date): { ini: string; fim: string } {
+  const atual = periodoKm(hoje);
+  const [y, m] = atual.ini.split("-").map(Number); // ini = "YYYY-MM-20"
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const iso = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  // m é 1-based: mês do ini atual = índice (m-1); mês anterior = (m-2).
+  const ini = new Date(y, m - 2, 20);
+  const fim = new Date(y, m - 1, 19);
+  return { ini: iso(ini), fim: iso(fim) };
+}

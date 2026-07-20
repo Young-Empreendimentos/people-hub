@@ -7363,6 +7363,27 @@ export type Database = {
           },
         ]
       }
+      rh_km_config: {
+        Row: {
+          id: number
+          retroativo_ate: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          retroativo_ate?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          retroativo_ate?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       rh_mapeamento_alternativas: {
         Row: {
           aderencia: string

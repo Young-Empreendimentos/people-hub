@@ -1008,12 +1008,11 @@ export default function FolhaMensal() {
             <TableHead>Empresa</TableHead>
             <TableHead className="text-right">Salário Base</TableHead>
             <TableHead className="text-right">Bruto</TableHead>
-            <TableHead className="text-right">Líquido</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+            {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
             : filtered.map((f: any) => {
               const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
               const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
@@ -1024,12 +1023,6 @@ export default function FolhaMensal() {
                 + Number(f.valor_plr || 0)
                 + Number(f.valor_vr || 0)
                 + tot.reemb;
-              // Plano de saúde vem do módulo "Plano de Saúde" como linha de desconto.
-              // Só usa o campo legado f.plano_saude quando não há linha de desconto correspondente (compat. com registros antigos).
-              const planoSaudeLegado = tot.hasPlanoSaude ? 0 : Number(f.plano_saude || 0);
-              const liquido = bruto
-                - planoSaudeLegado
-                - tot.desc;
               return (
               <TableRow key={f.id}>
                 <TableCell>{f.mes_referencia?.slice(0, 7)}</TableCell>
@@ -1046,7 +1039,6 @@ export default function FolhaMensal() {
                 <TableCell className="text-muted-foreground text-xs">{getEmpresaNome(f.funcionario_id, f.mes_referencia)}</TableCell>
                 <TableCell className="tabular-nums text-right">{fmt(salarioBase)}</TableCell>
                 <TableCell className="tabular-nums text-right font-medium">{fmt(bruto)}</TableCell>
-                <TableCell className="tabular-nums text-right font-semibold text-primary">{fmt(liquido)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(f)} disabled={!canEditFolha(f)} title={!canEditFolha(f) ? "Edição liberada apenas até 30 dias após o lançamento" : undefined}><Pencil className="h-4 w-4" /></Button>

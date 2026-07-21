@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ArrowLeft, Check, X, MinusCircle, Upload, Loader2, Trash2, Search } from "lucide-react";
 
@@ -35,7 +36,9 @@ export default function AuditoriaExecutar() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user, canConfig } = useAuth();
+  const { user, canConfig, isAdmin } = useAuth();
+  const [rejeitarOpen, setRejeitarOpen] = useState(false);
+  const [motivoRejeicao, setMotivoRejeicao] = useState("");
 
   const { data: auditoria, isLoading } = useQuery({
     queryKey: ["rh_auditoria", id],
@@ -142,6 +145,25 @@ export default function AuditoriaExecutar() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  const avaliar = useMutation({
+    mutationFn: async ({ aprovar, motivo }: { aprovar: boolean; motivo?: string }) => {
+      const { error } = await supabase.rpc("rh_aprovar_auditoria", {
+        p_auditoria_id: id!,
+        p_aprovar: aprovar,
+        p_motivo: motivo,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["rh_auditoria", id] });
+      qc.invalidateQueries({ queryKey: ["rh_auditorias"] });
+      toast.success(vars.aprovar ? "Auditoria aprovada." : "Auditoria rejeitada.");
+      setRejeitarOpen(false);
+      setMotivoRejeicao("");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
   if (isLoading) return <p className="text-muted-foreground">Carregando…</p>;
   if (!auditoria) return <p>Auditoria não encontrada.</p>;
 
@@ -171,6 +193,37 @@ export default function AuditoriaExecutar() {
         </div>
       )}
 
+      {auditoria.status === "finalizada" && isAdmin && (
+        <Card className="border-amber-300 dark:border-amber-700">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div>
+              <p className="font-medium">Aguardando sua aprovação</p>
+              <p className="text-sm text-muted-foreground">
+                Resultado final: {(Number(auditoria.percentual_final) * 100).toFixed(1)}%
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={() => avaliar.mutate({ aprovar: true })} disabled={avaliar.isPending}>
+                <Check className="mr-1 h-4 w-4" /> Aprovar
+              </Button>
+              <Button variant="outline" className="text-destructive" onClick={() => { setMotivoRejeicao(""); setRejeitarOpen(true); }} disabled={avaliar.isPending}>
+                <X className="mr-1 h-4 w-4" /> Rejeitar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {(auditoria.status === "aprovada" || auditoria.status === "rejeitada") && (
+        <Card>
+          <CardContent className="py-3 text-sm">
+            {auditoria.status === "aprovada"
+              ? <span className="font-medium text-emerald-700 dark:text-emerald-400">✓ Auditoria aprovada.</span>
+              : <span className="font-medium text-destructive">✕ Auditoria rejeitada{auditoria.rejeitado_motivo ? `: ${auditoria.rejeitado_motivo}` : ""}.</span>}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="space-y-4">
         {grupos.map(([gid, g]) => (
           <Card key={gid}>
@@ -193,6 +246,27 @@ export default function AuditoriaExecutar() {
           </Card>
         ))}
       </div>
+
+      <Dialog open={rejeitarOpen} onOpenChange={setRejeitarOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Rejeitar auditoria</DialogTitle></DialogHeader>
+          <div className="space-y-2 py-2">
+            <label className="text-sm font-medium">Motivo (opcional)</label>
+            <Textarea
+              rows={3}
+              value={motivoRejeicao}
+              onChange={(e) => setMotivoRejeicao(e.target.value)}
+              placeholder="Explique o motivo da rejeição"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejeitarOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => avaliar.mutate({ aprovar: false, motivo: motivoRejeicao || undefined })} disabled={avaliar.isPending}>
+              Rejeitar auditoria
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

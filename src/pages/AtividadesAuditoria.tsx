@@ -677,7 +677,8 @@ export default function AtividadesAuditoria() {
                     </Table>
                   </CardContent>
                 </Card>
-              </>
+              </div>
+
             );
           })()}
         </TabsContent>

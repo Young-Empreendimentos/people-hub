@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Lock, FileDown } from "lucide-react";
+import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -69,6 +69,28 @@ export default function AtividadesAuditoria() {
     queryKey: ["rh_funcionarios_lite"],
     queryFn: async () => (await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo")).data ?? [],
   });
+
+  const { data: activeMap = {} } = useQuery({
+    queryKey: ["rh_funcionarios_active_map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rh_admissoes_desligamentos")
+        .select("funcionario_id, tipo, data")
+        .order("data", { ascending: false });
+      const status: Record<string, string> = {};
+      for (const row of (data || []) as any[]) {
+        if (!status[row.funcionario_id]) status[row.funcionario_id] = row.tipo;
+      }
+      const map: Record<string, boolean> = {};
+      for (const f of (funcionarios as any[])) {
+        map[f.id] = status[f.id] !== "desligamento";
+      }
+      return map;
+    },
+    enabled: (funcionarios as any[]).length > 0,
+  });
+
+  const isRespInativo = (id: string | null) => !!id && activeMap[id] === false;
 
   const funcNome = (id: string | null) =>
     id ? funcionarios.find((f: any) => f.id === id)?.nome_completo ?? "—" : "—";
@@ -298,12 +320,30 @@ export default function AtividadesAuditoria() {
   // Inline editor for responsável (uses Combobox in popover)
   const InlineResp = ({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) => {
     const [open, setOpen] = useState(false);
-    if (!isAdmin) return <span>{funcNome(value)}</span>;
+    const inativo = isRespInativo(value);
+    const label = (
+      <span className={`inline-flex items-center gap-1 ${inativo ? "text-destructive font-medium" : ""}`}>
+        {inativo && (
+          <AlertTriangle
+            className="h-3.5 w-3.5 text-destructive"
+            aria-label="Responsável inativo — atividade sem responsável"
+          >
+            <title>Responsável inativo — atividade sem responsável</title>
+          </AlertTriangle>
+        )}
+        {funcNome(value)}
+        {inativo && <span className="text-xs">(inativo)</span>}
+      </span>
+    );
+    if (!isAdmin) return label;
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <span className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1" title="Clique para editar">
-            {funcNome(value)}
+          <span
+            className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1"
+            title={inativo ? "Responsável inativo — clique para alterar" : "Clique para editar"}
+          >
+            {label}
           </span>
         </PopoverTrigger>
         <PopoverContent className="p-2 w-64" align="start">

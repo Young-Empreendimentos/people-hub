@@ -543,7 +543,10 @@ export default function AtividadesAuditoria() {
   };
 
   // Shared table renderer
-  const TableView = ({ rows }: { rows: Atividade[] }) => {
+  const TableView = ({ rows: rowsIn }: { rows: Atividade[] }) => {
+    const rows = podeArrastar
+      ? [...rowsIn].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+      : rowsIn;
     const allSel = rows.length > 0 && rows.every((r) => selecionadas.has(r.id));
     const someSel = rows.some((r) => selecionadas.has(r.id));
     const toggleAll = () => {
@@ -563,6 +566,7 @@ export default function AtividadesAuditoria() {
       if (oldIdx < 0 || newIdx < 0) return;
       reorderAtividades.mutate(arrayMove(ids, oldIdx, newIdx));
     };
+
     const renderCells = (a: Atividade, drag: React.ReactNode) => (
       <>
         <TableCell className="w-8">

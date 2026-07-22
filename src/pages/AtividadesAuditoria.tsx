@@ -617,7 +617,8 @@ export default function AtividadesAuditoria() {
                   {semEquipe.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
                 </CardContent>
               </Card>
-            )}
+              );
+            })()}
           </div>
         </TabsContent>
       </Tabs>

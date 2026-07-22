@@ -638,6 +638,21 @@ export default function AtividadesAuditoria() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Dialog Bulk Responsável */}
+      <Dialog open={bulkRespOpen} onOpenChange={setBulkRespOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Alterar responsável ({selecionadas.size})</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm">Novo responsável</label>
+            <Combobox options={funcOptions} value={bulkResp} onValueChange={setBulkResp} placeholder="Selecionar (vazio = remover)" emptyMessage="—" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkRespOpen(false)}>Cancelar</Button>
+            <Button onClick={() => bulkPatchResp.mutate({ ids: Array.from(selecionadas), resp: bulkResp || null })}>Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

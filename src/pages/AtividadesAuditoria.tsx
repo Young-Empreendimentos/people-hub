@@ -507,7 +507,7 @@ export default function AtividadesAuditoria() {
 
   const duplicateGrupo = useMutation({
     mutationFn: async (grupoId: string) => {
-      const { error } = await (supabase as any).rpc("rh_duplicar_grupo_atividades_auditoria", { _grupo_id: grupoId });
+      const { error } = await supabase.rpc("rh_duplicar_grupo_atividades_auditoria", { _grupo_id: grupoId });
       if (error) throw error;
     },
     onSuccess: () => {

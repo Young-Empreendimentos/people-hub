@@ -398,6 +398,31 @@ export default function AtividadesAuditoria() {
     );
   };
 
+  // Inline editor for grupo (admin only)
+  const InlineGrupo = ({ value, onSave }: { value: string; onSave: (v: string) => void }) => {
+    const [open, setOpen] = useState(false);
+    const label = (grupos as any[]).find((g) => g.id === value)?.nome ?? "—";
+    if (!isAdmin) return <span>{label}</span>;
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <span className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1" title="Clique para editar">{label}</span>
+        </PopoverTrigger>
+        <PopoverContent className="p-2 w-64" align="start">
+          <Combobox
+            options={grupoOptions}
+            value={value}
+            onValueChange={(v) => { if (v && v !== value) onSave(v); setOpen(false); }}
+            placeholder="Selecionar grupo"
+            emptyMessage="—"
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
+
+
 
   // ===== Seleção em massa =====
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
@@ -504,6 +529,9 @@ export default function AtividadesAuditoria() {
                 <TableHead>Atividade</TableHead>
                 <TableHead>Peso</TableHead>
                 <TableHead>Normas</TableHead>
+                <TableHead>Manuais</TableHead>
+                <TableHead>Indicadores</TableHead>
+                {isAdmin && <TableHead>Método</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -520,11 +548,25 @@ export default function AtividadesAuditoria() {
                   </TableCell>
                   <TableCell>{equipeNome(a.equipe_id)}</TableCell>
                   <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
-                  <TableCell>{a.grupo_nome}</TableCell>
+                  <TableCell><InlineGrupo value={a.grupo_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { grupo_id: v } })} /></TableCell>
                   <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
                   <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
-                  <TableCell className="max-w-[280px] text-xs text-muted-foreground whitespace-pre-wrap">{a.normas || "—"}</TableCell>
+                  <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+                    <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} />
+                  </TableCell>
+                  <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+                    <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} />
+                  </TableCell>
+                  <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+                    <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} />
+                  </TableCell>
+                  {isAdmin && (
+                    <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+                      <InlineText multiline value={a.metodo_auditoria} placeholder="clique para adicionar" onSave={(v) => patchAtv.mutate({ id: a.id, patch: { metodo_auditoria: v || null } })} />
+                    </TableCell>
+                  )}
                 </TableRow>
+
               ))}
             </TableBody>
           </Table>

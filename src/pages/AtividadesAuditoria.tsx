@@ -619,16 +619,17 @@ export default function AtividadesAuditoria() {
               doc.save(`atividades-auditoria-${new Date().toISOString().slice(0,10)}.pdf`);
             };
             return (
-              <>
-                <div className="flex flex-wrap gap-2 mb-3 items-center">
-                  <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
-                  {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
+                  <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
+                  {filtroResp && <Button size="sm" variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
                   <div className="flex-1" />
                   <Button variant="outline" onClick={emitirPDF} disabled={selecionadas.size === 0}>
                     <FileDown className="mr-2 h-4 w-4" />
                     Emitir relatório PDF{selecionadas.size > 0 ? ` (${selecionadas.size})` : ""}
                   </Button>
                 </div>
+
                 <Card>
                   <CardContent className="pt-4">
                     <Table>

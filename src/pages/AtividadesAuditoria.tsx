@@ -794,6 +794,15 @@ export default function AtividadesAuditoria() {
     );
   };
 
+  // Generic sortable wrapper for group accordion items (drag handle passed via render)
+  const SortableGrupoWrap = ({ id, render }: { id: string; render: (dragProps: { listeners: any; attributes: any; setNodeRef: any; style: any }) => React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.7 : 1 };
+    return <>{render({ listeners, attributes, setNodeRef, style })}</>;
+  };
+
+
+
 
   // Sortable group (accordion item)
   const SortableGrupo = ({ g, atvs }: { g: any; atvs: Atividade[] }) => {
@@ -1217,72 +1226,108 @@ export default function AtividadesAuditoria() {
                   .filter((g) => atvsEquipe.some((a) => a.grupo_id === g.id))
                   .sort((a: any, b: any) => (a.ordem - b.ordem) || a.nome.localeCompare(b.nome));
 
+                const gruposOrdenados = podeArrastar
+                  ? [...gruposDaEquipe].sort((a: any, b: any) => (a.ordem ?? 0) - (b.ordem ?? 0))
+                  : gruposDaEquipe;
+                const gruposDaEquipeIds = gruposOrdenados.map((g: any) => g.id);
+                const onGrupoEquipeDragEnd = (ev: DragEndEvent) => {
+                  const { active, over } = ev;
+                  if (!over || active.id === over.id) return;
+                  const oldIdx = gruposDaEquipeIds.indexOf(String(active.id));
+                  const newIdx = gruposDaEquipeIds.indexOf(String(over.id));
+                  if (oldIdx < 0 || newIdx < 0) return;
+                  reorderGrupos.mutate(arrayMove(gruposDaEquipeIds, oldIdx, newIdx));
+                };
+                const renderGrupoItem = (g: any, dragProps?: { listeners?: any; attributes?: any; setNodeRef?: any; style?: any }) => {
+                  const atvsGrupo = atvsEquipe.filter((a) => a.grupo_id === g.id);
+                  const gState = groupSelState(atvsGrupo);
+                  return (
+                    <AccordionItem
+                      ref={dragProps?.setNodeRef}
+                      style={dragProps?.style}
+                      value={`${e.id}-${g.id}`}
+                      key={g.id}
+                      className="border rounded-lg px-3"
+                    >
+                      <AccordionTrigger>
+                        <div className="flex items-center gap-2 flex-wrap text-left">
+                          {podeArrastar && dragProps && (
+                            <DragHandle listeners={dragProps.listeners} attributes={dragProps.attributes} title="Arrastar grupo" />
+                          )}
+                          {canConfig && atvsGrupo.length > 0 && (
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 shrink-0"
+                              checked={gState === "all"}
+                              ref={(el) => { if (el) el.indeterminate = gState === "some"; }}
+                              onChange={() => toggleGroupSel(atvsGrupo)}
+                              onClick={(ev) => ev.stopPropagation()}
+                              aria-label="Selecionar grupo inteiro"
+                            />
+                          )}
+                          <InlineText
+                            value={g.nome}
+                            className="font-semibold"
+                            stopProp
+                            onSave={(v) => v && patchGrupo.mutate({ id: g.id, patch: { nome: v } })}
+                          />
+                          <Badge variant="secondary" className="p-0">
+                            <InlineText
+                              type="number"
+                              value={g.peso}
+                              stopProp
+                              className="px-2 py-0.5 inline-block"
+                              display={<>peso grupo {Number(g.peso)}</>}
+                              onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchGrupo.mutate({ id: g.id, patch: { peso: n } }); }}
+                            />
+                          </Badge>
+                          <Badge>{atvsGrupo.length} atividades</Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                      {canConfig && (
+                        <div className="flex gap-2 mb-2 flex-wrap">
+                          {isAdmin && (
+                            <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvsGrupo.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
+                          )}
+                          {isAdmin && (
+                            <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo inteiro "${g.nome}" com ${atvsGrupo.length} atividade(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro</Button>
+                          )}
+                          {isAdmin && (
+                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm(`Desativar ${atvsGrupo.length} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(atvsGrupo.map((a) => a.id)); }}><Trash2 className="mr-1 h-3 w-3" />Desativar atividades</Button>
+                          )}
+                        </div>
+                      )}
+                        <AtvDndList atvs={atvsGrupo} />
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                };
+
                 return (
                   <Card key={e.id}>
                     <CardHeader><CardTitle className="text-base">{e.nome}</CardTitle></CardHeader>
                     <CardContent className="pt-0">
-                      <Accordion type="multiple" className="space-y-2">
-                        {gruposDaEquipe.map((g: any) => {
-                          const atvsGrupo = atvsEquipe.filter((a) => a.grupo_id === g.id);
-                          const gState = groupSelState(atvsGrupo);
-                          return (
-                            <AccordionItem value={`${e.id}-${g.id}`} key={g.id} className="border rounded-lg px-3">
-                              <AccordionTrigger>
-                                <div className="flex items-center gap-2 flex-wrap text-left">
-                                  {canConfig && atvsGrupo.length > 0 && (
-                                    <input
-                                      type="checkbox"
-                                      className="h-4 w-4 shrink-0"
-                                      checked={gState === "all"}
-                                      ref={(el) => { if (el) el.indeterminate = gState === "some"; }}
-                                      onChange={() => toggleGroupSel(atvsGrupo)}
-                                      onClick={(ev) => ev.stopPropagation()}
-                                      aria-label="Selecionar grupo inteiro"
-                                    />
-                                  )}
-                                  <InlineText
-                                    value={g.nome}
-                                    className="font-semibold"
-                                    stopProp
-                                    onSave={(v) => v && patchGrupo.mutate({ id: g.id, patch: { nome: v } })}
-                                  />
-                                  <Badge variant="secondary" className="p-0">
-                                    <InlineText
-                                      type="number"
-                                      value={g.peso}
-                                      stopProp
-                                      className="px-2 py-0.5 inline-block"
-                                      display={<>peso grupo {Number(g.peso)}</>}
-                                      onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchGrupo.mutate({ id: g.id, patch: { peso: n } }); }}
-                                    />
-                                  </Badge>
-                                  <Badge>{atvsGrupo.length} atividades</Badge>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent>
-                              {canConfig && (
-                                <div className="flex gap-2 mb-2 flex-wrap">
-                                  {isAdmin && (
-                                    <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvsGrupo.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
-                                  )}
-                                  {isAdmin && (
-                                    <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo inteiro "${g.nome}" com ${atvsGrupo.length} atividade(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro</Button>
-                                  )}
-                                  {isAdmin && (
-                                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm(`Desativar ${atvsGrupo.length} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(atvsGrupo.map((a) => a.id)); }}><Trash2 className="mr-1 h-3 w-3" />Desativar atividades</Button>
-                                  )}
-                                </div>
-                              )}
-                                <AtvDndList atvs={atvsGrupo} />
-                              </AccordionContent>
-                            </AccordionItem>
-                          );
-                        })}
-                      </Accordion>
+                      {podeArrastar ? (
+                        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onGrupoEquipeDragEnd}>
+                          <SortableContext items={gruposDaEquipeIds} strategy={verticalListSortingStrategy}>
+                            <Accordion type="multiple" className="space-y-2">
+                              {gruposOrdenados.map((g: any) => (
+                                <SortableGrupoWrap key={g.id} id={g.id} render={renderGrupoItem.bind(null, g)} />
+                              ))}
+                            </Accordion>
+                          </SortableContext>
+                        </DndContext>
+                      ) : (
+                        <Accordion type="multiple" className="space-y-2">
+                          {gruposOrdenados.map((g: any) => renderGrupoItem(g))}
+                        </Accordion>
+                      )}
                     </CardContent>
                   </Card>
                 );
               })}
+
             {!filtroResp && (() => {
               const semEquipe = atividades.filter((a) => !a.equipe_id && gruposAtivosIds.has(a.grupo_id) && matchBusca(a));
               if (semEquipe.length === 0) return null;

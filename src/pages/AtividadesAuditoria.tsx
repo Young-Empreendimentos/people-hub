@@ -427,6 +427,25 @@ export default function AtividadesAuditoria() {
         </div>
       )}
 
+      <div className="relative">
+        <Input
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar por normas, atividade ou grupo…"
+          className="pr-8"
+        />
+        {busca && (
+          <button
+            type="button"
+            onClick={() => setBusca("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+            aria-label="Limpar busca"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       <Tabs defaultValue="grupo">
         <TabsList>
           <TabsTrigger value="grupo">Por Grupo</TabsTrigger>

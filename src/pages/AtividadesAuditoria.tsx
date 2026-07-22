@@ -767,6 +767,7 @@ export default function AtividadesAuditoria() {
                   </Button>
                 </div>
 
+                {viewMode === "tabela" ? (
                 <Card>
                   <CardContent className="pt-4">
                     <Table>
@@ -814,6 +815,47 @@ export default function AtividadesAuditoria() {
                     </Table>
                   </CardContent>
                 </Card>
+                ) : (
+                  <Accordion type="multiple" className="space-y-2">
+                    {(() => {
+                      // group rows by responsável, keeping the sort order
+                      const groupsMap = new Map<string, Atividade[]>();
+                      for (const a of rows) {
+                        const key = a.responsavel_funcionario_id ?? "__sem__";
+                        if (!groupsMap.has(key)) groupsMap.set(key, []);
+                        groupsMap.get(key)!.push(a);
+                      }
+                      return Array.from(groupsMap.entries()).map(([key, atvs]) => {
+                        const gState = groupSelState(atvs);
+                        const nome = key === "__sem__" ? "Sem responsável" : funcNome(key);
+                        return (
+                          <AccordionItem value={key} key={key} className="border rounded-lg px-3">
+                            <AccordionTrigger>
+                              <div className="flex items-center gap-2 flex-wrap text-left">
+                                {canConfig && (
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4 shrink-0"
+                                    checked={gState === "all"}
+                                    ref={(el) => { if (el) el.indeterminate = gState === "some"; }}
+                                    onChange={() => toggleGroupSel(atvs)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    aria-label="Selecionar responsável inteiro"
+                                  />
+                                )}
+                                <span className="font-semibold">{nome}</span>
+                                <Badge>{atvs.length} atividades</Badge>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              {atvs.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                            </AccordionContent>
+                          </AccordionItem>
+                        );
+                      });
+                    })()}
+                  </Accordion>
+                )}
               </div>
 
             );

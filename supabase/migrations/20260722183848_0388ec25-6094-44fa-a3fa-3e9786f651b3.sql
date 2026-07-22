@@ -1,0 +1,2 @@
+ALTER TABLE public.rh_auditoria_itens DROP CONSTRAINT IF EXISTS rh_auditoria_itens_atividade_id_fkey;
+ALTER TABLE public.rh_auditoria_itens ADD CONSTRAINT rh_auditoria_itens_atividade_id_fkey FOREIGN KEY (atividade_id) REFERENCES public.rh_atividades_auditoria(id) ON DELETE CASCADE;

@@ -756,78 +756,49 @@ export default function AtividadesAuditoria() {
               (a.grupo_nome || "").localeCompare(b.grupo_nome || "", "pt-BR") ||
               (a.nome || "").localeCompare(b.nome || "", "pt-BR")
             )} />
-          ) : (
-          <Accordion type="multiple" className="space-y-2">
-            {(grupos as any[])
+          ) : (() => {
+            const gruposVisiveis = (grupos as any[])
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)
-              .filter((g) => !filtroEquipe || g.equipe_id === filtroEquipe)
-              .map((g) => {
-                const atvs = atividades.filter((a) =>
-                  a.grupo_id === g.id &&
-                  (!filtroResp || a.responsavel_funcionario_id === filtroResp) &&
-                  matchBusca(a)
-                );
-                if ((busca || filtroResp) && atvs.length === 0) return null;
-                const gState = groupSelState(atvs);
-                return (
-                  <AccordionItem value={g.id} key={g.id} className="border rounded-lg px-3">
-                    <AccordionTrigger>
-                      <div className="flex items-center gap-2 flex-wrap text-left">
-                        {canConfig && atvs.length > 0 && (
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 shrink-0"
-                            checked={gState === "all"}
-                            ref={(el) => { if (el) el.indeterminate = gState === "some"; }}
-                            onChange={() => toggleGroupSel(atvs)}
-                            onClick={(e) => e.stopPropagation()}
-                            aria-label="Selecionar grupo inteiro"
-                            title="Selecionar todas as atividades do grupo"
+              .filter((g) => !filtroEquipe || g.equipe_id === filtroEquipe);
+            const gruposIds = gruposVisiveis.map((g) => g.id);
+            const onGrupoDragEnd = (e: DragEndEvent) => {
+              const { active, over } = e;
+              if (!over || active.id === over.id) return;
+              const oldIdx = gruposIds.indexOf(String(active.id));
+              const newIdx = gruposIds.indexOf(String(over.id));
+              if (oldIdx < 0 || newIdx < 0) return;
+              reorderGrupos.mutate(arrayMove(gruposIds, oldIdx, newIdx));
+            };
+            return (
+              <>
+                {podeArrastar && (
+                  <p className="text-xs text-muted-foreground mb-1">Arraste pelo ícone <GripVertical className="inline h-3 w-3" /> para reordenar grupos e atividades.</p>
+                )}
+                <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onGrupoDragEnd}>
+                  <SortableContext items={gruposIds} strategy={verticalListSortingStrategy} disabled={!podeArrastar}>
+                    <Accordion type="multiple" className="space-y-2">
+                      {gruposVisiveis.map((g) => {
+                        const atvs = atividades.filter((a) =>
+                          a.grupo_id === g.id &&
+                          (!filtroResp || a.responsavel_funcionario_id === filtroResp) &&
+                          matchBusca(a)
+                        );
+                        if ((busca || filtroResp) && atvs.length === 0) return null;
+                        return (
+                          <SortableGrupo
+                            key={g.id}
+                            g={g}
+                            atvs={atvs}
                           />
-                        )}
-                        <InlineText
-                          value={g.nome}
-                          className="font-semibold"
-                          stopProp
-                          onSave={(v) => v && patchGrupo.mutate({ id: g.id, patch: { nome: v } })}
-                        />
-                        <Badge variant="secondary" className="p-0">
-                          <InlineText
-                            type="number"
-                            value={g.peso}
-                            stopProp
-                            className="px-2 py-0.5 inline-block"
-                            display={<>peso grupo {Number(g.peso)}</>}
-                            onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchGrupo.mutate({ id: g.id, patch: { peso: n } }); }}
-                          />
-                        </Badge>
-                        <Badge variant="outline">{equipeNome(g.equipe_id)}</Badge>
-                        <Badge>{atvs.length} atividades</Badge>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      {canConfig && (
-                        <div className="flex gap-2 mb-2 flex-wrap">
-                          <Button size="sm" variant="outline" onClick={() => openEditGrupo(g)}><Pencil className="mr-1 h-3 w-3" />Editar grupo</Button>
-                          <Button size="sm" variant="outline" onClick={() => openNewAtv(g.id)}><Plus className="mr-1 h-3 w-3" />Atividade neste grupo</Button>
-                          {isAdmin && (
-                            <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvs.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
-                          )}
-                          <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvs.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvs.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
-                          {isAdmin && (
-                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
-                          )}
-                        </div>
-                      )}
-                      {atvs.length === 0
-                        ? <p className="text-sm text-muted-foreground py-2">Nenhuma atividade.</p>
-                        : atvs.map((a) => <ItemRow key={a.id} a={a} />)}
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-          </Accordion>
-          )}
+                        );
+                      })}
+                    </Accordion>
+                  </SortableContext>
+                </DndContext>
+              </>
+            );
+          })()}
+
         </TabsContent>
 
         <TabsContent value="responsavel">

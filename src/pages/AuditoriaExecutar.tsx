@@ -10,12 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ArrowLeft, Check, X, MinusCircle, Upload, Loader2, Trash2, Search } from "lucide-react";
+import { ArrowLeft, Check, X, MinusCircle, Upload, Loader2, Trash2, Search, Pencil } from "lucide-react";
 
 type Item = {
   id: string; auditoria_id: string; atividade_id: string;
   status: "pendente" | "positivo" | "inconformidade" | "nao_aplica";
-  comentario: string | null; evidencia_url: string | null;
+  comentario: string | null; comentario_admin: string | null; evidencia_url: string | null;
 };
 
 type Atividade = {
@@ -164,6 +164,19 @@ export default function AuditoriaExecutar() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  const reabrir = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc("rh_reabrir_auditoria", { p_auditoria_id: id! });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_auditoria", id] });
+      qc.invalidateQueries({ queryKey: ["rh_auditorias"] });
+      toast.success("Auditoria reaberta para edição. Faça os ajustes e finalize novamente.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
   if (isLoading) return <p className="text-muted-foreground">Carregando…</p>;
   if (!auditoria) return <p>Auditoria não encontrada.</p>;
 
@@ -209,6 +222,9 @@ export default function AuditoriaExecutar() {
               <Button variant="outline" className="text-destructive" onClick={() => { setMotivoRejeicao(""); setRejeitarOpen(true); }} disabled={avaliar.isPending}>
                 <X className="mr-1 h-4 w-4" /> Rejeitar
               </Button>
+              <Button variant="outline" onClick={() => reabrir.mutate()} disabled={reabrir.isPending}>
+                <Pencil className="mr-1 h-4 w-4" /> Reabrir para editar
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -216,10 +232,17 @@ export default function AuditoriaExecutar() {
 
       {(auditoria.status === "aprovada" || auditoria.status === "rejeitada") && (
         <Card>
-          <CardContent className="py-3 text-sm">
-            {auditoria.status === "aprovada"
-              ? <span className="font-medium text-emerald-700 dark:text-emerald-400">✓ Auditoria aprovada.</span>
-              : <span className="font-medium text-destructive">✕ Auditoria rejeitada{auditoria.rejeitado_motivo ? `: ${auditoria.rejeitado_motivo}` : ""}.</span>}
+          <CardContent className="py-3 text-sm flex items-center justify-between gap-3 flex-wrap">
+            <span>
+              {auditoria.status === "aprovada"
+                ? <span className="font-medium text-emerald-700 dark:text-emerald-400">✓ Auditoria aprovada.</span>
+                : <span className="font-medium text-destructive">✕ Auditoria rejeitada{auditoria.rejeitado_motivo ? `: ${auditoria.rejeitado_motivo}` : ""}.</span>}
+            </span>
+            {isAdmin && (
+              <Button variant="outline" size="sm" onClick={() => reabrir.mutate()} disabled={reabrir.isPending}>
+                <Pencil className="mr-1 h-4 w-4" /> Reabrir para editar
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -239,7 +262,7 @@ export default function AuditoriaExecutar() {
             </CardHeader>
             <CardContent className="space-y-3">
               {g.itens.map((l) => (
-                <ItemEditor key={l.item.id} item={l.item} atv={l.atv} editavel={!!editavel}
+                <ItemEditor key={l.item.id} item={l.item} atv={l.atv} editavel={!!editavel} isAdmin={isAdmin}
                   onChange={(patch) => updateItem.mutate({ id: l.item.id, patch })} />
               ))}
             </CardContent>
@@ -271,16 +294,19 @@ export default function AuditoriaExecutar() {
   );
 }
 
-function ItemEditor({ item, atv, editavel, onChange }: {
-  item: Item; atv: Atividade; editavel: boolean;
+function ItemEditor({ item, atv, editavel, isAdmin, onChange }: {
+  item: Item; atv: Atividade; editavel: boolean; isAdmin: boolean;
   onChange: (patch: Partial<Item>) => void;
 }) {
   const [comentario, setComentario] = useState(item.comentario ?? "");
+  const [comentarioAdmin, setComentarioAdmin] = useState(item.comentario_admin ?? "");
+  const adminPodeComentar = editavel && isAdmin;
   const [signedUrl, setSignedUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { setComentario(item.comentario ?? ""); }, [item.comentario]);
+  useEffect(() => { setComentarioAdmin(item.comentario_admin ?? ""); }, [item.comentario_admin]);
 
   useEffect(() => {
     let cancel = false;
@@ -372,6 +398,18 @@ function ItemEditor({ item, atv, editavel, onChange }: {
         onBlur={() => { if ((item.comentario ?? "") !== comentario) onChange({ comentario: comentario || null }); }}
         disabled={!editavel}
       />
+
+      {(adminPodeComentar || item.comentario_admin) && (
+        <div className="rounded-md border border-primary/30 bg-primary/5 p-2 space-y-1">
+          <label className="text-xs font-medium text-primary">Comentário do RH</label>
+          <Textarea rows={2} placeholder="Comentário do RH (fica abaixo do comentário do auditor)…"
+            value={comentarioAdmin}
+            onChange={(e) => setComentarioAdmin(e.target.value)}
+            onBlur={() => { if ((item.comentario_admin ?? "") !== comentarioAdmin) onChange({ comentario_admin: comentarioAdmin || null }); }}
+            disabled={!adminPodeComentar}
+          />
+        </div>
+      )}
 
       <div className="flex items-center gap-2 flex-wrap">
         <input ref={fileRef} type="file" accept="image/*" className="hidden"

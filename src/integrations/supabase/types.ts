@@ -7108,6 +7108,7 @@ export type Database = {
           auditoria_id: string
           avaliado_em: string | null
           comentario: string | null
+          comentario_admin: string | null
           created_at: string
           evidencia_url: string | null
           id: string
@@ -7119,6 +7120,7 @@ export type Database = {
           auditoria_id: string
           avaliado_em?: string | null
           comentario?: string | null
+          comentario_admin?: string | null
           created_at?: string
           evidencia_url?: string | null
           id?: string
@@ -7130,6 +7132,7 @@ export type Database = {
           auditoria_id?: string
           avaliado_em?: string | null
           comentario?: string | null
+          comentario_admin?: string | null
           created_at?: string
           evidencia_url?: string | null
           id?: string
@@ -10696,6 +10699,7 @@ export type Database = {
         Args: { p_auditoria_id: string; p_aprovar: boolean; p_motivo?: string }
         Returns: undefined
       }
+      rh_reabrir_auditoria: { Args: { p_auditoria_id: string }; Returns: undefined }
       rh_solicitar_acesso: {
         Args: { p_funcionario_id: string; p_is_auditor?: boolean }
         Returns: undefined

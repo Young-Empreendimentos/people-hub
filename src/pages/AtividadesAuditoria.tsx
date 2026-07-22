@@ -505,55 +505,10 @@ export default function AtividadesAuditoria() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
-  const bulkDuplicate = useMutation({
-    mutationFn: async (ids: string[]) => {
-      const originais = atividades.filter((a) => ids.includes(a.id));
-      if (originais.length === 0) return;
-      const payload = originais.map((a) => ({
-        grupo_id: a.grupo_id,
-        nome: `${a.nome} (cópia)`,
-        peso: Number(a.peso) || 1,
-        responsavel_funcionario_id: a.responsavel_funcionario_id,
-        normas: a.normas,
-        manuais: a.manuais,
-        indicadores: a.indicadores,
-        metodo_auditoria: a.metodo_auditoria,
-        ordem: Number(a.ordem) || 0,
-      }));
-      const { error } = await supabase.from("rh_atividades_auditoria").insert(payload);
-      if (error) throw error;
-    },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades duplicadas."); clearSel(); },
-    onError: (e: any) => toast.error("Erro: " + e.message),
-  });
-
   const duplicateGrupo = useMutation({
     mutationFn: async (grupoId: string) => {
-      const g = (grupos as any[]).find((x) => x.id === grupoId);
-      if (!g) throw new Error("Grupo não encontrado");
-      const maxOrdem = (grupos as any[]).reduce((m, x) => Math.max(m, Number(x.ordem) || 0), 0);
-      const { data: novo, error: e1 } = await supabase
-        .from("rh_grupos_atividades_auditoria")
-        .insert({ nome: g.nome, equipe_id: g.equipe_id ?? null, peso: Number(g.peso) || 1, ordem: maxOrdem + 1 })
-        .select("id")
-        .single();
-      if (e1) throw e1;
-      const atvs = atividades.filter((a) => a.grupo_id === grupoId);
-      if (atvs.length > 0) {
-        const payload = atvs.map((a) => ({
-          grupo_id: novo!.id,
-          nome: a.nome,
-          peso: Number(a.peso) || 1,
-          responsavel_funcionario_id: a.responsavel_funcionario_id,
-          normas: a.normas,
-          manuais: a.manuais,
-          indicadores: a.indicadores,
-          metodo_auditoria: a.metodo_auditoria,
-          ordem: Number(a.ordem) || 0,
-        }));
-        const { error: e2 } = await supabase.from("rh_atividades_auditoria").insert(payload);
-        if (e2) throw e2;
-      }
+      const { error } = await supabase.rpc("rh_duplicar_grupo_atividades_auditoria", { _grupo_id: grupoId });
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
@@ -815,7 +770,9 @@ export default function AtividadesAuditoria() {
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvs.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
               )}
-              <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo inteiro "${g.nome}" com ${atvs.length} atividade(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro</Button>
+              {isAdmin && (
+                <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo inteiro "${g.nome}" com ${atvs.length} atividade(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro</Button>
+              )}
               {isAdmin && (
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
               )}
@@ -971,39 +928,37 @@ export default function AtividadesAuditoria() {
               <Pencil className="mr-1 h-3 w-3" />Alterar responsável
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={() => {
-            // Detect fully-selected groups: if the selection covers ALL activities of some groups (and nothing else), duplicate as groups.
-            const selIds = Array.from(selecionadas);
-            const byGrupo = new Map<string, string[]>();
-            (atividades as Atividade[]).forEach((a) => {
-              if (!byGrupo.has(a.grupo_id)) byGrupo.set(a.grupo_id, []);
-              byGrupo.get(a.grupo_id)!.push(a.id);
-            });
-            const fullGrupos: string[] = [];
-            const partialAtvIds: string[] = [];
-            const selSet = new Set(selIds);
-            byGrupo.forEach((ids, gid) => {
-              const selHere = ids.filter((id) => selSet.has(id));
-              if (selHere.length === 0) return;
-              if (selHere.length === ids.length) fullGrupos.push(gid);
-              else partialAtvIds.push(...selHere);
-            });
-            if (fullGrupos.length > 0 && partialAtvIds.length === 0) {
-              if (confirm(`Duplicar ${fullGrupos.length} grupo(s) completo(s)? Será(ão) criado(s) novo(s) grupo(s) "(cópia)".`)) {
-                Promise.all(fullGrupos.map((gid) => duplicateGrupo.mutateAsync(gid))).catch(() => {});
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={() => {
+              const selSet = new Set(Array.from(selecionadas));
+              const byGrupo = new Map<string, string[]>();
+              (atividades as Atividade[]).forEach((a) => {
+                if (!byGrupo.has(a.grupo_id)) byGrupo.set(a.grupo_id, []);
+                byGrupo.get(a.grupo_id)!.push(a.id);
+              });
+
+              const gruposInteiros: string[] = [];
+              let temSelecaoParcial = false;
+
+              byGrupo.forEach((ids, gid) => {
+                const selecionadasDoGrupo = ids.filter((id) => selSet.has(id));
+                if (selecionadasDoGrupo.length === 0) return;
+                if (selecionadasDoGrupo.length === ids.length) gruposInteiros.push(gid);
+                else temSelecaoParcial = true;
+              });
+
+              if (temSelecaoParcial || gruposInteiros.length === 0) {
+                toast.error("Para duplicar, selecione o grupo inteiro pelo checkbox do grupo.");
+                return;
               }
-            } else if (fullGrupos.length > 0 && partialAtvIds.length > 0) {
-              if (confirm(`Duplicar ${fullGrupos.length} grupo(s) completo(s) como novos grupos e ${partialAtvIds.length} atividade(s) avulsa(s)?`)) {
-                Promise.all(fullGrupos.map((gid) => duplicateGrupo.mutateAsync(gid)))
-                  .then(() => bulkDuplicate.mutate(partialAtvIds))
-                  .catch(() => {});
+
+              if (confirm(`Duplicar ${gruposInteiros.length} grupo(s) inteiro(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) {
+                Promise.all(gruposInteiros.map((gid) => duplicateGrupo.mutateAsync(gid))).catch(() => {});
               }
-            } else {
-              if (confirm(`Duplicar ${selecionadas.size} atividade(s)?`)) bulkDuplicate.mutate(selIds);
-            }
-          }}>
-            <Copy className="mr-1 h-3 w-3" />Duplicar
-          </Button>
+            }}>
+              <Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro
+            </Button>
+          )}
           {isAdmin && (
             <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
               <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
@@ -1267,7 +1222,9 @@ export default function AtividadesAuditoria() {
                                   {isAdmin && (
                                     <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvsGrupo.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
                                   )}
-                                  <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo inteiro "${g.nome}" com ${atvsGrupo.length} atividade(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro</Button>
+                                  {isAdmin && (
+                                    <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo inteiro "${g.nome}" com ${atvsGrupo.length} atividade(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro</Button>
+                                  )}
                                   {isAdmin && (
                                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm(`Desativar ${atvsGrupo.length} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(atvsGrupo.map((a) => a.id)); }}><Trash2 className="mr-1 h-3 w-3" />Desativar atividades</Button>
                                   )}

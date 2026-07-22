@@ -11987,6 +11987,10 @@ export type Database = {
         Returns: string
       }
       rh_current_funcionario_id: { Args: never; Returns: string }
+      rh_duplicar_grupo_atividades_auditoria: {
+        Args: { _grupo_id: string }
+        Returns: string
+      }
       rh_fechar_auditoria: { Args: { p_auditoria_id: string }; Returns: number }
       rh_get_all_users_with_roles: {
         Args: never

@@ -424,8 +424,9 @@ export default function AtividadesAuditoria() {
           <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
             <Pencil className="mr-1 h-3 w-3" />Alterar responsável
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Excluir ${selecionadas.size} atividade(s)?`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
-            <Trash2 className="mr-1 h-3 w-3" />Excluir selecionadas
+          <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
+            <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
+
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
         </div>

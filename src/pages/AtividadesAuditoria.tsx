@@ -1209,12 +1209,14 @@ export default function AtividadesAuditoria() {
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)
               .map((e) => {
                 const atvsEquipe = atividades.filter(
-                  (a) => a.equipe_id === e.id && (!filtroResp || a.responsavel_funcionario_id === filtroResp) && matchBusca(a)
+                  (a) => a.equipe_id === e.id && gruposAtivosIds.has(a.grupo_id) && (!filtroResp || a.responsavel_funcionario_id === filtroResp) && matchBusca(a)
                 );
                 if (atvsEquipe.length === 0) return null;
                 const gruposDaEquipe = (grupos as any[])
+                  .filter((g) => g.ativo !== false)
                   .filter((g) => atvsEquipe.some((a) => a.grupo_id === g.id))
                   .sort((a: any, b: any) => (a.ordem - b.ordem) || a.nome.localeCompare(b.nome));
+
                 return (
                   <Card key={e.id}>
                     <CardHeader><CardTitle className="text-base">{e.nome}</CardTitle></CardHeader>

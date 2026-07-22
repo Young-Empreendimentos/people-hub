@@ -323,12 +323,13 @@ export default function AtividadesAuditoria() {
 
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").delete().in("id", ids);
+      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).in("id", ids);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades excluídas."); clearSel(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades desativadas."); clearSel(); },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
   const bulkPatchResp = useMutation({
     mutationFn: async ({ ids, resp }: { ids: string[]; resp: string | null }) => {
       const { error } = await supabase.from("rh_atividades_auditoria").update({ responsavel_funcionario_id: resp }).in("id", ids);

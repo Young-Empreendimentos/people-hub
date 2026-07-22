@@ -607,11 +607,14 @@ export default function AtividadesAuditoria() {
                   </Card>
                 );
               })}
-            {!filtroResp && atividades.filter((a) => !a.equipe_id).length > 0 && (
+            {!filtroResp && (() => {
+              const semEquipe = atividades.filter((a) => !a.equipe_id && matchBusca(a));
+              if (semEquipe.length === 0) return null;
+              return (
               <Card>
                 <CardHeader><CardTitle className="text-base">Sem equipe</CardTitle></CardHeader>
                 <CardContent className="pt-0">
-                  {atividades.filter((a) => !a.equipe_id).map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                  {semEquipe.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
                 </CardContent>
               </Card>
             )}

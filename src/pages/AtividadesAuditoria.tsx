@@ -16,7 +16,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, TableIcon, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, Table2, Copy } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 

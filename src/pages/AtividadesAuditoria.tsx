@@ -684,15 +684,19 @@ export default function AtividadesAuditoria() {
         <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
           <span className="text-sm font-medium">{selecionadas.size} selecionada(s)</span>
           <div className="flex-1" />
-          <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
-            <Pencil className="mr-1 h-3 w-3" />Alterar responsável
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
+              <Pencil className="mr-1 h-3 w-3" />Alterar responsável
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${selecionadas.size} atividade(s)?`)) bulkDuplicate.mutate(Array.from(selecionadas)); }}>
             <Copy className="mr-1 h-3 w-3" />Duplicar
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
-            <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
+              <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
+            </Button>
+          )}
           <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
         </div>
       )}
@@ -768,9 +772,13 @@ export default function AtividadesAuditoria() {
                         <div className="flex gap-2 mb-2 flex-wrap">
                           <Button size="sm" variant="outline" onClick={() => openEditGrupo(g)}><Pencil className="mr-1 h-3 w-3" />Editar grupo</Button>
                           <Button size="sm" variant="outline" onClick={() => openNewAtv(g.id)}><Plus className="mr-1 h-3 w-3" />Atividade neste grupo</Button>
-                          <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvs.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
+                          {isAdmin && (
+                            <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvs.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
+                          )}
                           <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvs.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvs.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
+                          {isAdmin && (
+                            <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
+                          )}
                         </div>
                       )}
                       {atvs.length === 0
@@ -968,13 +976,17 @@ export default function AtividadesAuditoria() {
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent>
-                                {canConfig && (
-                                  <div className="flex gap-2 mb-2 flex-wrap">
+                              {canConfig && (
+                                <div className="flex gap-2 mb-2 flex-wrap">
+                                  {isAdmin && (
                                     <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvsGrupo.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
-                                    <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvsGrupo.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvsGrupo.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
+                                  )}
+                                  <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvsGrupo.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvsGrupo.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
+                                  {isAdmin && (
                                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm(`Desativar ${atvsGrupo.length} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(atvsGrupo.map((a) => a.id)); }}><Trash2 className="mr-1 h-3 w-3" />Desativar atividades</Button>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
+                              )}
                                 {atvsGrupo.map((a) => <ItemRow key={a.id} a={a} />)}
                               </AccordionContent>
                             </AccordionItem>

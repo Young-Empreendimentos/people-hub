@@ -936,6 +936,7 @@ export default function AtividadesAuditoria() {
 
           <TabsTrigger value="responsavel">Por Responsável</TabsTrigger>
           <TabsTrigger value="equipe">Por Equipe</TabsTrigger>
+          <TabsTrigger value="desativadas">Desativadas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grupo" className="space-y-3">

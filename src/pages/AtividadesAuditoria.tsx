@@ -554,69 +554,105 @@ export default function AtividadesAuditoria() {
         return n;
       });
     };
+    const ids = rows.map((r) => r.id);
+    const onEnd = (e: DragEndEvent) => {
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      const oldIdx = ids.indexOf(String(active.id));
+      const newIdx = ids.indexOf(String(over.id));
+      if (oldIdx < 0 || newIdx < 0) return;
+      reorderAtividades.mutate(arrayMove(ids, oldIdx, newIdx));
+    };
+    const renderCells = (a: Atividade, drag: React.ReactNode) => (
+      <>
+        <TableCell className="w-8">
+          <div className="flex items-center gap-1">
+            {drag}
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={selecionadas.has(a.id)}
+              onChange={() => toggleSel(a.id)}
+              aria-label="Selecionar atividade"
+            />
+          </div>
+        </TableCell>
+        <TableCell>{equipeNome(a.equipe_id)}</TableCell>
+        <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
+        <TableCell><InlineGrupo value={a.grupo_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { grupo_id: v } })} /></TableCell>
+        <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
+        <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
+        <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+          <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} />
+        </TableCell>
+        <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+          <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} />
+        </TableCell>
+        <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+          <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} />
+        </TableCell>
+        {isAdmin && (
+          <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
+            <InlineText multiline value={a.metodo_auditoria} placeholder="clique para adicionar" onSave={(v) => patchAtv.mutate({ id: a.id, patch: { metodo_auditoria: v || null } })} />
+          </TableCell>
+        )}
+      </>
+    );
+    const header = (
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-8">
+            <input
+              type="checkbox"
+              className="h-4 w-4"
+              checked={allSel}
+              ref={(el) => { if (el) el.indeterminate = !allSel && someSel; }}
+              onChange={toggleAll}
+              aria-label="Selecionar todas"
+            />
+          </TableHead>
+          <TableHead>Equipe</TableHead>
+          <TableHead>Responsável</TableHead>
+          <TableHead>Grupo</TableHead>
+          <TableHead>Atividade</TableHead>
+          <TableHead>Peso</TableHead>
+          <TableHead>Normas</TableHead>
+          <TableHead>Manuais</TableHead>
+          <TableHead>Indicadores</TableHead>
+          {isAdmin && <TableHead>Método</TableHead>}
+        </TableRow>
+      </TableHeader>
+    );
     return (
       <Card>
         <CardContent className="pt-4">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4"
-                    checked={allSel}
-                    ref={(el) => { if (el) el.indeterminate = !allSel && someSel; }}
-                    onChange={toggleAll}
-                    aria-label="Selecionar todas"
-                  />
-                </TableHead>
-                <TableHead>Equipe</TableHead>
-                <TableHead>Responsável</TableHead>
-                <TableHead>Grupo</TableHead>
-                <TableHead>Atividade</TableHead>
-                <TableHead>Peso</TableHead>
-                <TableHead>Normas</TableHead>
-                <TableHead>Manuais</TableHead>
-                <TableHead>Indicadores</TableHead>
-                {isAdmin && <TableHead>Método</TableHead>}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((a) => (
-                <TableRow key={a.id} data-state={selecionadas.has(a.id) ? "selected" : undefined}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4"
-                      checked={selecionadas.has(a.id)}
-                      onChange={() => toggleSel(a.id)}
-                      aria-label="Selecionar atividade"
-                    />
-                  </TableCell>
-                  <TableCell>{equipeNome(a.equipe_id)}</TableCell>
-                  <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
-                  <TableCell><InlineGrupo value={a.grupo_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { grupo_id: v } })} /></TableCell>
-                  <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
-                  <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
-                  <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
-                    <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} />
-                  </TableCell>
-                  <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
-                    <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} />
-                  </TableCell>
-                  <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
-                    <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} />
-                  </TableCell>
-                  {isAdmin && (
-                    <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
-                      <InlineText multiline value={a.metodo_auditoria} placeholder="clique para adicionar" onSave={(v) => patchAtv.mutate({ id: a.id, patch: { metodo_auditoria: v || null } })} />
-                    </TableCell>
-                  )}
-                </TableRow>
-
-              ))}
-            </TableBody>
-          </Table>
+          {podeArrastar ? (
+            <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onEnd}>
+              <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+                <Table>
+                  {header}
+                  <TableBody>
+                    {rows.map((a) => (
+                      <SortableTableRow key={a.id} a={a}>
+                        {(drag) => renderCells(a, drag)}
+                      </SortableTableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <Table>
+              {header}
+              <TableBody>
+                {rows.map((a) => (
+                  <TableRow key={a.id} data-state={selecionadas.has(a.id) ? "selected" : undefined}>
+                    {renderCells(a, null)}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     );
@@ -700,14 +736,47 @@ export default function AtividadesAuditoria() {
   );
 
   // Sortable activity row (admin drag-and-drop within a group)
-  const SortableAtvRow = ({ a }: { a: Atividade }) => {
+  const SortableAtvRow = ({ a, showGrupo = false }: { a: Atividade; showGrupo?: boolean }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
     const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
     return (
       <div ref={setNodeRef} style={style} className="flex items-start gap-1">
         {podeArrastar && <div className="pt-3"><DragHandle listeners={listeners} attributes={attributes} title="Arrastar atividade" /></div>}
-        <div className="flex-1 min-w-0"><ItemRow a={a} /></div>
+        <div className="flex-1 min-w-0"><ItemRow a={a} showGrupo={showGrupo} /></div>
       </div>
+    );
+  };
+
+  // Sortable row for table view
+  const SortableTableRow = ({ a, children }: { a: Atividade; children: (drag: React.ReactNode) => React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+    const drag = podeArrastar ? <DragHandle listeners={listeners} attributes={attributes} title="Arrastar" /> : null;
+    return (
+      <TableRow ref={setNodeRef as any} style={style} data-state={selecionadas.has(a.id) ? "selected" : undefined}>
+        {children(drag)}
+      </TableRow>
+    );
+  };
+
+  // Helper: wrap a list of atividades with DnD to reorder them by "ordem"
+  const AtvDndList = ({ atvs, showGrupo = false }: { atvs: Atividade[]; showGrupo?: boolean }) => {
+    const ids = atvs.map((a) => a.id);
+    const onEnd = (e: DragEndEvent) => {
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      const oldIdx = ids.indexOf(String(active.id));
+      const newIdx = ids.indexOf(String(over.id));
+      if (oldIdx < 0 || newIdx < 0) return;
+      reorderAtividades.mutate(arrayMove(ids, oldIdx, newIdx));
+    };
+    if (!podeArrastar) return <>{atvs.map((a) => <ItemRow key={a.id} a={a} showGrupo={showGrupo} />)}</>;
+    return (
+      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onEnd}>
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          {atvs.map((a) => <SortableAtvRow key={a.id} a={a} showGrupo={showGrupo} />)}
+        </SortableContext>
+      </DndContext>
     );
   };
 
@@ -1139,7 +1208,7 @@ export default function AtividadesAuditoria() {
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                              {atvs.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                              <AtvDndList atvs={atvs} showGrupo />
                             </AccordionContent>
                           </AccordionItem>
                         );
@@ -1230,7 +1299,7 @@ export default function AtividadesAuditoria() {
                                   )}
                                 </div>
                               )}
-                                {atvsGrupo.map((a) => <ItemRow key={a.id} a={a} />)}
+                                <AtvDndList atvs={atvsGrupo} />
                               </AccordionContent>
                             </AccordionItem>
                           );
@@ -1247,7 +1316,7 @@ export default function AtividadesAuditoria() {
               <Card>
                 <CardHeader><CardTitle className="text-base">Sem equipe</CardTitle></CardHeader>
                 <CardContent className="pt-0">
-                  {semEquipe.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                  <AtvDndList atvs={semEquipe} showGrupo />
                 </CardContent>
               </Card>
               );

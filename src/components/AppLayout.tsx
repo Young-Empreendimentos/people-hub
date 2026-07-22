@@ -1,5 +1,5 @@
 import { Outlet, Navigate, useLocation, Link } from "react-router-dom";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -144,7 +144,6 @@ export function AppLayout() {
         <AppSidebar />
         <div className="flex-1 flex flex-col">
           <main className="flex-1 p-6 overflow-auto">
-            <SidebarTrigger className="mb-4" />
             <Outlet />
           </main>
         </div>

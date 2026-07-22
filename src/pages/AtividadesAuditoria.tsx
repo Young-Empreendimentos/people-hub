@@ -296,9 +296,45 @@ export default function AtividadesAuditoria() {
   };
 
 
+  // ===== Seleção em massa =====
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());
+  const toggleSel = (id: string) => setSelecionadas((prev) => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+  const clearSel = () => setSelecionadas(new Set());
+  const [bulkRespOpen, setBulkRespOpen] = useState(false);
+  const [bulkResp, setBulkResp] = useState("");
+
+  const bulkDelete = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").delete().in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades excluídas."); clearSel(); },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+  const bulkPatchResp = useMutation({
+    mutationFn: async ({ ids, resp }: { ids: string[]; resp: string | null }) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").update({ responsavel_funcionario_id: resp }).in("id", ids);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Responsável atualizado."); clearSel(); setBulkRespOpen(false); },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
   const ItemRow = ({ a, showGrupo = false }: { a: Atividade; showGrupo?: boolean }) => (
     <div className="flex items-start justify-between gap-3 py-2 border-b last:border-0">
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex items-start gap-2">
+        {canConfig && (
+          <input
+            type="checkbox"
+            className="mt-1 h-4 w-4 shrink-0"
+            checked={selecionadas.has(a.id)}
+            onChange={() => toggleSel(a.id)}
+            aria-label="Selecionar atividade"
+          />
+        )}
+        <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <InlineText
             value={a.nome}
@@ -321,9 +357,22 @@ export default function AtividadesAuditoria() {
           <div>Normas: <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} /></div>
           <div>Manuais: <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} /></div>
           <div>Indicadores: <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} /></div>
-          {a.metodo_auditoria
-            ? <div className="text-foreground/80"><strong>Método:</strong> {a.metodo_auditoria}</div>
-            : <div className="flex items-center gap-1 text-amber-700"><Lock className="h-3 w-3" /> Método restrito</div>}
+          {isAdmin ? (
+            <div className="text-foreground/80">
+              <strong>Método:</strong>{" "}
+              <InlineText
+                multiline
+                value={a.metodo_auditoria}
+                placeholder="clique para adicionar"
+                onSave={(v) => patchAtv.mutate({ id: a.id, patch: { metodo_auditoria: v || null } })}
+              />
+            </div>
+          ) : a.metodo_auditoria ? (
+            <div className="text-foreground/80"><strong>Método:</strong> {a.metodo_auditoria}</div>
+          ) : (
+            <div className="flex items-center gap-1 text-amber-700"><Lock className="h-3 w-3" /> Método restrito</div>
+          )}
+        </div>
         </div>
       </div>
       {canConfig && (
@@ -350,6 +399,20 @@ export default function AtividadesAuditoria() {
           </div>
         )}
       </div>
+
+      {canConfig && selecionadas.size > 0 && (
+        <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
+          <span className="text-sm font-medium">{selecionadas.size} selecionada(s)</span>
+          <div className="flex-1" />
+          <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
+            <Pencil className="mr-1 h-3 w-3" />Alterar responsável
+          </Button>
+          <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Excluir ${selecionadas.size} atividade(s)?`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
+            <Trash2 className="mr-1 h-3 w-3" />Excluir selecionadas
+          </Button>
+          <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
+        </div>
+      )}
 
       <Tabs defaultValue="grupo">
         <TabsList>
@@ -572,6 +635,21 @@ export default function AtividadesAuditoria() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAtvOpen(false)}>Cancelar</Button>
             <Button onClick={() => saveAtv.mutate()} disabled={!aNome || !aGrupo}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Bulk Responsável */}
+      <Dialog open={bulkRespOpen} onOpenChange={setBulkRespOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Alterar responsável ({selecionadas.size})</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            <label className="text-sm">Novo responsável</label>
+            <Combobox options={funcOptions} value={bulkResp} onValueChange={setBulkResp} placeholder="Selecionar (vazio = remover)" emptyMessage="—" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBulkRespOpen(false)}>Cancelar</Button>
+            <Button onClick={() => bulkPatchResp.mutate({ ids: Array.from(selecionadas), resp: bulkResp || null })}>Aplicar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

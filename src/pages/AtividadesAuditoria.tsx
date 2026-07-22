@@ -580,6 +580,10 @@ export default function AtividadesAuditoria() {
             </button>
           )}
         </div>
+        <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as any)} size="sm" variant="outline">
+          <ToggleGroupItem value="lista" aria-label="Visualização em lista"><List className="h-4 w-4 mr-1" />Lista</ToggleGroupItem>
+          <ToggleGroupItem value="tabela" aria-label="Visualização em tabela"><Table2 className="h-4 w-4 mr-1" />Tabela</ToggleGroupItem>
+        </ToggleGroup>
         {canConfig && (
           <div className="flex gap-2 shrink-0">
             <Button variant="outline" onClick={openNewGrupo}><Plus className="mr-2 h-4 w-4" />Novo grupo</Button>
@@ -594,6 +598,9 @@ export default function AtividadesAuditoria() {
           <div className="flex-1" />
           <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
             <Pencil className="mr-1 h-3 w-3" />Alterar responsável
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${selecionadas.size} atividade(s)?`)) bulkDuplicate.mutate(Array.from(selecionadas)); }}>
+            <Copy className="mr-1 h-3 w-3" />Duplicar
           </Button>
           <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
             <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas

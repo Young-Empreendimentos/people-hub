@@ -498,7 +498,7 @@ export default function AtividadesAuditoria() {
                         <div className="flex gap-2 mb-2">
                           <Button size="sm" variant="outline" onClick={() => openEditGrupo(g)}><Pencil className="mr-1 h-3 w-3" />Editar grupo</Button>
                           <Button size="sm" variant="outline" onClick={() => openNewAtv(g.id)}><Plus className="mr-1 h-3 w-3" />Atividade neste grupo</Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Excluir grupo? As atividades também serão excluídas.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Excluir grupo</Button>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
                         </div>
                       )}
                       {atvs.length === 0

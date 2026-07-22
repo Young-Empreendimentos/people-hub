@@ -1054,10 +1054,12 @@ export default function AtividadesAuditoria() {
                             </TableCell>
                             <TableCell>{equipeNome(a.equipe_id)}</TableCell>
                             <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
-                            <TableCell>{a.grupo_nome}</TableCell>
+                            <TableCell><InlineGrupo value={a.grupo_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { grupo_id: v } })} /></TableCell>
                             <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
                             <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
-                            <TableCell className="max-w-[280px] text-xs text-muted-foreground whitespace-pre-wrap">{a.normas || "—"}</TableCell>
+                            <TableCell className="max-w-[280px] text-xs text-muted-foreground">
+                              <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} />
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

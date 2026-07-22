@@ -192,12 +192,13 @@ export default function AtividadesAuditoria() {
 
   const deleteAtv = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").delete().eq("id", id);
+      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Excluída."); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Desativada (histórico preservado)."); },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
 
   const grupoOptions = (grupos as any[]).map((g) => ({ value: g.id, label: g.nome }));
   const funcOptions = (funcionarios as any[]).map((f) => ({ value: f.id, label: f.nome_completo }));

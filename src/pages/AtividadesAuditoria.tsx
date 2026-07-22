@@ -639,19 +639,45 @@ export default function AtividadesAuditoria() {
       </div>
 
       {/* Filtros compartilhados entre todas as subpáginas */}
-      <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
-        <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
-        <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
-        <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Grupo" emptyMessage="—" />
-        {(filtroEquipe || filtroResp || filtroGrupo) && (
-          <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); setFiltroGrupo(""); }}>Limpar filtros</Button>
-        )}
-        <div className="flex-1" />
-        <span className="text-xs text-muted-foreground">{atividadesFiltradas.length} atividade(s)</span>
-        <Button variant="outline" size="sm" onClick={emitirRelatorioFiltrado}>
-          <FileDown className="mr-2 h-4 w-4" />
-          Emitir relatório PDF
-        </Button>
+      <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2">
+        <div className="flex flex-wrap gap-2 flex-1">
+          <Combobox
+            options={equipeOptions}
+            value={filtroEquipe}
+            onValueChange={setFiltroEquipe}
+            placeholder="Equipe"
+            emptyMessage="—"
+            className="w-[150px]"
+          />
+          <Combobox
+            options={funcOptions}
+            value={filtroResp}
+            onValueChange={setFiltroResp}
+            placeholder="Responsável"
+            emptyMessage="—"
+            className="w-[180px]"
+          />
+          <Combobox
+            options={grupoOptions}
+            value={filtroGrupo}
+            onValueChange={setFiltroGrupo}
+            placeholder="Grupo"
+            emptyMessage="—"
+            className="w-[180px]"
+          />
+          {(filtroEquipe || filtroResp || filtroGrupo) && (
+            <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); setFiltroGrupo(""); }}>
+              Limpar filtros
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs text-muted-foreground whitespace-nowrap">{atividadesFiltradas.length} atividade(s)</span>
+          <Button variant="outline" size="sm" onClick={emitirRelatorioFiltrado}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Relatório PDF
+          </Button>
+        </div>
       </div>
 
       {canConfig && selecionadas.size > 0 && (

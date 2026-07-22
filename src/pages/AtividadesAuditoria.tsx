@@ -413,6 +413,8 @@ export default function AtividadesAuditoria() {
           <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
         </div>
       )}
+
+      <Tabs defaultValue="grupo">
         <TabsList>
           <TabsTrigger value="grupo">Por Grupo</TabsTrigger>
           <TabsTrigger value="responsavel">Por Responsável</TabsTrigger>

@@ -126,16 +126,18 @@ export default function AtividadesAuditoria() {
 
   const deleteGrupo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_grupos_atividades_auditoria").delete().eq("id", id);
+      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
+      await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("grupo_id", id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
       qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
-      toast.success("Grupo excluído.");
+      toast.success("Grupo desativado (histórico preservado).");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
 
   // ===== CRUD Atividade =====
   const [atvOpen, setAtvOpen] = useState(false);

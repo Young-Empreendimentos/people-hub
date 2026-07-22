@@ -304,26 +304,62 @@ export default function AtividadesAuditoria() {
         </TabsContent>
 
         <TabsContent value="equipe">
-          <div className="flex gap-2 mb-3">
+          <div className="flex flex-wrap gap-2 mb-3">
             <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Filtrar equipe" emptyMessage="—" />
-            {filtroEquipe && <Button variant="ghost" onClick={() => setFiltroEquipe("")}>Limpar</Button>}
+            {filtroEquipe && <Button variant="ghost" onClick={() => setFiltroEquipe("")}>Limpar equipe</Button>}
+            {(() => {
+              const atvsEscopo = atividades.filter((a) => !filtroEquipe || a.equipe_id === filtroEquipe);
+              const respIds = Array.from(new Set(atvsEscopo.map((a) => a.responsavel_funcionario_id).filter(Boolean))) as string[];
+              const respOpts = respIds
+                .map((id) => ({ value: id, label: funcNome(id) }))
+                .sort((a, b) => a.label.localeCompare(b.label));
+              return (
+                <>
+                  <Combobox options={respOpts} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
+                  {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar responsável</Button>}
+                </>
+              );
+            })()}
           </div>
           <div className="space-y-3">
             {(equipes as any[])
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)
               .map((e) => {
-                const atvs = atividades.filter((a) => a.equipe_id === e.id);
-                if (atvs.length === 0) return null;
+                const atvsEquipe = atividades.filter(
+                  (a) => a.equipe_id === e.id && (!filtroResp || a.responsavel_funcionario_id === filtroResp)
+                );
+                if (atvsEquipe.length === 0) return null;
+                const gruposDaEquipe = (grupos as any[])
+                  .filter((g) => atvsEquipe.some((a) => a.grupo_id === g.id))
+                  .sort((a: any, b: any) => (a.ordem - b.ordem) || a.nome.localeCompare(b.nome));
                 return (
                   <Card key={e.id}>
                     <CardHeader><CardTitle className="text-base">{e.nome}</CardTitle></CardHeader>
                     <CardContent className="pt-0">
-                      {atvs.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                      <Accordion type="multiple" className="space-y-2">
+                        {gruposDaEquipe.map((g: any) => {
+                          const atvsGrupo = atvsEquipe.filter((a) => a.grupo_id === g.id);
+                          return (
+                            <AccordionItem value={`${e.id}-${g.id}`} key={g.id} className="border rounded-lg px-3">
+                              <AccordionTrigger>
+                                <div className="flex items-center gap-2 flex-wrap text-left">
+                                  <span className="font-semibold">{g.nome}</span>
+                                  <Badge variant="secondary">peso grupo {Number(g.peso)}</Badge>
+                                  <Badge>{atvsGrupo.length} atividades</Badge>
+                                </div>
+                              </AccordionTrigger>
+                              <AccordionContent>
+                                {atvsGrupo.map((a) => <ItemRow key={a.id} a={a} />)}
+                              </AccordionContent>
+                            </AccordionItem>
+                          );
+                        })}
+                      </Accordion>
                     </CardContent>
                   </Card>
                 );
               })}
-            {atividades.filter((a) => !a.equipe_id).length > 0 && (
+            {!filtroResp && atividades.filter((a) => !a.equipe_id).length > 0 && (
               <Card>
                 <CardHeader><CardTitle className="text-base">Sem equipe</CardTitle></CardHeader>
                 <CardContent className="pt-0">

@@ -263,6 +263,41 @@ export default function AtividadesAuditoria() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  // Batch reorder: persists new "ordem" for a list of ids in the given sequence
+  const reorderGrupos = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map((id, idx) =>
+        supabase.from("rh_grupos_atividades_auditoria").update({ ordem: idx + 1 }).eq("id", id)
+      ));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      toast.success("Ordem dos grupos atualizada.");
+    },
+    onError: (e: any) => toast.error("Erro ao reordenar: " + e.message),
+  });
+  const reorderAtividades = useMutation({
+    mutationFn: async (ids: string[]) => {
+      await Promise.all(ids.map((id, idx) =>
+        supabase.from("rh_atividades_auditoria").update({ ordem: idx + 1 }).eq("id", id)
+      ));
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      toast.success("Ordem das atividades atualizada.");
+    },
+    onError: (e: any) => toast.error("Erro ao reordenar: " + e.message),
+  });
+
+  const dndSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+  const podeArrastar = isAdmin && !busca && !filtroResp && !filtroGrupo && !filtroEquipe;
+
+
+
   // Inline editor for text/number values
   const InlineText = ({
     value, onSave, multiline = false, type = "text", placeholder, className, display,

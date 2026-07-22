@@ -462,7 +462,8 @@ export default function AtividadesAuditoria() {
             {(grupos as any[])
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)
               .map((g) => {
-                const atvs = atividades.filter((a) => a.grupo_id === g.id);
+                const atvs = atividades.filter((a) => a.grupo_id === g.id && matchBusca(a));
+                if (busca && atvs.length === 0) return null;
                 return (
                   <AccordionItem value={g.id} key={g.id} className="border rounded-lg px-3">
                     <AccordionTrigger>

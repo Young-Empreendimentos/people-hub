@@ -17,7 +17,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, Table2, Copy, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, Table2, Copy, GripVertical, ChevronDown } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
@@ -1342,24 +1343,36 @@ export default function AtividadesAuditoria() {
 
                 return (
                   <Card key={e.id}>
-                    <CardHeader><CardTitle className="text-base">{e.nome}</CardTitle></CardHeader>
-                    <CardContent className="pt-0">
-                      {podeArrastar ? (
-                        <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onGrupoEquipeDragEnd}>
-                          <SortableContext items={gruposDaEquipeIds} strategy={verticalListSortingStrategy}>
+                    <Collapsible defaultOpen>
+                      <CollapsibleTrigger asChild>
+                        <CardHeader className="cursor-pointer select-none flex flex-row items-center justify-between gap-2 hover:bg-muted/40 rounded-t-lg [&[data-state=open]_svg]:rotate-180">
+                          <CardTitle className="text-base flex items-center gap-2">
+                            {e.nome}
+                            <Badge variant="secondary">{gruposOrdenados.length} grupo(s)</Badge>
+                          </CardTitle>
+                          <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform" />
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="pt-0">
+                          {podeArrastar ? (
+                            <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onGrupoEquipeDragEnd}>
+                              <SortableContext items={gruposDaEquipeIds} strategy={verticalListSortingStrategy}>
+                                <Accordion type="multiple" className="space-y-2">
+                                  {gruposOrdenados.map((g: any) => (
+                                    <SortableGrupoWrap key={g.id} id={g.id} render={renderGrupoItem.bind(null, g)} />
+                                  ))}
+                                </Accordion>
+                              </SortableContext>
+                            </DndContext>
+                          ) : (
                             <Accordion type="multiple" className="space-y-2">
-                              {gruposOrdenados.map((g: any) => (
-                                <SortableGrupoWrap key={g.id} id={g.id} render={renderGrupoItem.bind(null, g)} />
-                              ))}
+                              {gruposOrdenados.map((g: any) => renderGrupoItem(g))}
                             </Accordion>
-                          </SortableContext>
-                        </DndContext>
-                      ) : (
-                        <Accordion type="multiple" className="space-y-2">
-                          {gruposOrdenados.map((g: any) => renderGrupoItem(g))}
-                        </Accordion>
-                      )}
-                    </CardContent>
+                          )}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </Card>
                 );
               })}
@@ -1369,10 +1382,22 @@ export default function AtividadesAuditoria() {
               if (semEquipe.length === 0) return null;
               return (
               <Card>
-                <CardHeader><CardTitle className="text-base">Sem equipe</CardTitle></CardHeader>
-                <CardContent className="pt-0">
-                  <AtvDndList atvs={semEquipe} showGrupo />
-                </CardContent>
+                <Collapsible defaultOpen>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer select-none flex flex-row items-center justify-between gap-2 hover:bg-muted/40 rounded-t-lg [&[data-state=open]_svg]:rotate-180">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        Sem equipe
+                        <Badge variant="secondary">{semEquipe.length} atividade(s)</Badge>
+                      </CardTitle>
+                      <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform" />
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <AtvDndList atvs={semEquipe} showGrupo />
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
               </Card>
               );
             })()}

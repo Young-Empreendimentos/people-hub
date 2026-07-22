@@ -356,7 +356,41 @@ export default function AtividadesAuditoria() {
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
-  const podeArrastar = isAdmin && !busca && !filtroResp && !filtroGrupo && !filtroEquipe;
+  const podeArrastar = isAdmin;
+
+  // Reorder helpers that preserve hidden items' relative positions when filters are active.
+  // For atividades: keeps ordem scoped per grupo_id (only touched groups are updated).
+  const applyReorderAtividades = (newVisibleIds: string[]) => {
+    const map = new Map(atividades.map((a) => [a.id, a] as const));
+    const byGrupo = new Map<string, string[]>();
+    for (const id of newVisibleIds) {
+      const a = map.get(id);
+      if (!a) continue;
+      const arr = byGrupo.get(a.grupo_id) ?? [];
+      arr.push(id);
+      byGrupo.set(a.grupo_id, arr);
+    }
+    const finalIds: string[] = [];
+    for (const [gid, visList] of byGrupo) {
+      const visSet = new Set(visList);
+      const fullSorted = atividades
+        .filter((a) => a.grupo_id === gid)
+        .sort((x, y) => (x.ordem ?? 0) - (y.ordem ?? 0))
+        .map((a) => a.id);
+      let vi = 0;
+      for (const id of fullSorted) finalIds.push(visSet.has(id) ? visList[vi++] : id);
+    }
+    if (finalIds.length) reorderAtividades.mutate(finalIds);
+  };
+  const applyReorderGrupos = (newVisibleIds: string[]) => {
+    const visSet = new Set(newVisibleIds);
+    const fullSorted = [...(grupos as any[])]
+      .sort((x, y) => (x.ordem ?? 0) - (y.ordem ?? 0))
+      .map((g) => g.id);
+    let vi = 0;
+    const finalIds = fullSorted.map((id) => (visSet.has(id) ? newVisibleIds[vi++] : id));
+    reorderGrupos.mutate(finalIds);
+  };
 
 
 

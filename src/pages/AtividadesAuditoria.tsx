@@ -451,14 +451,29 @@ export default function AtividadesAuditoria() {
 
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Atividades de Auditoria</h1>
-          <p className="text-sm text-muted-foreground">Cadastro de grupos e atividades auditáveis.</p>
+    <div className="space-y-4 max-w-6xl">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por normas, atividade ou grupo…"
+            className="pl-8 pr-8"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+              aria-label="Limpar busca"
+            >
+              ✕
+            </button>
+          )}
         </div>
         {canConfig && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" onClick={openNewGrupo}><Plus className="mr-2 h-4 w-4" />Novo grupo</Button>
             <Button onClick={() => openNewAtv()}><Plus className="mr-2 h-4 w-4" />Nova atividade</Button>
           </div>
@@ -474,30 +489,11 @@ export default function AtividadesAuditoria() {
           </Button>
           <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
             <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
-
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
         </div>
       )}
 
-      <div className="relative">
-        <Input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar por normas, atividade ou grupo…"
-          className="pr-8"
-        />
-        {busca && (
-          <button
-            type="button"
-            onClick={() => setBusca("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
-            aria-label="Limpar busca"
-          >
-            ✕
-          </button>
-        )}
-      </div>
 
       <Tabs defaultValue="grupo" onValueChange={() => { setFiltroGrupo(""); setFiltroResp(""); setFiltroEquipe(""); }}>
         <TabsList>

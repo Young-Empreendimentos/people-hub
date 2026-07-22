@@ -1985,7 +1985,6 @@ export type Database = {
           total_installments_number: number | null
           unit_name: string | null
           updated_at: string | null
-          valor_base: number | null
           valor_comissao: number | null
           valor_gatilho: number | null
         }
@@ -2034,7 +2033,6 @@ export type Database = {
           total_installments_number?: number | null
           unit_name?: string | null
           updated_at?: string | null
-          valor_base?: number | null
           valor_comissao?: number | null
           valor_gatilho?: number | null
         }
@@ -2083,7 +2081,6 @@ export type Database = {
           total_installments_number?: number | null
           unit_name?: string | null
           updated_at?: string | null
-          valor_base?: number | null
           valor_comissao?: number | null
           valor_gatilho?: number | null
         }

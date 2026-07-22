@@ -71,15 +71,28 @@ export default function AtividadesAuditoria() {
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [filtroResp, setFiltroResp] = useState("");
   const [filtroEquipe, setFiltroEquipe] = useState("");
+  const [busca, setBusca] = useState("");
+
+  const norm = (s: any) => (s ?? "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const matchBusca = (a: Atividade) => {
+    const q = norm(busca).trim();
+    if (!q) return true;
+    return (
+      norm(a.nome).includes(q) ||
+      norm(a.grupo_nome).includes(q) ||
+      norm(a.normas).includes(q)
+    );
+  };
 
   const atividadesFiltradas = useMemo(() => {
     return atividades.filter((a) => {
       if (filtroGrupo && a.grupo_id !== filtroGrupo) return false;
       if (filtroResp && a.responsavel_funcionario_id !== filtroResp) return false;
       if (filtroEquipe && a.equipe_id !== filtroEquipe) return false;
+      if (!matchBusca(a)) return false;
       return true;
     });
-  }, [atividades, filtroGrupo, filtroResp, filtroEquipe]);
+  }, [atividades, filtroGrupo, filtroResp, filtroEquipe, busca]);
 
   // ===== CRUD Grupo =====
   const [grupoOpen, setGrupoOpen] = useState(false);
@@ -414,6 +427,25 @@ export default function AtividadesAuditoria() {
         </div>
       )}
 
+      <div className="relative">
+        <Input
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          placeholder="Buscar por normas, atividade ou grupo…"
+          className="pr-8"
+        />
+        {busca && (
+          <button
+            type="button"
+            onClick={() => setBusca("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+            aria-label="Limpar busca"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       <Tabs defaultValue="grupo">
         <TabsList>
           <TabsTrigger value="grupo">Por Grupo</TabsTrigger>
@@ -430,7 +462,8 @@ export default function AtividadesAuditoria() {
             {(grupos as any[])
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)
               .map((g) => {
-                const atvs = atividades.filter((a) => a.grupo_id === g.id);
+                const atvs = atividades.filter((a) => a.grupo_id === g.id && matchBusca(a));
+                if (busca && atvs.length === 0) return null;
                 return (
                   <AccordionItem value={g.id} key={g.id} className="border rounded-lg px-3">
                     <AccordionTrigger>
@@ -527,7 +560,7 @@ export default function AtividadesAuditoria() {
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)
               .map((e) => {
                 const atvsEquipe = atividades.filter(
-                  (a) => a.equipe_id === e.id && (!filtroResp || a.responsavel_funcionario_id === filtroResp)
+                  (a) => a.equipe_id === e.id && (!filtroResp || a.responsavel_funcionario_id === filtroResp) && matchBusca(a)
                 );
                 if (atvsEquipe.length === 0) return null;
                 const gruposDaEquipe = (grupos as any[])
@@ -574,14 +607,18 @@ export default function AtividadesAuditoria() {
                   </Card>
                 );
               })}
-            {!filtroResp && atividades.filter((a) => !a.equipe_id).length > 0 && (
+            {!filtroResp && (() => {
+              const semEquipe = atividades.filter((a) => !a.equipe_id && matchBusca(a));
+              if (semEquipe.length === 0) return null;
+              return (
               <Card>
                 <CardHeader><CardTitle className="text-base">Sem equipe</CardTitle></CardHeader>
                 <CardContent className="pt-0">
-                  {atividades.filter((a) => !a.equipe_id).map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                  {semEquipe.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
                 </CardContent>
               </Card>
-            )}
+              );
+            })()}
           </div>
         </TabsContent>
       </Tabs>

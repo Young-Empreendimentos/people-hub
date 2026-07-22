@@ -28,7 +28,8 @@ type Atividade = {
 
 export default function AtividadesAuditoria() {
   const qc = useQueryClient();
-  const { canConfig } = useAuth();
+  const { canConfig, isAdmin } = useAuth();
+
 
   const { data: grupos = [] } = useQuery({
     queryKey: ["rh_grupos_atividades_auditoria"],

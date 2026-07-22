@@ -2,6 +2,8 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,7 +28,8 @@ type Atividade = {
 
 export default function AtividadesAuditoria() {
   const qc = useQueryClient();
-  const { canConfig } = useAuth();
+  const { canConfig, isAdmin } = useAuth();
+
 
   const { data: grupos = [] } = useQuery({
     queryKey: ["rh_grupos_atividades_auditoria"],
@@ -185,19 +188,139 @@ export default function AtividadesAuditoria() {
   const funcOptions = (funcionarios as any[]).map((f) => ({ value: f.id, label: f.nome_completo }));
   const equipeOptions = (equipes as any[]).map((e) => ({ value: e.id, label: e.nome }));
 
+  // ===== Inline patch mutations (admin) =====
+  const patchAtv = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      toast.success("Atualizado.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+  const patchGrupo = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
+      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      toast.success("Atualizado.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  // Inline editor for text/number values
+  const InlineText = ({
+    value, onSave, multiline = false, type = "text", placeholder, className, display,
+    stopProp = false,
+  }: {
+    value: string | number | null; onSave: (v: string) => void;
+    multiline?: boolean; type?: "text" | "number"; placeholder?: string; className?: string;
+    display?: React.ReactNode; stopProp?: boolean;
+  }) => {
+    const [editing, setEditing] = useState(false);
+    const [val, setVal] = useState(value == null ? "" : String(value));
+    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+    useEffect(() => { if (editing) { setVal(value == null ? "" : String(value)); setTimeout(() => inputRef.current?.focus(), 0); } }, [editing]);
+    if (!isAdmin) {
+      return <span className={className}>{display ?? (value ?? placeholder ?? "—")}</span>;
+    }
+    if (!editing) {
+      return (
+        <span
+          className={(className ?? "") + " cursor-text hover:bg-accent/50 rounded px-1 -mx-1"}
+          onClick={(e) => { if (stopProp) { e.stopPropagation(); e.preventDefault(); } setEditing(true); }}
+          title="Clique para editar"
+        >
+          {display ?? (value != null && value !== "" ? value : (placeholder ?? "—"))}
+        </span>
+      );
+    }
+    const commit = () => { setEditing(false); const nv = val.trim(); if (nv !== String(value ?? "")) onSave(nv); };
+    const cancel = () => setEditing(false);
+    const stop = (e: React.SyntheticEvent) => { if (stopProp) e.stopPropagation(); };
+    if (multiline) {
+      return (
+        <Textarea
+          ref={inputRef as any}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={commit}
+          onClick={stop}
+          onKeyDown={(e) => { stop(e); if (e.key === "Escape") cancel(); if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) commit(); }}
+          rows={2}
+          className="text-xs"
+        />
+      );
+    }
+    return (
+      <Input
+        ref={inputRef as any}
+        type={type}
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={commit}
+        onClick={stop}
+        onKeyDown={(e) => { stop(e); if (e.key === "Escape") cancel(); if (e.key === "Enter") commit(); }}
+        className={"h-7 " + (type === "number" ? "w-20" : "")}
+      />
+    );
+  };
+
+  // Inline editor for responsável (uses Combobox in popover)
+  const InlineResp = ({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) => {
+    const [open, setOpen] = useState(false);
+    if (!isAdmin) return <span>{funcNome(value)}</span>;
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <span className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1" title="Clique para editar">
+            {funcNome(value)}
+          </span>
+        </PopoverTrigger>
+        <PopoverContent className="p-2 w-64" align="start">
+          <Combobox
+            options={funcOptions}
+            value={value ?? ""}
+            onValueChange={(v) => { onSave(v || null); setOpen(false); }}
+            placeholder="Selecionar responsável"
+            emptyMessage="—"
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
+
   const ItemRow = ({ a, showGrupo = false }: { a: Atividade; showGrupo?: boolean }) => (
     <div className="flex items-start justify-between gap-3 py-2 border-b last:border-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium">{a.nome}</span>
-          <Badge variant="secondary">peso {Number(a.peso)}</Badge>
+          <InlineText
+            value={a.nome}
+            className="font-medium"
+            onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })}
+          />
+          <Badge variant="secondary" className="p-0">
+            <InlineText
+              type="number"
+              value={a.peso}
+              className="px-2 py-0.5 inline-block"
+              display={<>peso {Number(a.peso)}</>}
+              onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }}
+            />
+          </Badge>
           {showGrupo && <Badge variant="outline">{a.grupo_nome}</Badge>}
         </div>
         <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-          <div>Responsável: {funcNome(a.responsavel_funcionario_id)}</div>
-          {a.normas && <div>Normas: {a.normas}</div>}
-          {a.manuais && <div>Manuais: {a.manuais}</div>}
-          {a.indicadores && <div>Indicadores: {a.indicadores}</div>}
+          <div>Responsável: <InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></div>
+          <div>Normas: <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} /></div>
+          <div>Manuais: <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} /></div>
+          <div>Indicadores: <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} /></div>
           {a.metodo_auditoria
             ? <div className="text-foreground/80"><strong>Método:</strong> {a.metodo_auditoria}</div>
             : <div className="flex items-center gap-1 text-amber-700"><Lock className="h-3 w-3" /> Método restrito</div>}
@@ -211,6 +334,7 @@ export default function AtividadesAuditoria() {
       )}
     </div>
   );
+
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -248,8 +372,22 @@ export default function AtividadesAuditoria() {
                   <AccordionItem value={g.id} key={g.id} className="border rounded-lg px-3">
                     <AccordionTrigger>
                       <div className="flex items-center gap-2 flex-wrap text-left">
-                        <span className="font-semibold">{g.nome}</span>
-                        <Badge variant="secondary">peso grupo {Number(g.peso)}</Badge>
+                        <InlineText
+                          value={g.nome}
+                          className="font-semibold"
+                          stopProp
+                          onSave={(v) => v && patchGrupo.mutate({ id: g.id, patch: { nome: v } })}
+                        />
+                        <Badge variant="secondary" className="p-0">
+                          <InlineText
+                            type="number"
+                            value={g.peso}
+                            stopProp
+                            className="px-2 py-0.5 inline-block"
+                            display={<>peso grupo {Number(g.peso)}</>}
+                            onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchGrupo.mutate({ id: g.id, patch: { peso: n } }); }}
+                          />
+                        </Badge>
                         <Badge variant="outline">{equipeNome(g.equipe_id)}</Badge>
                         <Badge>{atvs.length} atividades</Badge>
                       </div>
@@ -291,10 +429,10 @@ export default function AtividadesAuditoria() {
                 <TableBody>
                   {atividadesFiltradas.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell>{funcNome(a.responsavel_funcionario_id)}</TableCell>
-                      <TableCell>{a.nome}</TableCell>
+                      <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
+                      <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
                       <TableCell>{a.grupo_nome}</TableCell>
-                      <TableCell>{Number(a.peso)}</TableCell>
+                      <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -343,8 +481,22 @@ export default function AtividadesAuditoria() {
                             <AccordionItem value={`${e.id}-${g.id}`} key={g.id} className="border rounded-lg px-3">
                               <AccordionTrigger>
                                 <div className="flex items-center gap-2 flex-wrap text-left">
-                                  <span className="font-semibold">{g.nome}</span>
-                                  <Badge variant="secondary">peso grupo {Number(g.peso)}</Badge>
+                                  <InlineText
+                                    value={g.nome}
+                                    className="font-semibold"
+                                    stopProp
+                                    onSave={(v) => v && patchGrupo.mutate({ id: g.id, patch: { nome: v } })}
+                                  />
+                                  <Badge variant="secondary" className="p-0">
+                                    <InlineText
+                                      type="number"
+                                      value={g.peso}
+                                      stopProp
+                                      className="px-2 py-0.5 inline-block"
+                                      display={<>peso grupo {Number(g.peso)}</>}
+                                      onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchGrupo.mutate({ id: g.id, patch: { peso: n } }); }}
+                                    />
+                                  </Badge>
                                   <Badge>{atvsGrupo.length} atividades</Badge>
                                 </div>
                               </AccordionTrigger>

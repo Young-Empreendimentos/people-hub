@@ -106,16 +106,19 @@ export type Database = {
       }
       bot_sessoes: {
         Row: {
+          aviso_horario_em: string | null
           estado: string
           numero: string
           updated_at: string | null
         }
         Insert: {
+          aviso_horario_em?: string | null
           estado?: string
           numero: string
           updated_at?: string | null
         }
         Update: {
+          aviso_horario_em?: string | null
           estado?: string
           numero?: string
           updated_at?: string | null
@@ -1084,6 +1087,7 @@ export type Database = {
       cobrancas_usuarios: {
         Row: {
           aprovado: boolean
+          auth_user_id: string | null
           created_at: string
           email: string
           id: string
@@ -1092,10 +1096,10 @@ export type Database = {
             | Database["public"]["Enums"]["cobrancas_responsavel"]
             | null
           role: Database["public"]["Enums"]["cobrancas_role"]
-          senha_hash: string
         }
         Insert: {
           aprovado?: boolean
+          auth_user_id?: string | null
           created_at?: string
           email: string
           id?: string
@@ -1104,10 +1108,10 @@ export type Database = {
             | Database["public"]["Enums"]["cobrancas_responsavel"]
             | null
           role?: Database["public"]["Enums"]["cobrancas_role"]
-          senha_hash: string
         }
         Update: {
           aprovado?: boolean
+          auth_user_id?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -1116,7 +1120,6 @@ export type Database = {
             | Database["public"]["Enums"]["cobrancas_responsavel"]
             | null
           role?: Database["public"]["Enums"]["cobrancas_role"]
-          senha_hash?: string
         }
         Relationships: []
       }
@@ -1575,6 +1578,39 @@ export type Database = {
           id_doc_aprazo?: string
           id_doc_avista?: string
           proprietario?: string
+        }
+        Relationships: []
+      }
+      comissoes_aprovacoes_v2: {
+        Row: {
+          broker_id: string
+          building_id: string
+          decidido_em: string
+          decidido_por: string | null
+          id: string
+          motivo: string | null
+          numero_contrato: string
+          status: string
+        }
+        Insert: {
+          broker_id?: string
+          building_id: string
+          decidido_em?: string
+          decidido_por?: string | null
+          id?: string
+          motivo?: string | null
+          numero_contrato: string
+          status: string
+        }
+        Update: {
+          broker_id?: string
+          building_id?: string
+          decidido_em?: string
+          decidido_por?: string | null
+          id?: string
+          motivo?: string | null
+          numero_contrato?: string
+          status?: string
         }
         Relationships: []
       }
@@ -2221,6 +2257,9 @@ export type Database = {
       }
       comissoes_sienge_corretores: {
         Row: {
+          aprovado: boolean
+          aprovado_em: string | null
+          aprovado_por: string | null
           ativo: boolean | null
           atualizado_em: string | null
           bairro: string | null
@@ -2263,6 +2302,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          aprovado?: boolean
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           ativo?: boolean | null
           atualizado_em?: string | null
           bairro?: string | null
@@ -2305,6 +2347,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          aprovado?: boolean
+          aprovado_em?: string | null
+          aprovado_por?: string | null
           ativo?: boolean | null
           atualizado_em?: string | null
           bairro?: string | null
@@ -2482,37 +2527,43 @@ export type Database = {
       }
       comissoes_usuarios: {
         Row: {
+          aprovado: boolean
           ativo: boolean | null
           criado_em: string | null
           criado_por: string | null
+          email: string | null
           id: number
           is_admin: boolean | null
           nome_completo: string | null
-          password_hash: string
+          password_hash: string | null
           perfil: string | null
           ultimo_login: string | null
           username: string
         }
         Insert: {
+          aprovado?: boolean
           ativo?: boolean | null
           criado_em?: string | null
           criado_por?: string | null
+          email?: string | null
           id?: number
           is_admin?: boolean | null
           nome_completo?: string | null
-          password_hash: string
+          password_hash?: string | null
           perfil?: string | null
           ultimo_login?: string | null
           username: string
         }
         Update: {
+          aprovado?: boolean
           ativo?: boolean | null
           criado_em?: string | null
           criado_por?: string | null
+          email?: string | null
           id?: number
           is_admin?: boolean | null
           nome_completo?: string | null
-          password_hash?: string
+          password_hash?: string | null
           perfil?: string | null
           ultimo_login?: string | null
           username?: string
@@ -2691,6 +2742,7 @@ export type Database = {
         Row: {
           created_at: string
           deal_id: string
+          fixado: boolean
           id: string
           texto: string
           user_id: string
@@ -2698,6 +2750,7 @@ export type Database = {
         Insert: {
           created_at?: string
           deal_id: string
+          fixado?: boolean
           id?: string
           texto: string
           user_id: string
@@ -2705,6 +2758,7 @@ export type Database = {
         Update: {
           created_at?: string
           deal_id?: string
+          fixado?: boolean
           id?: string
           texto?: string
           user_id?: string
@@ -2846,8 +2900,10 @@ export type Database = {
           interesses_pessoais: string[] | null
           link_contrato: string | null
           logradouro: string | null
+          melhor_horario_contato: string | null
           motivo_perda_id: string | null
           nacionalidade: string | null
+          nome_anuncio: string | null
           numero_logradouro: string | null
           numero_lote: string | null
           ordem_kanban: number
@@ -2896,8 +2952,10 @@ export type Database = {
           interesses_pessoais?: string[] | null
           link_contrato?: string | null
           logradouro?: string | null
+          melhor_horario_contato?: string | null
           motivo_perda_id?: string | null
           nacionalidade?: string | null
+          nome_anuncio?: string | null
           numero_logradouro?: string | null
           numero_lote?: string | null
           ordem_kanban?: number
@@ -2946,8 +3004,10 @@ export type Database = {
           interesses_pessoais?: string[] | null
           link_contrato?: string | null
           logradouro?: string | null
+          melhor_horario_contato?: string | null
           motivo_perda_id?: string | null
           nacionalidade?: string | null
+          nome_anuncio?: string | null
           numero_logradouro?: string | null
           numero_lote?: string | null
           ordem_kanban?: number
@@ -3270,6 +3330,36 @@ export type Database = {
           },
         ]
       }
+      crm_solicitacoes_acesso: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       crm_task_images: {
         Row: {
           id: string
@@ -3311,6 +3401,7 @@ export type Database = {
           deal_id: string
           deleted_at: string | null
           descricao: string | null
+          fixado: boolean
           hora_vencimento: string | null
           id: string
           responsavel_id: string
@@ -3326,6 +3417,7 @@ export type Database = {
           deal_id: string
           deleted_at?: string | null
           descricao?: string | null
+          fixado?: boolean
           hora_vencimento?: string | null
           id?: string
           responsavel_id: string
@@ -3341,6 +3433,7 @@ export type Database = {
           deal_id?: string
           deleted_at?: string | null
           descricao?: string | null
+          fixado?: boolean
           hora_vencimento?: string | null
           id?: string
           responsavel_id?: string
@@ -3360,18 +3453,21 @@ export type Database = {
       }
       crm_user_roles: {
         Row: {
+          ativo: boolean
           created_at: string
           id: string
           role: Database["public"]["Enums"]["crm_app_role"]
           user_id: string
         }
         Insert: {
+          ativo?: boolean
           created_at?: string
           id?: string
-          role: Database["public"]["Enums"]["crm_app_role"]
+          role?: Database["public"]["Enums"]["crm_app_role"]
           user_id: string
         }
         Update: {
+          ativo?: boolean
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["crm_app_role"]
@@ -3643,6 +3739,7 @@ export type Database = {
         Row: {
           ativo: boolean
           avatar_url: string | null
+          carga_horaria_diaria: number
           created_at: string
           custo_hora: number | null
           email: string
@@ -3654,6 +3751,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           avatar_url?: string | null
+          carga_horaria_diaria?: number
           created_at?: string
           custo_hora?: number | null
           email?: string
@@ -3665,6 +3763,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           avatar_url?: string | null
+          carga_horaria_diaria?: number
           created_at?: string
           custo_hora?: number | null
           email?: string
@@ -3756,6 +3855,39 @@ export type Database = {
           id?: string
           nome?: string
           ultimo_envio?: string | null
+        }
+        Relationships: []
+      }
+      esquadro_solicitacao_acesso: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          email: string | null
+          id: string
+          nome: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          id?: string
+          nome?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          id?: string
+          nome?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -3859,24 +3991,6 @@ export type Database = {
         }
         Relationships: []
       }
-      esquadro_user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["esquadro_app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["esquadro_app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["esquadro_app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
       frota_abastecimentos: {
         Row: {
           created_at: string | null
@@ -3940,6 +4054,33 @@ export type Database = {
           placa?: string
           updated_at?: string | null
           valor?: number | null
+        }
+        Relationships: []
+      }
+      frota_profiles: {
+        Row: {
+          ativo: boolean
+          avatar_url: string | null
+          created_at: string
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          avatar_url?: string | null
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4042,6 +4183,57 @@ export type Database = {
           placa?: string
           updated_at?: string | null
           valor?: number | null
+        }
+        Relationships: []
+      }
+      frota_solicitacao_acesso: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      frota_user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["frota_app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["frota_app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["frota_app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -4345,6 +4537,749 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      licenciamento_arquivo_aprovacoes: {
+        Row: {
+          aprovado: boolean
+          arquivo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          aprovado: boolean
+          arquivo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          aprovado?: boolean
+          arquivo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_arquivo_aprovacoes_arquivo_id_fkey"
+            columns: ["arquivo_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_arquivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_arquivos: {
+        Row: {
+          categoria: Database["public"]["Enums"]["licenciamento_categoria_arquivo"]
+          comentario: string | null
+          created_by: string | null
+          documento: string | null
+          empreendimento_id: string | null
+          etapa_id: string
+          id: string
+          impugnacao_id: string | null
+          is_protocolo: boolean
+          mime_type: string | null
+          nome_original: string
+          storage_path: string
+          tamanho_bytes: number | null
+          tarefa_id: string | null
+          tipo_projeto_id: string | null
+          uploaded_at: string
+          versao: number
+        }
+        Insert: {
+          categoria?: Database["public"]["Enums"]["licenciamento_categoria_arquivo"]
+          comentario?: string | null
+          created_by?: string | null
+          documento?: string | null
+          empreendimento_id?: string | null
+          etapa_id: string
+          id?: string
+          impugnacao_id?: string | null
+          is_protocolo?: boolean
+          mime_type?: string | null
+          nome_original: string
+          storage_path: string
+          tamanho_bytes?: number | null
+          tarefa_id?: string | null
+          tipo_projeto_id?: string | null
+          uploaded_at?: string
+          versao?: number
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["licenciamento_categoria_arquivo"]
+          comentario?: string | null
+          created_by?: string | null
+          documento?: string | null
+          empreendimento_id?: string | null
+          etapa_id?: string
+          id?: string
+          impugnacao_id?: string | null
+          is_protocolo?: boolean
+          mime_type?: string | null
+          nome_original?: string
+          storage_path?: string
+          tamanho_bytes?: number | null
+          tarefa_id?: string | null
+          tipo_projeto_id?: string | null
+          uploaded_at?: string
+          versao?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_arquivos_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "esquadro_empreendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_arquivos_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_arquivos_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_tarefas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_arquivos_tipo_projeto_id_fkey"
+            columns: ["tipo_projeto_id"]
+            isOneToOne: false
+            referencedRelation: "esquadro_tipos_projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_comentarios: {
+        Row: {
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          empreendimento_id: string | null
+          etapa_id: string | null
+          id: string
+          macro_etapa_id: string | null
+          nivel: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          empreendimento_id?: string | null
+          etapa_id?: string | null
+          id?: string
+          macro_etapa_id?: string | null
+          nivel: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          empreendimento_id?: string | null
+          etapa_id?: string | null
+          id?: string
+          macro_etapa_id?: string | null
+          nivel?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_comentarios_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "esquadro_empreendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_comentarios_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_comentarios_macro_etapa_id_fkey"
+            columns: ["macro_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_macro_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_empreendimentos_config: {
+        Row: {
+          ativo: boolean
+          empreendimento_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          empreendimento_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          empreendimento_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_empreendimentos_config_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: true
+            referencedRelation: "esquadro_empreendimentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_etapa_dependencias: {
+        Row: {
+          aguarda_etapa_id: string
+          created_at: string
+          created_by: string | null
+          destravado_em: string | null
+          etapa_id: string
+          id: string
+        }
+        Insert: {
+          aguarda_etapa_id: string
+          created_at?: string
+          created_by?: string | null
+          destravado_em?: string | null
+          etapa_id: string
+          id?: string
+        }
+        Update: {
+          aguarda_etapa_id?: string
+          created_at?: string
+          created_by?: string | null
+          destravado_em?: string | null
+          etapa_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_etapa_dependencias_aguarda_etapa_id_fkey"
+            columns: ["aguarda_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_etapa_dependencias_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_etapa_status_historico: {
+        Row: {
+          comentario: string | null
+          created_at: string
+          created_by: string | null
+          etapa_id: string
+          id: string
+          status_anterior:
+            | Database["public"]["Enums"]["licenciamento_status_etapa"]
+            | null
+          status_novo: Database["public"]["Enums"]["licenciamento_status_etapa"]
+        }
+        Insert: {
+          comentario?: string | null
+          created_at?: string
+          created_by?: string | null
+          etapa_id: string
+          id?: string
+          status_anterior?:
+            | Database["public"]["Enums"]["licenciamento_status_etapa"]
+            | null
+          status_novo: Database["public"]["Enums"]["licenciamento_status_etapa"]
+        }
+        Update: {
+          comentario?: string | null
+          created_at?: string
+          created_by?: string | null
+          etapa_id?: string
+          id?: string
+          status_anterior?:
+            | Database["public"]["Enums"]["licenciamento_status_etapa"]
+            | null
+          status_novo?: Database["public"]["Enums"]["licenciamento_status_etapa"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_etapa_status_historico_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_etapas: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          empreendimento_id: string
+          esquadro_demanda_id: string | null
+          id: string
+          macro_etapa_id: string
+          ordem_coluna: number
+          prazo: string | null
+          status: Database["public"]["Enums"]["licenciamento_status_etapa"]
+          tipo_projeto_id: string | null
+          titulo: string
+          ultima_movimentacao_em: string
+          updated_at: string
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          empreendimento_id: string
+          esquadro_demanda_id?: string | null
+          id?: string
+          macro_etapa_id: string
+          ordem_coluna?: number
+          prazo?: string | null
+          status?: Database["public"]["Enums"]["licenciamento_status_etapa"]
+          tipo_projeto_id?: string | null
+          titulo: string
+          ultima_movimentacao_em?: string
+          updated_at?: string
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          empreendimento_id?: string
+          esquadro_demanda_id?: string | null
+          id?: string
+          macro_etapa_id?: string
+          ordem_coluna?: number
+          prazo?: string | null
+          status?: Database["public"]["Enums"]["licenciamento_status_etapa"]
+          tipo_projeto_id?: string | null
+          titulo?: string
+          ultima_movimentacao_em?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_etapas_empreendimento_id_fkey"
+            columns: ["empreendimento_id"]
+            isOneToOne: false
+            referencedRelation: "esquadro_empreendimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_etapas_esquadro_demanda_id_fkey"
+            columns: ["esquadro_demanda_id"]
+            isOneToOne: false
+            referencedRelation: "esquadro_demandas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_etapas_macro_etapa_id_fkey"
+            columns: ["macro_etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_macro_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_etapas_tipo_projeto_id_fkey"
+            columns: ["tipo_projeto_id"]
+            isOneToOne: false
+            referencedRelation: "esquadro_tipos_projeto"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_etapas_demanda_copia: {
+        Row: {
+          copiado_em: string
+          copiado_por: string | null
+          demanda_id: string
+          destino_id: string | null
+          etapa_id: string
+          id: string
+          origem_id: string
+          origem_tipo: string
+        }
+        Insert: {
+          copiado_em?: string
+          copiado_por?: string | null
+          demanda_id: string
+          destino_id?: string | null
+          etapa_id: string
+          id?: string
+          origem_id: string
+          origem_tipo: string
+        }
+        Update: {
+          copiado_em?: string
+          copiado_por?: string | null
+          demanda_id?: string
+          destino_id?: string | null
+          etapa_id?: string
+          id?: string
+          origem_id?: string
+          origem_tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_etapas_demanda_copia_demanda_id_fkey"
+            columns: ["demanda_id"]
+            isOneToOne: false
+            referencedRelation: "esquadro_demandas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_etapas_demanda_copia_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_impugnacoes: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data: string
+          descricao: string
+          etapa_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao: string
+          etapa_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data?: string
+          descricao?: string
+          etapa_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_impugnacoes_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_macro_etapas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          dias_parada: number | null
+          id: string
+          nome: string
+          ordem: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          dias_parada?: number | null
+          id?: string
+          nome: string
+          ordem: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          dias_parada?: number | null
+          id?: string
+          nome?: string
+          ordem?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      licenciamento_mural: {
+        Row: {
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          fixado: boolean
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          fixado?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          fixado?: boolean
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      licenciamento_notificacoes: {
+        Row: {
+          created_at: string
+          etapa_id: string | null
+          id: string
+          lida: boolean
+          mensagem: string
+          profile_id: string
+          tipo: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id?: string | null
+          id?: string
+          lida?: boolean
+          mensagem: string
+          profile_id: string
+          tipo: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string | null
+          id?: string
+          lida?: boolean
+          mensagem?: string
+          profile_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_notificacoes_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_notificacoes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_profiles: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          nome: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      licenciamento_solicitacao_acesso: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          email: string | null
+          id: string
+          nome: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          id?: string
+          nome?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          id?: string
+          nome?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      licenciamento_tarefa_comentarios: {
+        Row: {
+          conteudo: string
+          created_at: string
+          id: string
+          tarefa_id: string
+          user_id: string | null
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          id?: string
+          tarefa_id: string
+          user_id?: string | null
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          id?: string
+          tarefa_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_tarefa_comentarios_tarefa_id_fkey"
+            columns: ["tarefa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_tarefas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_tarefas: {
+        Row: {
+          concluida_em: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          etapa_id: string
+          id: string
+          responsavel_id: string | null
+          status: Database["public"]["Enums"]["licenciamento_status_tarefa"]
+          titulo: string
+          updated_at: string
+          vencimento: string | null
+        }
+        Insert: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapa_id: string
+          id?: string
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["licenciamento_status_tarefa"]
+          titulo: string
+          updated_at?: string
+          vencimento?: string | null
+        }
+        Update: {
+          concluida_em?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          etapa_id?: string
+          id?: string
+          responsavel_id?: string | null
+          status?: Database["public"]["Enums"]["licenciamento_status_tarefa"]
+          titulo?: string
+          updated_at?: string
+          vencimento?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_tarefas_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "licenciamento_tarefas_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      licenciamento_user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          papel: Database["public"]["Enums"]["licenciamento_papel"]
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          papel?: Database["public"]["Enums"]["licenciamento_papel"]
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          papel?: Database["public"]["Enums"]["licenciamento_papel"]
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "licenciamento_user_roles_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "licenciamento_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       motivos_descarte: {
         Row: {
@@ -4991,6 +5926,39 @@ export type Database = {
         }
         Relationships: []
       }
+      paver_solicitacao_acesso: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       paver_user_roles: {
         Row: {
           id: string
@@ -5005,6 +5973,63 @@ export type Database = {
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["paver_app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      perdigueiro_membros: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          email: string | null
+          id: string
+          nivel: string
+          nome: string | null
+          user_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nivel?: string
+          nome?: string | null
+          user_id: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          email?: string | null
+          id?: string
+          nivel?: string
+          nome?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      perdigueiro_tentativas_acesso: {
+        Row: {
+          email: string | null
+          id: string
+          nome: string | null
+          resolvido: boolean
+          tentou_em: string
+          user_id: string
+        }
+        Insert: {
+          email?: string | null
+          id?: string
+          nome?: string | null
+          resolvido?: boolean
+          tentou_em?: string
+          user_id: string
+        }
+        Update: {
+          email?: string | null
+          id?: string
+          nome?: string | null
+          resolvido?: boolean
+          tentou_em?: string
           user_id?: string
         }
         Relationships: []
@@ -6382,6 +7407,7 @@ export type Database = {
       }
       posvenda_user: {
         Row: {
+          aprovado: boolean
           ativo: boolean | null
           created_at: string | null
           email: string | null
@@ -6394,6 +7420,7 @@ export type Database = {
           username: string
         }
         Insert: {
+          aprovado?: boolean
           ativo?: boolean | null
           created_at?: string | null
           email?: string | null
@@ -6406,6 +7433,7 @@ export type Database = {
           username: string
         }
         Update: {
+          aprovado?: boolean
           ativo?: boolean | null
           created_at?: string | null
           email?: string | null
@@ -6621,33 +7649,39 @@ export type Database = {
       }
       registros_usuarios: {
         Row: {
+          aprovado: boolean
           ativo: boolean
+          auth_provider: string
           created_at: string
           email: string
           id: string
           nome: string
           role: Database["public"]["Enums"]["registros_user_role"]
-          senha_hash: string
+          senha_hash: string | null
           updated_at: string
         }
         Insert: {
+          aprovado?: boolean
           ativo?: boolean
+          auth_provider?: string
           created_at?: string
           email: string
           id?: string
           nome: string
           role?: Database["public"]["Enums"]["registros_user_role"]
-          senha_hash: string
+          senha_hash?: string | null
           updated_at?: string
         }
         Update: {
+          aprovado?: boolean
           ativo?: boolean
+          auth_provider?: string
           created_at?: string
           email?: string
           id?: string
           nome?: string
           role?: Database["public"]["Enums"]["registros_user_role"]
-          senha_hash?: string
+          senha_hash?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -7161,6 +8195,7 @@ export type Database = {
           atividade_id: string
           auditoria_id: string
           comentario: string | null
+          comentario_admin: string | null
           created_at: string
           evidencia_url: string | null
           grupo_id: string
@@ -7175,6 +8210,7 @@ export type Database = {
           atividade_id: string
           auditoria_id: string
           comentario?: string | null
+          comentario_admin?: string | null
           created_at?: string
           evidencia_url?: string | null
           grupo_id: string
@@ -7189,6 +8225,7 @@ export type Database = {
           atividade_id?: string
           auditoria_id?: string
           comentario?: string | null
+          comentario_admin?: string | null
           created_at?: string
           evidencia_url?: string | null
           grupo_id?: string
@@ -7362,115 +8399,6 @@ export type Database = {
             columns: ["trilha_id"]
             isOneToOne: false
             referencedRelation: "rh_trilhas_cargo"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rh_km_config: {
-        Row: {
-          id: number
-          retroativo_ate: string | null
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          id?: number
-          retroativo_ate?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          id?: number
-          retroativo_ate?: string | null
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
-      rh_mapeamento_alternativas: {
-        Row: {
-          aderencia: string
-          aprovado_em: string | null
-          aprovado_por: string | null
-          aprovado_por_nome: string | null
-          cargo_atual: string | null
-          created_at: string
-          created_by: string | null
-          id: string
-          mapeamento_cargo_id: string
-          nome: string
-          observacoes: string | null
-          origem: string
-          talents_candidate_id: string | null
-          talents_mapping_id: string | null
-        }
-        Insert: {
-          aderencia?: string
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          aprovado_por_nome?: string | null
-          cargo_atual?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          mapeamento_cargo_id: string
-          nome: string
-          observacoes?: string | null
-          origem: string
-          talents_candidate_id?: string | null
-          talents_mapping_id?: string | null
-        }
-        Update: {
-          aderencia?: string
-          aprovado_em?: string | null
-          aprovado_por?: string | null
-          aprovado_por_nome?: string | null
-          cargo_atual?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          mapeamento_cargo_id?: string
-          nome?: string
-          observacoes?: string | null
-          origem?: string
-          talents_candidate_id?: string | null
-          talents_mapping_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rh_mapeamento_alternativas_mapeamento_cargo_id_fkey"
-            columns: ["mapeamento_cargo_id"]
-            isOneToOne: false
-            referencedRelation: "rh_mapeamento_cargos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      rh_mapeamento_cargos: {
-        Row: {
-          cargo_id: string
-          created_at: string
-          created_by: string | null
-          id: string
-        }
-        Insert: {
-          cargo_id: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-        }
-        Update: {
-          cargo_id?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "rh_mapeamento_cargos_cargo_id_fkey"
-            columns: ["cargo_id"]
-            isOneToOne: false
-            referencedRelation: "rh_cargos"
             referencedColumns: ["id"]
           },
         ]
@@ -7920,6 +8848,27 @@ export type Database = {
           },
         ]
       }
+      rh_km_config: {
+        Row: {
+          id: number
+          retroativo_ate: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          retroativo_ate?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          retroativo_ate?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       rh_km_lancamentos: {
         Row: {
           aprovado_em: string | null
@@ -7985,6 +8934,94 @@ export type Database = {
             columns: ["funcionario_id"]
             isOneToOne: false
             referencedRelation: "rh_funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_mapeamento_alternativas: {
+        Row: {
+          aderencia: string
+          aprovado_em: string | null
+          aprovado_por: string | null
+          aprovado_por_nome: string | null
+          cargo_atual: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          mapeamento_cargo_id: string
+          nome: string
+          observacoes: string | null
+          origem: string
+          talents_candidate_id: string | null
+          talents_mapping_id: string | null
+        }
+        Insert: {
+          aderencia?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          cargo_atual?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mapeamento_cargo_id: string
+          nome: string
+          observacoes?: string | null
+          origem: string
+          talents_candidate_id?: string | null
+          talents_mapping_id?: string | null
+        }
+        Update: {
+          aderencia?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          cargo_atual?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mapeamento_cargo_id?: string
+          nome?: string
+          observacoes?: string | null
+          origem?: string
+          talents_candidate_id?: string | null
+          talents_mapping_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_mapeamento_alternativas_mapeamento_cargo_id_fkey"
+            columns: ["mapeamento_cargo_id"]
+            isOneToOne: false
+            referencedRelation: "rh_mapeamento_cargos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rh_mapeamento_cargos: {
+        Row: {
+          cargo_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          cargo_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          cargo_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rh_mapeamento_cargos_cargo_id_fkey"
+            columns: ["cargo_id"]
+            isOneToOne: true
+            referencedRelation: "rh_cargos"
             referencedColumns: ["id"]
           },
         ]
@@ -9250,6 +10287,51 @@ export type Database = {
         }
         Relationships: []
       }
+      simulador_usuarios: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          email: string
+          empreendimentos: string[]
+          id: number
+          nome: string | null
+          papel: string
+          pode_autonomia: boolean
+          pode_bonificar: boolean
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          email: string
+          empreendimentos?: string[]
+          id?: never
+          nome?: string | null
+          papel?: string
+          pode_autonomia?: boolean
+          pode_bonificar?: boolean
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          email?: string
+          empreendimentos?: string[]
+          id?: never
+          nome?: string | null
+          papel?: string
+          pode_autonomia?: boolean
+          pode_bonificar?: boolean
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       system_config: {
         Row: {
           created_at: string
@@ -9441,6 +10523,7 @@ export type Database = {
           is_studying: string | null
           manager_feedback: string | null
           marital_status: string | null
+          motivo_arquivamento: string | null
           origin: string | null
           original_timestamp: string | null
           phone: string
@@ -9493,6 +10576,7 @@ export type Database = {
           is_studying?: string | null
           manager_feedback?: string | null
           marital_status?: string | null
+          motivo_arquivamento?: string | null
           origin?: string | null
           original_timestamp?: string | null
           phone: string
@@ -9545,6 +10629,7 @@ export type Database = {
           is_studying?: string | null
           manager_feedback?: string | null
           marital_status?: string | null
+          motivo_arquivamento?: string | null
           origin?: string | null
           original_timestamp?: string | null
           phone?: string
@@ -9843,13 +10928,6 @@ export type Database = {
             referencedRelation: "talents_candidates"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "talents_mappings_position_id_fkey"
-            columns: ["position_id"]
-            isOneToOne: false
-            referencedRelation: "talents_positions"
-            referencedColumns: ["id"]
-          },
         ]
       }
       talents_positions: {
@@ -9918,8 +10996,42 @@ export type Database = {
         }
         Relationships: []
       }
+      talents_solicitacao_acesso: {
+        Row: {
+          decided_at: string | null
+          decided_by: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          decided_at?: string | null
+          decided_by?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       talents_user_roles: {
         Row: {
+          ativo: boolean
           created_at: string | null
           email: string
           id: string
@@ -9931,6 +11043,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ativo?: boolean
           created_at?: string | null
           email: string
           id?: string
@@ -9942,6 +11055,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ativo?: boolean
           created_at?: string | null
           email?: string
           id?: string
@@ -10226,6 +11340,14 @@ export type Database = {
           valor_acrescimo: number | null
           valor_bonificacao: number | null
           valor_liquido: number | null
+          valor_pago: number | null
+        }
+        Relationships: []
+      }
+      comissoes_valor_pago_principal: {
+        Row: {
+          building_id: string | null
+          numero_contrato: string | null
           valor_pago: number | null
         }
         Relationships: []
@@ -10533,6 +11655,22 @@ export type Database = {
       }
     }
     Functions: {
+      cobrancas_bootstrap_profile: { Args: never; Returns: Json }
+      cobrancas_current_uid: { Args: never; Returns: string }
+      cobrancas_is_admin: { Args: never; Returns: boolean }
+      cobrancas_is_member: { Args: never; Returns: boolean }
+      comissoes_is_admin: { Args: { uid?: string }; Returns: boolean }
+      crm_dashboard_counts: {
+        Args: {
+          p_emp?: string
+          p_from: string
+          p_to: string
+          p_users?: string[]
+        }
+        Returns: Json
+      }
+      crm_esta_admin: { Args: never; Returns: boolean }
+      crm_esta_autorizado: { Args: never; Returns: boolean }
       crm_get_all_users_with_roles: {
         Args: never
         Returns: {
@@ -10550,14 +11688,30 @@ export type Database = {
         }
         Returns: boolean
       }
-      enriquecer_deals: { Args: { p_data: Json }; Returns: Json }
-      esquadro_has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["esquadro_app_role"]
-          _user_id: string
-        }
-        Returns: boolean
+      crm_is_active: { Args: { _user_id: string }; Returns: boolean }
+      crm_transferir_responsavel: {
+        Args: { p_deal_id: string; p_novo_responsavel: string }
+        Returns: undefined
       }
+      enriquecer_deals: { Args: { p_data: Json }; Returns: Json }
+      esquadro_aprovar_solicitacao: {
+        Args: { p_id: string; p_role: string }
+        Returns: undefined
+      }
+      esquadro_authorize_user: {
+        Args: { p_email: string; p_role: string }
+        Returns: {
+          email: string
+          nome: string
+          user_id: string
+        }[]
+      }
+      esquadro_is_member: { Args: never; Returns: boolean }
+      esquadro_recusar_solicitacao: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      esquadro_registrar_solicitacao_acesso: { Args: never; Returns: undefined }
       export_all_deals: {
         Args: { p_limit?: number; p_offset?: number }
         Returns: Json
@@ -10595,6 +11749,22 @@ export type Database = {
       }
       financeiro_fn_refresh_inadimplentes: { Args: never; Returns: undefined }
       fn_norm_lote: { Args: { p: string }; Returns: string }
+      frota_aprovar_solicitacao: { Args: { p_id: string }; Returns: undefined }
+      frota_authorize_user: {
+        Args: { p_email: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
+      frota_has_role: {
+        Args: { _role: string; _user_id: string }
+        Returns: boolean
+      }
+      frota_meu_acesso: { Args: never; Returns: Json }
+      frota_recusar_solicitacao: { Args: { p_id: string }; Returns: undefined }
+      frota_registrar_solicitacao_acesso: { Args: never; Returns: undefined }
       get_all_users_with_roles: {
         Args: never
         Returns: {
@@ -10626,6 +11796,11 @@ export type Database = {
           company_name: string
         }[]
       }
+      get_mapa_lotes: { Args: never; Returns: Json }
+      get_status_lote: {
+        Args: { p_nome: string; p_num: string }
+        Returns: string
+      }
       get_user_emails: {
         Args: { user_ids: string[] }
         Returns: {
@@ -10634,6 +11809,7 @@ export type Database = {
           nome: string
         }[]
       }
+      get_valor_pago: { Args: { p_bill_id: number }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -10651,10 +11827,121 @@ export type Database = {
         }[]
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      licenciamento_add_comentario_etapa: {
+        Args: { p_conteudo: string; p_etapa_id: string }
+        Returns: undefined
+      }
+      licenciamento_add_impugnacao_etapa: {
+        Args: { p_data?: string; p_descricao: string; p_etapa_id: string }
+        Returns: string
+      }
+      licenciamento_aprovar_acesso: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      licenciamento_aprovar_arquivo: {
+        Args: { p_aprovado: boolean; p_arquivo_id: string }
+        Returns: undefined
+      }
+      licenciamento_bootstrap: { Args: never; Returns: Json }
+      licenciamento_criar_empreendimento: {
+        Args: { p_nome: string }
+        Returns: string
+      }
+      licenciamento_criar_tipo_projeto: {
+        Args: { p_nome: string }
+        Returns: string
+      }
+      licenciamento_demandas_vinculaveis: {
+        Args: { p_empreendimento_id: string }
+        Returns: {
+          data_solicitacao: string
+          id: string
+          ja_vinculada: boolean
+          status: string
+          tipo_projeto: string
+        }[]
+      }
+      licenciamento_desvincular_demanda: {
+        Args: { p_etapa_id: string }
+        Returns: undefined
+      }
+      licenciamento_esta_autorizado: { Args: { uid: string }; Returns: boolean }
+      licenciamento_has_papel: {
+        Args: {
+          p_papel: Database["public"]["Enums"]["licenciamento_papel"]
+          uid: string
+        }
+        Returns: boolean
+      }
+      licenciamento_impugnacoes_pendentes: { Args: never; Returns: number }
+      licenciamento_is_admin: { Args: { uid: string }; Returns: boolean }
+      licenciamento_listar_comentarios_etapa: {
+        Args: { p_etapa_id: string }
+        Returns: {
+          autor: string
+          conteudo: string
+          created_at: string
+          id: string
+          origem: string
+        }[]
+      }
+      licenciamento_listar_impugnacoes_etapa: {
+        Args: { p_etapa_id: string }
+        Returns: {
+          data: string
+          descricao: string
+          id: string
+          origem: string
+        }[]
+      }
+      licenciamento_meu_profile_id: { Args: never; Returns: string }
+      licenciamento_recusar_acesso: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      licenciamento_set_tipo_ativo: {
+        Args: { p_ativo: boolean; p_id: string }
+        Returns: undefined
+      }
+      licenciamento_sync_status_esquadro: { Args: never; Returns: number }
+      licenciamento_ver_demanda: {
+        Args: { p_etapa_id: string }
+        Returns: {
+          data_solicitacao: string
+          demanda_id: string
+          empreendimento: string
+          instrucoes: string
+          prazo: string
+          prioridade: number
+          status: string
+          tipo_projeto: string
+        }[]
+      }
+      licenciamento_vincular_demanda: {
+        Args: { p_copiar?: boolean; p_demanda_id: string; p_etapa_id: string }
+        Returns: undefined
+      }
+      paver_aprovar_solicitacao: {
+        Args: { p_id: string; p_role: string }
+        Returns: undefined
+      }
+      paver_authorize_user: {
+        Args: { p_email: string; p_role: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       paver_has_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
       }
+      paver_recusar_solicitacao: { Args: { p_id: string }; Returns: undefined }
+      paver_registrar_solicitacao_acesso: { Args: never; Returns: undefined }
+      perdigueiro_esta_admin: { Args: never; Returns: boolean }
+      perdigueiro_esta_autorizado: { Args: never; Returns: boolean }
       public_submit_candidate: { Args: { candidate_data: Json }; Returns: Json }
       registros_calcular_valor_pago: {
         Args: {
@@ -10682,6 +11969,11 @@ export type Database = {
       }
       registros_manutencao_diaria: { Args: never; Returns: Json }
       registros_refresh_mv_valor_pago: { Args: never; Returns: undefined }
+      rh_aprovar_alternativa: { Args: { p_id: string }; Returns: undefined }
+      rh_aprovar_auditoria: {
+        Args: { p_aprovar: boolean; p_auditoria_id: string; p_motivo?: string }
+        Returns: undefined
+      }
       rh_auditor_em_equipe: {
         Args: { _equipe_id: string; _uid: string }
         Returns: boolean
@@ -10694,17 +11986,6 @@ export type Database = {
         }
         Returns: string
       }
-      rh_aprovar_alternativa: { Args: { p_id: string }; Returns: undefined }
-      rh_aprovar_auditoria: {
-        Args: { p_auditoria_id: string; p_aprovar: boolean; p_motivo?: string }
-        Returns: undefined
-      }
-      rh_reabrir_auditoria: { Args: { p_auditoria_id: string }; Returns: undefined }
-      rh_solicitar_acesso: {
-        Args: { p_funcionario_id: string; p_is_auditor?: boolean }
-        Returns: undefined
-      }
-      rh_revogar_alternativa: { Args: { p_id: string }; Returns: undefined }
       rh_current_funcionario_id: { Args: never; Returns: string }
       rh_fechar_auditoria: { Args: { p_auditoria_id: string }; Returns: number }
       rh_get_all_users_with_roles: {
@@ -10729,6 +12010,7 @@ export type Database = {
         Returns: boolean
       }
       rh_is_auditor: { Args: { _uid: string }; Returns: boolean }
+      rh_is_staff: { Args: never; Returns: boolean }
       rh_list_funcionarios_para_vinculo: {
         Args: never
         Returns: {
@@ -10759,12 +12041,37 @@ export type Database = {
           updated_at: string
         }[]
       }
+      rh_reabrir_auditoria: {
+        Args: { p_auditoria_id: string }
+        Returns: undefined
+      }
+      rh_revogar_alternativa: { Args: { p_id: string }; Returns: undefined }
       rh_set_my_funcionario: {
         Args: { p_funcionario_id: string }
         Returns: undefined
       }
+      rh_solicitar_acesso: {
+        Args: { p_funcionario_id: string; p_is_auditor?: boolean }
+        Returns: undefined
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      simulador_esta_admin: { Args: never; Returns: boolean }
+      simulador_esta_autorizado: { Args: never; Returns: boolean }
+      simulador_pode_gerenciar: { Args: never; Returns: boolean }
+      simulador_solicitar_acesso: { Args: { p_nome?: string }; Returns: string }
+      talents_aprovar_solicitacao: {
+        Args: { p_id: string; p_role: string }
+        Returns: undefined
+      }
+      talents_authorize_user: {
+        Args: { p_email: string; p_role: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
       talents_has_privileged_role: {
         Args: { p_min_role: string }
         Returns: boolean
@@ -10773,6 +12080,23 @@ export type Database = {
       talents_is_admin: { Args: never; Returns: boolean }
       talents_is_developer: { Args: never; Returns: boolean }
       talents_is_editor_or_admin: { Args: never; Returns: boolean }
+      talents_list_cargos: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+          trilha: string
+        }[]
+      }
+      talents_recusar_solicitacao: {
+        Args: { p_id: string }
+        Returns: undefined
+      }
+      talents_registrar_solicitacao_acesso: { Args: never; Returns: undefined }
+      talents_resumo_candidatos_semana: {
+        Args: { p_dias?: number }
+        Returns: Json
+      }
       update_corretor_cadastro_completo: {
         Args: {
           p_bairro?: string
@@ -10825,7 +12149,7 @@ export type Database = {
         | "perdido"
         | "vendido"
       crm_qualificacao: "frio" | "morno" | "quente"
-      esquadro_app_role: "admin" | "arquiteta"
+      frota_app_role: "admin"
       gleba_status:
         | "identificada"
         | "informacoes_recebidas"
@@ -10838,6 +12162,20 @@ export type Database = {
         | "standby"
         | "analise_interna_realizada"
         | "minuta_enviada"
+      licenciamento_categoria_arquivo:
+        | "sem_tipo"
+        | "protocolo"
+        | "impugnacao"
+        | "aprovacao"
+      licenciamento_papel: "admin" | "comum"
+      licenciamento_status_etapa:
+        | "concluido"
+        | "em_desenvolvimento_interno"
+        | "em_desenvolvimento_externo"
+        | "em_analise_interno"
+        | "em_analise_externo"
+        | "aguardando_outra_etapa"
+      licenciamento_status_tarefa: "programada" | "concluida"
       paver_app_role: "admin" | "engenharia"
       permuta_status: "incerto" | "nao" | "sim"
       registros_user_role: "gestor" | "operador" | "leitor"
@@ -11016,7 +12354,7 @@ export const Constants = {
         "vendido",
       ],
       crm_qualificacao: ["frio", "morno", "quente"],
-      esquadro_app_role: ["admin", "arquiteta"],
+      frota_app_role: ["admin"],
       gleba_status: [
         "identificada",
         "informacoes_recebidas",
@@ -11030,6 +12368,22 @@ export const Constants = {
         "analise_interna_realizada",
         "minuta_enviada",
       ],
+      licenciamento_categoria_arquivo: [
+        "sem_tipo",
+        "protocolo",
+        "impugnacao",
+        "aprovacao",
+      ],
+      licenciamento_papel: ["admin", "comum"],
+      licenciamento_status_etapa: [
+        "concluido",
+        "em_desenvolvimento_interno",
+        "em_desenvolvimento_externo",
+        "em_analise_interno",
+        "em_analise_externo",
+        "aguardando_outra_etapa",
+      ],
+      licenciamento_status_tarefa: ["programada", "concluida"],
       paver_app_role: ["admin", "engenharia"],
       permuta_status: ["incerto", "nao", "sim"],
       registros_user_role: ["gestor", "operador", "leitor"],

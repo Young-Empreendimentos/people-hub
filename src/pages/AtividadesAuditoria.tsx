@@ -880,6 +880,13 @@ export default function AtividadesAuditoria() {
             )}
           </div>
 
+          {viewMode === "tabela" ? (
+            <TableView rows={[...atividadesFiltradas].sort((a, b) =>
+              equipeNome(a.equipe_id).localeCompare(equipeNome(b.equipe_id), "pt-BR") ||
+              (a.grupo_nome || "").localeCompare(b.grupo_nome || "", "pt-BR") ||
+              (a.nome || "").localeCompare(b.nome || "", "pt-BR")
+            )} />
+          ) : (
           <div className="space-y-3">
             {(equipes as any[])
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)
@@ -898,10 +905,22 @@ export default function AtividadesAuditoria() {
                       <Accordion type="multiple" className="space-y-2">
                         {gruposDaEquipe.map((g: any) => {
                           const atvsGrupo = atvsEquipe.filter((a) => a.grupo_id === g.id);
+                          const gState = groupSelState(atvsGrupo);
                           return (
                             <AccordionItem value={`${e.id}-${g.id}`} key={g.id} className="border rounded-lg px-3">
                               <AccordionTrigger>
                                 <div className="flex items-center gap-2 flex-wrap text-left">
+                                  {canConfig && atvsGrupo.length > 0 && (
+                                    <input
+                                      type="checkbox"
+                                      className="h-4 w-4 shrink-0"
+                                      checked={gState === "all"}
+                                      ref={(el) => { if (el) el.indeterminate = gState === "some"; }}
+                                      onChange={() => toggleGroupSel(atvsGrupo)}
+                                      onClick={(ev) => ev.stopPropagation()}
+                                      aria-label="Selecionar grupo inteiro"
+                                    />
+                                  )}
                                   <InlineText
                                     value={g.nome}
                                     className="font-semibold"
@@ -922,6 +941,13 @@ export default function AtividadesAuditoria() {
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent>
+                                {canConfig && (
+                                  <div className="flex gap-2 mb-2 flex-wrap">
+                                    <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvsGrupo.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
+                                    <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvsGrupo.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvsGrupo.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
+                                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm(`Desativar ${atvsGrupo.length} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(atvsGrupo.map((a) => a.id)); }}><Trash2 className="mr-1 h-3 w-3" />Desativar atividades</Button>
+                                  </div>
+                                )}
                                 {atvsGrupo.map((a) => <ItemRow key={a.id} a={a} />)}
                               </AccordionContent>
                             </AccordionItem>
@@ -945,6 +971,7 @@ export default function AtividadesAuditoria() {
               );
             })()}
           </div>
+          )}
         </TabsContent>
       </Tabs>
 

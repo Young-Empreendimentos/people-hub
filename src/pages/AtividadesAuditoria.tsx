@@ -320,12 +320,30 @@ export default function AtividadesAuditoria() {
   // Inline editor for responsável (uses Combobox in popover)
   const InlineResp = ({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) => {
     const [open, setOpen] = useState(false);
-    if (!isAdmin) return <span>{funcNome(value)}</span>;
+    const inativo = isRespInativo(value);
+    const label = (
+      <span className={`inline-flex items-center gap-1 ${inativo ? "text-destructive font-medium" : ""}`}>
+        {inativo && (
+          <AlertTriangle
+            className="h-3.5 w-3.5 text-destructive"
+            aria-label="Responsável inativo — atividade sem responsável"
+          >
+            <title>Responsável inativo — atividade sem responsável</title>
+          </AlertTriangle>
+        )}
+        {funcNome(value)}
+        {inativo && <span className="text-xs">(inativo)</span>}
+      </span>
+    );
+    if (!isAdmin) return label;
     return (
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <span className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1" title="Clique para editar">
-            {funcNome(value)}
+          <span
+            className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1"
+            title={inativo ? "Responsável inativo — clique para alterar" : "Clique para editar"}
+          >
+            {label}
           </span>
         </PopoverTrigger>
         <PopoverContent className="p-2 w-64" align="start">

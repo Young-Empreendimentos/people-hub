@@ -971,7 +971,37 @@ export default function AtividadesAuditoria() {
               <Pencil className="mr-1 h-3 w-3" />Alterar responsável
             </Button>
           )}
-          <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${selecionadas.size} atividade(s)?`)) bulkDuplicate.mutate(Array.from(selecionadas)); }}>
+          <Button size="sm" variant="outline" onClick={() => {
+            // Detect fully-selected groups: if the selection covers ALL activities of some groups (and nothing else), duplicate as groups.
+            const selIds = Array.from(selecionadas);
+            const byGrupo = new Map<string, string[]>();
+            (atividades as Atividade[]).forEach((a) => {
+              if (!byGrupo.has(a.grupo_id)) byGrupo.set(a.grupo_id, []);
+              byGrupo.get(a.grupo_id)!.push(a.id);
+            });
+            const fullGrupos: string[] = [];
+            const partialAtvIds: string[] = [];
+            const selSet = new Set(selIds);
+            byGrupo.forEach((ids, gid) => {
+              const selHere = ids.filter((id) => selSet.has(id));
+              if (selHere.length === 0) return;
+              if (selHere.length === ids.length) fullGrupos.push(gid);
+              else partialAtvIds.push(...selHere);
+            });
+            if (fullGrupos.length > 0 && partialAtvIds.length === 0) {
+              if (confirm(`Duplicar ${fullGrupos.length} grupo(s) completo(s)? Será(ão) criado(s) novo(s) grupo(s) "(cópia)".`)) {
+                Promise.all(fullGrupos.map((gid) => duplicateGrupo.mutateAsync(gid))).catch(() => {});
+              }
+            } else if (fullGrupos.length > 0 && partialAtvIds.length > 0) {
+              if (confirm(`Duplicar ${fullGrupos.length} grupo(s) completo(s) como novos grupos e ${partialAtvIds.length} atividade(s) avulsa(s)?`)) {
+                Promise.all(fullGrupos.map((gid) => duplicateGrupo.mutateAsync(gid)))
+                  .then(() => bulkDuplicate.mutate(partialAtvIds))
+                  .catch(() => {});
+              }
+            } else {
+              if (confirm(`Duplicar ${selecionadas.size} atividade(s)?`)) bulkDuplicate.mutate(selIds);
+            }
+          }}>
             <Copy className="mr-1 h-3 w-3" />Duplicar
           </Button>
           {isAdmin && (

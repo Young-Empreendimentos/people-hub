@@ -48,9 +48,15 @@ export default function AtividadesAuditoria() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("rh_listar_atividades_auditoria");
       if (error) throw error;
-      return (data ?? []) as Atividade[];
+      const rows = (data ?? []) as Atividade[];
+      return [...rows].sort((a, b) =>
+        (a.ordem - b.ordem) ||
+        a.nome.localeCompare(b.nome, "pt-BR") ||
+        a.id.localeCompare(b.id)
+      );
     },
   });
+
 
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],

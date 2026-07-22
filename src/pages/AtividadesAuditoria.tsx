@@ -473,6 +473,44 @@ export default function AtividadesAuditoria() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  const duplicateGrupo = useMutation({
+    mutationFn: async (grupoId: string) => {
+      const g = (grupos as any[]).find((x) => x.id === grupoId);
+      if (!g) throw new Error("Grupo não encontrado");
+      const maxOrdem = (grupos as any[]).reduce((m, x) => Math.max(m, Number(x.ordem) || 0), 0);
+      const { data: novo, error: e1 } = await supabase
+        .from("rh_grupos_atividades_auditoria")
+        .insert({ nome: `${g.nome} (cópia)`, equipe_id: g.equipe_id ?? null, peso: Number(g.peso) || 1, ordem: maxOrdem + 1 })
+        .select("id")
+        .single();
+      if (e1) throw e1;
+      const atvs = atividades.filter((a) => a.grupo_id === grupoId);
+      if (atvs.length > 0) {
+        const payload = atvs.map((a) => ({
+          grupo_id: novo!.id,
+          nome: a.nome,
+          peso: Number(a.peso) || 1,
+          responsavel_funcionario_id: a.responsavel_funcionario_id,
+          normas: a.normas,
+          manuais: a.manuais,
+          indicadores: a.indicadores,
+          metodo_auditoria: a.metodo_auditoria,
+          ordem: Number(a.ordem) || 0,
+        }));
+        const { error: e2 } = await supabase.from("rh_atividades_auditoria").insert(payload);
+        if (e2) throw e2;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      toast.success("Grupo duplicado.");
+      clearSel();
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+
   // ===== View mode (lista / tabela) =====
   const [viewMode, setViewMode] = useState<"lista" | "tabela">("lista");
 

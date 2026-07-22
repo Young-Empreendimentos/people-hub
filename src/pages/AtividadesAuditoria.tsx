@@ -779,49 +779,9 @@ export default function AtividadesAuditoria() {
               if (allSel) rows.forEach((r) => { if (selecionadas.has(r.id)) toggleSel(r.id); });
               else rows.forEach((r) => { if (!selecionadas.has(r.id)) toggleSel(r.id); });
             };
-            const emitirPDF = () => {
-              const sel = rows.filter((r) => selecionadas.has(r.id));
-              if (sel.length === 0) { toast.error("Selecione ao menos uma atividade."); return; }
-              const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-              doc.setFontSize(14);
-              doc.text("Relatório de Atividades de Auditoria", 40, 40);
-              doc.setFontSize(10);
-              doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}  •  ${sel.length} atividade(s)`, 40, 56);
-              autoTable(doc, {
-                startY: 72,
-                head: [["Equipe", "Responsável", "Grupo", "Atividade", "Peso", "Normas"]],
-                body: sel.map((a) => [
-                  equipeNome(a.equipe_id),
-                  funcNome(a.responsavel_funcionario_id),
-                  a.grupo_nome || "—",
-                  a.nome || "—",
-                  String(a.peso ?? ""),
-                  a.normas || "—",
-                ]),
-                styles: { fontSize: 9, cellPadding: 4, valign: "top" },
-                headStyles: { fillColor: [30, 41, 59] },
-                columnStyles: {
-                  0: { cellWidth: 90 },
-                  1: { cellWidth: 120 },
-                  2: { cellWidth: 110 },
-                  3: { cellWidth: 160 },
-                  4: { cellWidth: 40, halign: "center" },
-                  5: { cellWidth: "auto" },
-                },
-              });
-              doc.save(`atividades-auditoria-${new Date().toISOString().slice(0,10)}.pdf`);
-            };
             return (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
-                  <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
-                  {filtroResp && <Button size="sm" variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
-                  <div className="flex-1" />
-                  <Button variant="outline" onClick={emitirPDF} disabled={selecionadas.size === 0}>
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Emitir relatório PDF{selecionadas.size > 0 ? ` (${selecionadas.size})` : ""}
-                  </Button>
-                </div>
+
 
                 {viewMode === "tabela" ? (
                 <Card>

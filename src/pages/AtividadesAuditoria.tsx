@@ -63,6 +63,20 @@ export default function AtividadesAuditoria() {
     },
   });
 
+  const { data: atividadesInativas = [] } = useQuery({
+    queryKey: ["rh_atividades_auditoria_inativas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rh_atividades_auditoria")
+        .select("id, grupo_id, nome, peso, responsavel_funcionario_id, normas, updated_at, ativo, rh_grupos_atividades_auditoria!inner(id, nome, ativo, equipe_id, rh_equipes(nome))")
+        .eq("ativo", false)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+
 
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],
@@ -229,9 +243,49 @@ export default function AtividadesAuditoria() {
       const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Desativada (histórico preservado)."); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] }); toast.success("Desativada (histórico preservado)."); },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
+  const reativarAtv = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] });
+      toast.success("Atividade reativada.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const reativarGrupo = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update({ ativo: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] });
+      toast.success("Grupo reativado.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const excluirAtvPerm = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] });
+      toast.success("Atividade excluída definitivamente.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
 
 
   const grupoOptions = (grupos as any[]).map((g) => ({ value: g.id, label: g.nome }));
@@ -936,6 +990,7 @@ export default function AtividadesAuditoria() {
 
           <TabsTrigger value="responsavel">Por Responsável</TabsTrigger>
           <TabsTrigger value="equipe">Por Equipe</TabsTrigger>
+          <TabsTrigger value="desativadas">Desativadas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grupo" className="space-y-3">
@@ -1212,6 +1267,94 @@ export default function AtividadesAuditoria() {
             })()}
           </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="desativadas" className="space-y-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Atividades desativadas</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {atividadesInativas.length} atividade(s) desativada(s). Reative para voltarem a aparecer nas listas e auditorias.
+                {!canConfig && " Somente admin/coordenador pode reativar ou excluir."}
+              </p>
+            </CardHeader>
+            <CardContent>
+              {atividadesInativas.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhuma atividade desativada.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Equipe</TableHead>
+                      <TableHead>Grupo</TableHead>
+                      <TableHead>Atividade</TableHead>
+                      <TableHead>Responsável</TableHead>
+                      <TableHead>Desativada em</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {atividadesInativas.map((a: any) => {
+                      const g = a.rh_grupos_atividades_auditoria;
+                      const grupoInativo = g && g.ativo === false;
+                      return (
+                        <TableRow key={a.id}>
+                          <TableCell className="text-xs">{g?.rh_equipes?.nome ?? "—"}</TableCell>
+                          <TableCell className="text-xs">
+                            <span className="inline-flex items-center gap-1">
+                              {g?.nome ?? "—"}
+                              {grupoInativo && (
+                                <Badge variant="destructive" className="text-[10px]">grupo desativado</Badge>
+                              )}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">{a.nome}</TableCell>
+                          <TableCell className="text-xs">{funcNome(a.responsavel_funcionario_id)}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">
+                            {a.updated_at ? new Date(a.updated_at).toLocaleString("pt-BR") : "—"}
+                          </TableCell>
+                          <TableCell className="text-right space-x-1">
+                            {canConfig && grupoInativo && g && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => reativarGrupo.mutate(g.id)}
+                              >
+                                Reativar grupo
+                              </Button>
+                            )}
+                            {canConfig && (
+                              <Button
+                                size="sm"
+                                onClick={() => reativarAtv.mutate(a.id)}
+                                disabled={grupoInativo}
+                                title={grupoInativo ? "Reative o grupo antes" : ""}
+                              >
+                                Reativar
+                              </Button>
+                            )}
+                            {isAdmin && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => {
+                                  if (confirm(`Excluir DEFINITIVAMENTE "${a.nome}"? Essa ação não pode ser desfeita.`)) {
+                                    excluirAtvPerm.mutate(a.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

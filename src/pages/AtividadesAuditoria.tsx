@@ -512,7 +512,6 @@ export default function AtividadesAuditoria() {
             )}
           </div>
 
-          </div>
           <Accordion type="multiple" className="space-y-2">
             {(grupos as any[])
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)

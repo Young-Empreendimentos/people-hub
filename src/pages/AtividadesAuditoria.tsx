@@ -16,9 +16,12 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, Table2, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, Table2, Copy, GripVertical } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Atividade = {
   id: string; grupo_id: string; nome: string; peso: number;

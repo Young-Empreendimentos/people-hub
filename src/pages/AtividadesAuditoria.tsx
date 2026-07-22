@@ -794,6 +794,15 @@ export default function AtividadesAuditoria() {
     );
   };
 
+  // Generic sortable wrapper for group accordion items (drag handle passed via render)
+  const SortableGrupoWrap = ({ id, render }: { id: string; render: (dragProps: { listeners: any; attributes: any; setNodeRef: any; style: any }) => React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.7 : 1 };
+    return <>{render({ listeners, attributes, setNodeRef, style })}</>;
+  };
+
+
+
 
   // Sortable group (accordion item)
   const SortableGrupo = ({ g, atvs }: { g: any; atvs: Atividade[] }) => {

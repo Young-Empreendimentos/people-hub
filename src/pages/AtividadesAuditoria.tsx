@@ -1134,56 +1134,9 @@ export default function AtividadesAuditoria() {
 
 
                 {viewMode === "tabela" ? (
-                <Card>
-                  <CardContent className="pt-4">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-8">
-                            <input
-                              type="checkbox"
-                              className="h-4 w-4"
-                              checked={allSel}
-                              ref={(el) => { if (el) el.indeterminate = !allSel && someSel; }}
-                              onChange={toggleAll}
-                              aria-label="Selecionar todas"
-                            />
-                          </TableHead>
-                          <TableHead>Equipe</TableHead>
-                          <TableHead>Responsável</TableHead>
-                          <TableHead>Grupo</TableHead>
-                          <TableHead>Atividade</TableHead>
-                          <TableHead>Peso</TableHead>
-                          <TableHead>Normas</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {rows.map((a) => (
-                          <TableRow key={a.id} data-state={selecionadas.has(a.id) ? "selected" : undefined}>
-                            <TableCell>
-                              <input
-                                type="checkbox"
-                                className="h-4 w-4"
-                                checked={selecionadas.has(a.id)}
-                                onChange={() => toggleSel(a.id)}
-                                aria-label="Selecionar atividade"
-                              />
-                            </TableCell>
-                            <TableCell>{equipeNome(a.equipe_id)}</TableCell>
-                            <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
-                            <TableCell><InlineGrupo value={a.grupo_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { grupo_id: v } })} /></TableCell>
-                            <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
-                            <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
-                            <TableCell className="max-w-[280px] text-xs text-muted-foreground">
-                              <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} />
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+                  <TableView rows={rows} />
                 ) : (
+
                   <Accordion type="multiple" className="space-y-2">
                     {(() => {
                       // group rows by responsável, keeping the sort order

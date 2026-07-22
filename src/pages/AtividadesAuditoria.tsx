@@ -595,6 +595,116 @@ export default function AtividadesAuditoria() {
     </div>
   );
 
+  // Drag handle button (admin-only, activated by pointer down)
+  const DragHandle = ({ listeners, attributes, title }: { listeners: any; attributes: any; title: string }) => (
+    <button
+      type="button"
+      {...attributes}
+      {...listeners}
+      onClick={(e) => e.stopPropagation()}
+      className="shrink-0 p-1 -ml-1 rounded hover:bg-muted cursor-grab active:cursor-grabbing text-muted-foreground"
+      aria-label={title}
+      title={title}
+    >
+      <GripVertical className="h-4 w-4" />
+    </button>
+  );
+
+  // Sortable activity row (admin drag-and-drop within a group)
+  const SortableAtvRow = ({ a }: { a: Atividade }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+    return (
+      <div ref={setNodeRef} style={style} className="flex items-start gap-1">
+        {podeArrastar && <div className="pt-3"><DragHandle listeners={listeners} attributes={attributes} title="Arrastar atividade" /></div>}
+        <div className="flex-1 min-w-0"><ItemRow a={a} /></div>
+      </div>
+    );
+  };
+
+  // Sortable group (accordion item)
+  const SortableGrupo = ({ g, atvs }: { g: any; atvs: Atividade[] }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: g.id });
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.7 : 1 };
+    const gState = groupSelState(atvs);
+    const atvsIds = atvs.map((a) => a.id);
+    const onAtvDragEnd = (e: DragEndEvent) => {
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      const oldIdx = atvsIds.indexOf(String(active.id));
+      const newIdx = atvsIds.indexOf(String(over.id));
+      if (oldIdx < 0 || newIdx < 0) return;
+      reorderAtividades.mutate(arrayMove(atvsIds, oldIdx, newIdx));
+    };
+    return (
+      <AccordionItem ref={setNodeRef} style={style} value={g.id} className="border rounded-lg px-3">
+        <AccordionTrigger>
+          <div className="flex items-center gap-2 flex-wrap text-left">
+            {podeArrastar && <DragHandle listeners={listeners} attributes={attributes} title="Arrastar grupo" />}
+            {canConfig && atvs.length > 0 && (
+              <input
+                type="checkbox"
+                className="h-4 w-4 shrink-0"
+                checked={gState === "all"}
+                ref={(el) => { if (el) el.indeterminate = gState === "some"; }}
+                onChange={() => toggleGroupSel(atvs)}
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Selecionar grupo inteiro"
+                title="Selecionar todas as atividades do grupo"
+              />
+            )}
+            <InlineText
+              value={g.nome}
+              className="font-semibold"
+              stopProp
+              onSave={(v) => v && patchGrupo.mutate({ id: g.id, patch: { nome: v } })}
+            />
+            <Badge variant="secondary" className="p-0">
+              <InlineText
+                type="number"
+                value={g.peso}
+                stopProp
+                className="px-2 py-0.5 inline-block"
+                display={<>peso grupo {Number(g.peso)}</>}
+                onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchGrupo.mutate({ id: g.id, patch: { peso: n } }); }}
+              />
+            </Badge>
+            <Badge variant="outline">{equipeNome(g.equipe_id)}</Badge>
+            <Badge>{atvs.length} atividades</Badge>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
+          {canConfig && (
+            <div className="flex gap-2 mb-2 flex-wrap">
+              <Button size="sm" variant="outline" onClick={() => openEditGrupo(g)}><Pencil className="mr-1 h-3 w-3" />Editar grupo</Button>
+              <Button size="sm" variant="outline" onClick={() => openNewAtv(g.id)}><Plus className="mr-1 h-3 w-3" />Atividade neste grupo</Button>
+              {isAdmin && (
+                <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvs.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
+              )}
+              <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvs.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvs.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
+              {isAdmin && (
+                <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
+              )}
+            </div>
+          )}
+          {atvs.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-2">Nenhuma atividade.</p>
+          ) : podeArrastar ? (
+            <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onAtvDragEnd}>
+              <SortableContext items={atvsIds} strategy={verticalListSortingStrategy}>
+                {atvs.map((a) => <SortableAtvRow key={a.id} a={a} />)}
+              </SortableContext>
+            </DndContext>
+          ) : (
+            atvs.map((a) => <ItemRow key={a.id} a={a} />)
+          )}
+        </AccordionContent>
+      </AccordionItem>
+    );
+  };
+
+
+
 
   // ===== Relatório PDF (sempre sobre o que está filtrado) =====
   const emitirRelatorioFiltrado = () => {

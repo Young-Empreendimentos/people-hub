@@ -71,15 +71,28 @@ export default function AtividadesAuditoria() {
   const [filtroGrupo, setFiltroGrupo] = useState("");
   const [filtroResp, setFiltroResp] = useState("");
   const [filtroEquipe, setFiltroEquipe] = useState("");
+  const [busca, setBusca] = useState("");
+
+  const norm = (s: any) => (s ?? "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const matchBusca = (a: Atividade) => {
+    const q = norm(busca).trim();
+    if (!q) return true;
+    return (
+      norm(a.nome).includes(q) ||
+      norm(a.grupo_nome).includes(q) ||
+      norm(a.normas).includes(q)
+    );
+  };
 
   const atividadesFiltradas = useMemo(() => {
     return atividades.filter((a) => {
       if (filtroGrupo && a.grupo_id !== filtroGrupo) return false;
       if (filtroResp && a.responsavel_funcionario_id !== filtroResp) return false;
       if (filtroEquipe && a.equipe_id !== filtroEquipe) return false;
+      if (!matchBusca(a)) return false;
       return true;
     });
-  }, [atividades, filtroGrupo, filtroResp, filtroEquipe]);
+  }, [atividades, filtroGrupo, filtroResp, filtroEquipe, busca]);
 
   // ===== CRUD Grupo =====
   const [grupoOpen, setGrupoOpen] = useState(false);

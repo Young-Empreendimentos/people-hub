@@ -1284,7 +1284,7 @@ export default function AtividadesAuditoria() {
                 );
               })}
             {!filtroResp && (() => {
-              const semEquipe = atividades.filter((a) => !a.equipe_id && matchBusca(a));
+              const semEquipe = atividades.filter((a) => !a.equipe_id && gruposAtivosIds.has(a.grupo_id) && matchBusca(a));
               if (semEquipe.length === 0) return null;
               return (
               <Card>

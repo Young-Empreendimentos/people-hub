@@ -683,10 +683,9 @@ export default function AtividadesAuditoria() {
           })()}
         </TabsContent>
 
-        <TabsContent value="equipe">
-          <div className="flex flex-wrap gap-2 mb-3">
-            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Filtrar equipe" emptyMessage="—" />
-            {filtroEquipe && <Button variant="ghost" onClick={() => setFiltroEquipe("")}>Limpar equipe</Button>}
+        <TabsContent value="equipe" className="space-y-3">
+          <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
+            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
             {(() => {
               const atvsEscopo = atividades.filter((a) => !filtroEquipe || a.equipe_id === filtroEquipe);
               const respIds = Array.from(new Set(atvsEscopo.map((a) => a.responsavel_funcionario_id).filter(Boolean))) as string[];
@@ -694,13 +693,14 @@ export default function AtividadesAuditoria() {
                 .map((id) => ({ value: id, label: funcNome(id) }))
                 .sort((a, b) => a.label.localeCompare(b.label));
               return (
-                <>
-                  <Combobox options={respOpts} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
-                  {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar responsável</Button>}
-                </>
+                <Combobox options={respOpts} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
               );
             })()}
+            {(filtroEquipe || filtroResp) && (
+              <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); }}>Limpar filtros</Button>
+            )}
           </div>
+
           <div className="space-y-3">
             {(equipes as any[])
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)

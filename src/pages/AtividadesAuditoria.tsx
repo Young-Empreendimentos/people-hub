@@ -395,7 +395,7 @@ export default function AtividadesAuditoria() {
       {canConfig && (
         <div className="flex gap-1 shrink-0">
           <Button size="icon" variant="ghost" onClick={() => openEditAtv(a)}><Pencil className="h-4 w-4" /></Button>
-          <Button size="icon" variant="ghost" onClick={() => { if (confirm("Excluir atividade?")) deleteAtv.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => { if (confirm("Desativar atividade? O histórico das auditorias é preservado.")) deleteAtv.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
         </div>
       )}
     </div>

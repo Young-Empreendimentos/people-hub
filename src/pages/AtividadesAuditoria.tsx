@@ -684,15 +684,19 @@ export default function AtividadesAuditoria() {
         <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
           <span className="text-sm font-medium">{selecionadas.size} selecionada(s)</span>
           <div className="flex-1" />
-          <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
-            <Pencil className="mr-1 h-3 w-3" />Alterar responsável
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
+              <Pencil className="mr-1 h-3 w-3" />Alterar responsável
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${selecionadas.size} atividade(s)?`)) bulkDuplicate.mutate(Array.from(selecionadas)); }}>
             <Copy className="mr-1 h-3 w-3" />Duplicar
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
-            <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
-          </Button>
+          {isAdmin && (
+            <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
+              <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
+            </Button>
+          )}
           <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
         </div>
       )}

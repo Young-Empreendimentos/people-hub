@@ -15,7 +15,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Lock, FileDown } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Atividade = {
   id: string; grupo_id: string; nome: string; peso: number;
@@ -518,50 +520,119 @@ export default function AtividadesAuditoria() {
         </TabsContent>
 
         <TabsContent value="responsavel">
-          <div className="flex gap-2 mb-3">
-            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
-            {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
-          </div>
-          <Card>
-            <CardContent className="pt-4">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Equipe</TableHead>
-                    <TableHead>Responsável</TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead>Atividade</TableHead>
-                    <TableHead>Peso</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {[...atividadesFiltradas]
-                    .sort((a, b) => {
-                      const ea = equipeNome(a.equipe_id) || "";
-                      const eb = equipeNome(b.equipe_id) || "";
-                      const cmpEq = ea.localeCompare(eb, "pt-BR");
-                      if (cmpEq) return cmpEq;
-                      const ra = funcNome(a.responsavel_funcionario_id) || "";
-                      const rb = funcNome(b.responsavel_funcionario_id) || "";
-                      const cmpR = ra.localeCompare(rb, "pt-BR");
-                      if (cmpR) return cmpR;
-                      const cmpG = (a.grupo_nome || "").localeCompare(b.grupo_nome || "", "pt-BR");
-                      if (cmpG) return cmpG;
-                      return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
-                    })
-                    .map((a) => (
-                    <TableRow key={a.id}>
-                      <TableCell>{equipeNome(a.equipe_id)}</TableCell>
-                      <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
-                      <TableCell>{a.grupo_nome}</TableCell>
-                      <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
-                      <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          {(() => {
+            const rows = [...atividadesFiltradas].sort((a, b) => {
+              const ea = equipeNome(a.equipe_id) || "";
+              const eb = equipeNome(b.equipe_id) || "";
+              const cmpEq = ea.localeCompare(eb, "pt-BR");
+              if (cmpEq) return cmpEq;
+              const ra = funcNome(a.responsavel_funcionario_id) || "";
+              const rb = funcNome(b.responsavel_funcionario_id) || "";
+              const cmpR = ra.localeCompare(rb, "pt-BR");
+              if (cmpR) return cmpR;
+              const cmpG = (a.grupo_nome || "").localeCompare(b.grupo_nome || "", "pt-BR");
+              if (cmpG) return cmpG;
+              return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+            });
+            const allSel = rows.length > 0 && rows.every((r) => selecionadas.has(r.id));
+            const someSel = rows.some((r) => selecionadas.has(r.id));
+            const toggleAll = () => {
+              if (allSel) rows.forEach((r) => { if (selecionadas.has(r.id)) toggleSel(r.id); });
+              else rows.forEach((r) => { if (!selecionadas.has(r.id)) toggleSel(r.id); });
+            };
+            const emitirPDF = () => {
+              const sel = rows.filter((r) => selecionadas.has(r.id));
+              if (sel.length === 0) { toast.error("Selecione ao menos uma atividade."); return; }
+              const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+              doc.setFontSize(14);
+              doc.text("Relatório de Atividades de Auditoria", 40, 40);
+              doc.setFontSize(10);
+              doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}  •  ${sel.length} atividade(s)`, 40, 56);
+              autoTable(doc, {
+                startY: 72,
+                head: [["Equipe", "Responsável", "Grupo", "Atividade", "Peso", "Normas"]],
+                body: sel.map((a) => [
+                  equipeNome(a.equipe_id),
+                  funcNome(a.responsavel_funcionario_id),
+                  a.grupo_nome || "—",
+                  a.nome || "—",
+                  String(a.peso ?? ""),
+                  a.normas || "—",
+                ]),
+                styles: { fontSize: 9, cellPadding: 4, valign: "top" },
+                headStyles: { fillColor: [30, 41, 59] },
+                columnStyles: {
+                  0: { cellWidth: 90 },
+                  1: { cellWidth: 120 },
+                  2: { cellWidth: 110 },
+                  3: { cellWidth: 160 },
+                  4: { cellWidth: 40, halign: "center" },
+                  5: { cellWidth: "auto" },
+                },
+              });
+              doc.save(`atividades-auditoria-${new Date().toISOString().slice(0,10)}.pdf`);
+            };
+            return (
+              <>
+                <div className="flex flex-wrap gap-2 mb-3 items-center">
+                  <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
+                  {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
+                  <div className="flex-1" />
+                  <Button variant="outline" onClick={emitirPDF} disabled={selecionadas.size === 0}>
+                    <FileDown className="mr-2 h-4 w-4" />
+                    Emitir relatório PDF{selecionadas.size > 0 ? ` (${selecionadas.size})` : ""}
+                  </Button>
+                </div>
+                <Card>
+                  <CardContent className="pt-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-8">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4"
+                              checked={allSel}
+                              ref={(el) => { if (el) el.indeterminate = !allSel && someSel; }}
+                              onChange={toggleAll}
+                              aria-label="Selecionar todas"
+                            />
+                          </TableHead>
+                          <TableHead>Equipe</TableHead>
+                          <TableHead>Responsável</TableHead>
+                          <TableHead>Grupo</TableHead>
+                          <TableHead>Atividade</TableHead>
+                          <TableHead>Peso</TableHead>
+                          <TableHead>Normas</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {rows.map((a) => (
+                          <TableRow key={a.id} data-state={selecionadas.has(a.id) ? "selected" : undefined}>
+                            <TableCell>
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4"
+                                checked={selecionadas.has(a.id)}
+                                onChange={() => toggleSel(a.id)}
+                                aria-label="Selecionar atividade"
+                              />
+                            </TableCell>
+                            <TableCell>{equipeNome(a.equipe_id)}</TableCell>
+                            <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
+                            <TableCell>{a.grupo_nome}</TableCell>
+                            <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
+                            <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
+                            <TableCell className="max-w-[280px] text-xs text-muted-foreground whitespace-pre-wrap">{a.normas || "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </>
+            );
+          })()}
         </TabsContent>
 
         <TabsContent value="equipe">

@@ -401,8 +401,8 @@ function ItemEditor({ item, atv, editavel, isAdmin, onChange }: {
 
       {(adminPodeComentar || item.comentario_admin) && (
         <div className="rounded-md border border-primary/30 bg-primary/5 p-2 space-y-1">
-          <label className="text-xs font-medium text-primary">Comentário do RH</label>
-          <Textarea rows={2} placeholder="Comentário do RH (fica abaixo do comentário do auditor)…"
+          <label className="text-xs font-medium text-primary">Comentário da direção</label>
+          <Textarea rows={2} placeholder="Comentário da direção (fica abaixo do comentário do auditor)…"
             value={comentarioAdmin}
             onChange={(e) => setComentarioAdmin(e.target.value)}
             onBlur={() => { if ((item.comentario_admin ?? "") !== comentarioAdmin) onChange({ comentario_admin: comentarioAdmin || null }); }}

@@ -243,9 +243,49 @@ export default function AtividadesAuditoria() {
       const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Desativada (histórico preservado)."); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] }); toast.success("Desativada (histórico preservado)."); },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
+  const reativarAtv = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] });
+      toast.success("Atividade reativada.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const reativarGrupo = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update({ ativo: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] });
+      toast.success("Grupo reativado.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  const excluirAtvPerm = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] });
+      toast.success("Atividade excluída definitivamente.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
 
 
   const grupoOptions = (grupos as any[]).map((g) => ({ value: g.id, label: g.nome }));

@@ -132,15 +132,22 @@ export default function AtividadesAuditoria() {
     );
   };
 
+  const gruposAtivosIds = useMemo(
+    () => new Set((grupos as any[]).filter((g) => g.ativo !== false).map((g) => g.id)),
+    [grupos]
+  );
+
   const atividadesFiltradas = useMemo(() => {
     return atividades.filter((a) => {
+      if (!gruposAtivosIds.has(a.grupo_id)) return false;
       if (filtroGrupo && a.grupo_id !== filtroGrupo) return false;
       if (filtroResp && a.responsavel_funcionario_id !== filtroResp) return false;
       if (filtroEquipe && a.equipe_id !== filtroEquipe) return false;
       if (!matchBusca(a)) return false;
       return true;
     });
-  }, [atividades, filtroGrupo, filtroResp, filtroEquipe, busca]);
+  }, [atividades, gruposAtivosIds, filtroGrupo, filtroResp, filtroEquipe, busca]);
+
 
   // ===== CRUD Grupo =====
   const [grupoOpen, setGrupoOpen] = useState(false);

@@ -499,7 +499,7 @@ export default function AtividadesAuditoria() {
         )}
       </div>
 
-      <Tabs defaultValue="grupo">
+      <Tabs defaultValue="grupo" onValueChange={() => { setFiltroGrupo(""); setFiltroResp(""); setFiltroEquipe(""); }}>
         <TabsList>
           <TabsTrigger value="grupo">Por Grupo</TabsTrigger>
           <TabsTrigger value="responsavel">Por Responsável</TabsTrigger>

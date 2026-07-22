@@ -700,14 +700,47 @@ export default function AtividadesAuditoria() {
   );
 
   // Sortable activity row (admin drag-and-drop within a group)
-  const SortableAtvRow = ({ a }: { a: Atividade }) => {
+  const SortableAtvRow = ({ a, showGrupo = false }: { a: Atividade; showGrupo?: boolean }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
     const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
     return (
       <div ref={setNodeRef} style={style} className="flex items-start gap-1">
         {podeArrastar && <div className="pt-3"><DragHandle listeners={listeners} attributes={attributes} title="Arrastar atividade" /></div>}
-        <div className="flex-1 min-w-0"><ItemRow a={a} /></div>
+        <div className="flex-1 min-w-0"><ItemRow a={a} showGrupo={showGrupo} /></div>
       </div>
+    );
+  };
+
+  // Sortable row for table view
+  const SortableTableRow = ({ a, children }: { a: Atividade; children: (drag: React.ReactNode) => React.ReactNode }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: a.id });
+    const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+    const drag = podeArrastar ? <DragHandle listeners={listeners} attributes={attributes} title="Arrastar" /> : null;
+    return (
+      <TableRow ref={setNodeRef as any} style={style} data-state={selecionadas.has(a.id) ? "selected" : undefined}>
+        {children(drag)}
+      </TableRow>
+    );
+  };
+
+  // Helper: wrap a list of atividades with DnD to reorder them by "ordem"
+  const AtvDndList = ({ atvs, showGrupo = false }: { atvs: Atividade[]; showGrupo?: boolean }) => {
+    const ids = atvs.map((a) => a.id);
+    const onEnd = (e: DragEndEvent) => {
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      const oldIdx = ids.indexOf(String(active.id));
+      const newIdx = ids.indexOf(String(over.id));
+      if (oldIdx < 0 || newIdx < 0) return;
+      reorderAtividades.mutate(arrayMove(ids, oldIdx, newIdx));
+    };
+    if (!podeArrastar) return <>{atvs.map((a) => <ItemRow key={a.id} a={a} showGrupo={showGrupo} />)}</>;
+    return (
+      <DndContext sensors={dndSensors} collisionDetection={closestCenter} onDragEnd={onEnd}>
+        <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+          {atvs.map((a) => <SortableAtvRow key={a.id} a={a} showGrupo={showGrupo} />)}
+        </SortableContext>
+      </DndContext>
     );
   };
 

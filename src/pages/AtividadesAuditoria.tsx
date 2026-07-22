@@ -1316,7 +1316,7 @@ export default function AtividadesAuditoria() {
               <Card>
                 <CardHeader><CardTitle className="text-base">Sem equipe</CardTitle></CardHeader>
                 <CardContent className="pt-0">
-                  {semEquipe.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                  <AtvDndList atvs={semEquipe} showGrupo />
                 </CardContent>
               </Card>
               );

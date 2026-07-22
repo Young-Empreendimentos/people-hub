@@ -398,6 +398,31 @@ export default function AtividadesAuditoria() {
     );
   };
 
+  // Inline editor for grupo (admin only)
+  const InlineGrupo = ({ value, onSave }: { value: string; onSave: (v: string) => void }) => {
+    const [open, setOpen] = useState(false);
+    const label = (grupos as any[]).find((g) => g.id === value)?.nome ?? "—";
+    if (!isAdmin) return <span>{label}</span>;
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <span className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1" title="Clique para editar">{label}</span>
+        </PopoverTrigger>
+        <PopoverContent className="p-2 w-64" align="start">
+          <Combobox
+            options={grupoOptions}
+            value={value}
+            onValueChange={(v) => { if (v && v !== value) onSave(v); setOpen(false); }}
+            placeholder="Selecionar grupo"
+            emptyMessage="—"
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
+
+
 
   // ===== Seleção em massa =====
   const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set());

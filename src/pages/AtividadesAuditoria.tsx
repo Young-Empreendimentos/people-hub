@@ -1071,7 +1071,10 @@ export default function AtividadesAuditoria() {
               (a.nome || "").localeCompare(b.nome || "", "pt-BR")
             )} />
           ) : (() => {
+            const gruposComAtvs = new Set(atividades.filter((a) => gruposAtivosIds.has(a.grupo_id)).map((a) => a.grupo_id));
             const gruposVisiveis = (grupos as any[])
+              .filter((g) => g.ativo !== false)
+              .filter((g) => gruposComAtvs.has(g.id))
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)
               .filter((g) => !filtroEquipe || g.equipe_id === filtroEquipe);
             const gruposIds = gruposVisiveis.map((g) => g.id);
@@ -1097,7 +1100,7 @@ export default function AtividadesAuditoria() {
                           (!filtroResp || a.responsavel_funcionario_id === filtroResp) &&
                           matchBusca(a)
                         );
-                        if ((busca || filtroResp) && atvs.length === 0) return null;
+                        if (atvs.length === 0) return null;
                         return (
                           <SortableGrupo
                             key={g.id}
@@ -1110,6 +1113,7 @@ export default function AtividadesAuditoria() {
                   </SortableContext>
                 </DndContext>
               </>
+
             );
           })()}
 

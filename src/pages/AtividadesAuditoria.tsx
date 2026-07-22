@@ -764,7 +764,10 @@ export default function AtividadesAuditoria() {
   };
 
   // Helper: wrap a list of atividades with DnD to reorder them by "ordem"
-  const AtvDndList = ({ atvs, showGrupo = false }: { atvs: Atividade[]; showGrupo?: boolean }) => {
+  const AtvDndList = ({ atvs: atvsIn, showGrupo = false }: { atvs: Atividade[]; showGrupo?: boolean }) => {
+    const atvs = podeArrastar
+      ? [...atvsIn].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0))
+      : atvsIn;
     const ids = atvs.map((a) => a.id);
     const onEnd = (e: DragEndEvent) => {
       const { active, over } = e;
@@ -783,6 +786,7 @@ export default function AtividadesAuditoria() {
       </DndContext>
     );
   };
+
 
   // Sortable group (accordion item)
   const SortableGrupo = ({ g, atvs }: { g: any; atvs: Atividade[] }) => {

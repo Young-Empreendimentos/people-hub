@@ -481,8 +481,22 @@ export default function AtividadesAuditoria() {
                             <AccordionItem value={`${e.id}-${g.id}`} key={g.id} className="border rounded-lg px-3">
                               <AccordionTrigger>
                                 <div className="flex items-center gap-2 flex-wrap text-left">
-                                  <span className="font-semibold">{g.nome}</span>
-                                  <Badge variant="secondary">peso grupo {Number(g.peso)}</Badge>
+                                  <InlineText
+                                    value={g.nome}
+                                    className="font-semibold"
+                                    stopProp
+                                    onSave={(v) => v && patchGrupo.mutate({ id: g.id, patch: { nome: v } })}
+                                  />
+                                  <Badge variant="secondary" className="p-0">
+                                    <InlineText
+                                      type="number"
+                                      value={g.peso}
+                                      stopProp
+                                      className="px-2 py-0.5 inline-block"
+                                      display={<>peso grupo {Number(g.peso)}</>}
+                                      onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchGrupo.mutate({ id: g.id, patch: { peso: n } }); }}
+                                    />
+                                  </Badge>
                                   <Badge>{atvsGrupo.length} atividades</Badge>
                                 </div>
                               </AccordionTrigger>

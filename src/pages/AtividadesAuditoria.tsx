@@ -681,14 +681,7 @@ export default function AtividadesAuditoria() {
         </TabsList>
 
         <TabsContent value="grupo" className="space-y-3">
-          <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
-            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
-            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
-            <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Grupo" emptyMessage="—" />
-            {(filtroEquipe || filtroResp || filtroGrupo) && (
-              <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); setFiltroGrupo(""); }}>Limpar filtros</Button>
-            )}
-          </div>
+
 
           {viewMode === "tabela" ? (
             <TableView rows={[...atividadesFiltradas].sort((a, b) =>

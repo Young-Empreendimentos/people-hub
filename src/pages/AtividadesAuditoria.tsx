@@ -132,15 +132,22 @@ export default function AtividadesAuditoria() {
     );
   };
 
+  const gruposAtivosIds = useMemo(
+    () => new Set((grupos as any[]).filter((g) => g.ativo !== false).map((g) => g.id)),
+    [grupos]
+  );
+
   const atividadesFiltradas = useMemo(() => {
     return atividades.filter((a) => {
+      if (!gruposAtivosIds.has(a.grupo_id)) return false;
       if (filtroGrupo && a.grupo_id !== filtroGrupo) return false;
       if (filtroResp && a.responsavel_funcionario_id !== filtroResp) return false;
       if (filtroEquipe && a.equipe_id !== filtroEquipe) return false;
       if (!matchBusca(a)) return false;
       return true;
     });
-  }, [atividades, filtroGrupo, filtroResp, filtroEquipe, busca]);
+  }, [atividades, gruposAtivosIds, filtroGrupo, filtroResp, filtroEquipe, busca]);
+
 
   // ===== CRUD Grupo =====
   const [grupoOpen, setGrupoOpen] = useState(false);
@@ -1064,7 +1071,10 @@ export default function AtividadesAuditoria() {
               (a.nome || "").localeCompare(b.nome || "", "pt-BR")
             )} />
           ) : (() => {
+            const gruposComAtvs = new Set(atividades.filter((a) => gruposAtivosIds.has(a.grupo_id)).map((a) => a.grupo_id));
             const gruposVisiveis = (grupos as any[])
+              .filter((g) => g.ativo !== false)
+              .filter((g) => gruposComAtvs.has(g.id))
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)
               .filter((g) => !filtroEquipe || g.equipe_id === filtroEquipe);
             const gruposIds = gruposVisiveis.map((g) => g.id);
@@ -1090,7 +1100,7 @@ export default function AtividadesAuditoria() {
                           (!filtroResp || a.responsavel_funcionario_id === filtroResp) &&
                           matchBusca(a)
                         );
-                        if ((busca || filtroResp) && atvs.length === 0) return null;
+                        if (atvs.length === 0) return null;
                         return (
                           <SortableGrupo
                             key={g.id}
@@ -1103,6 +1113,7 @@ export default function AtividadesAuditoria() {
                   </SortableContext>
                 </DndContext>
               </>
+
             );
           })()}
 
@@ -1198,12 +1209,14 @@ export default function AtividadesAuditoria() {
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)
               .map((e) => {
                 const atvsEquipe = atividades.filter(
-                  (a) => a.equipe_id === e.id && (!filtroResp || a.responsavel_funcionario_id === filtroResp) && matchBusca(a)
+                  (a) => a.equipe_id === e.id && gruposAtivosIds.has(a.grupo_id) && (!filtroResp || a.responsavel_funcionario_id === filtroResp) && matchBusca(a)
                 );
                 if (atvsEquipe.length === 0) return null;
                 const gruposDaEquipe = (grupos as any[])
+                  .filter((g) => g.ativo !== false)
                   .filter((g) => atvsEquipe.some((a) => a.grupo_id === g.id))
                   .sort((a: any, b: any) => (a.ordem - b.ordem) || a.nome.localeCompare(b.nome));
+
                 return (
                   <Card key={e.id}>
                     <CardHeader><CardTitle className="text-base">{e.nome}</CardTitle></CardHeader>
@@ -1271,7 +1284,7 @@ export default function AtividadesAuditoria() {
                 );
               })}
             {!filtroResp && (() => {
-              const semEquipe = atividades.filter((a) => !a.equipe_id && matchBusca(a));
+              const semEquipe = atividades.filter((a) => !a.equipe_id && gruposAtivosIds.has(a.grupo_id) && matchBusca(a));
               if (semEquipe.length === 0) return null;
               return (
               <Card>

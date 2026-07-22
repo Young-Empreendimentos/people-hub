@@ -296,18 +296,31 @@ export default function AtividadesAuditoria() {
   };
 
 
+  const ItemRow = ({ a, showGrupo = false }: { a: Atividade; showGrupo?: boolean }) => (
     <div className="flex items-start justify-between gap-3 py-2 border-b last:border-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-medium">{a.nome}</span>
-          <Badge variant="secondary">peso {Number(a.peso)}</Badge>
+          <InlineText
+            value={a.nome}
+            className="font-medium"
+            onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })}
+          />
+          <Badge variant="secondary" className="p-0">
+            <InlineText
+              type="number"
+              value={a.peso}
+              className="px-2 py-0.5 inline-block"
+              display={<>peso {Number(a.peso)}</>}
+              onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }}
+            />
+          </Badge>
           {showGrupo && <Badge variant="outline">{a.grupo_nome}</Badge>}
         </div>
         <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-          <div>Responsável: {funcNome(a.responsavel_funcionario_id)}</div>
-          {a.normas && <div>Normas: {a.normas}</div>}
-          {a.manuais && <div>Manuais: {a.manuais}</div>}
-          {a.indicadores && <div>Indicadores: {a.indicadores}</div>}
+          <div>Responsável: <InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></div>
+          <div>Normas: <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} /></div>
+          <div>Manuais: <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} /></div>
+          <div>Indicadores: <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} /></div>
           {a.metodo_auditoria
             ? <div className="text-foreground/80"><strong>Método:</strong> {a.metodo_auditoria}</div>
             : <div className="flex items-center gap-1 text-amber-700"><Lock className="h-3 w-3" /> Método restrito</div>}
@@ -321,6 +334,7 @@ export default function AtividadesAuditoria() {
       )}
     </div>
   );
+
 
   return (
     <div className="space-y-6 max-w-6xl">

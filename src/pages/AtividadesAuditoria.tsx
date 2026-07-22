@@ -467,16 +467,25 @@ export default function AtividadesAuditoria() {
         </TabsList>
 
         <TabsContent value="grupo">
-          <div className="flex gap-2 mb-3">
+          <div className="flex flex-wrap gap-2 mb-3 items-center">
+            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Filtrar equipe" emptyMessage="—" />
+            {filtroEquipe && <Button variant="ghost" onClick={() => setFiltroEquipe("")}>Limpar equipe</Button>}
+            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
+            {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar responsável</Button>}
             <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Filtrar grupo" emptyMessage="—" />
-            {filtroGrupo && <Button variant="ghost" onClick={() => setFiltroGrupo("")}>Limpar</Button>}
+            {filtroGrupo && <Button variant="ghost" onClick={() => setFiltroGrupo("")}>Limpar grupo</Button>}
           </div>
           <Accordion type="multiple" className="space-y-2">
             {(grupos as any[])
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)
+              .filter((g) => !filtroEquipe || g.equipe_id === filtroEquipe)
               .map((g) => {
-                const atvs = atividades.filter((a) => a.grupo_id === g.id && matchBusca(a));
-                if (busca && atvs.length === 0) return null;
+                const atvs = atividades.filter((a) =>
+                  a.grupo_id === g.id &&
+                  (!filtroResp || a.responsavel_funcionario_id === filtroResp) &&
+                  matchBusca(a)
+                );
+                if ((busca || filtroResp) && atvs.length === 0) return null;
                 return (
                   <AccordionItem value={g.id} key={g.id} className="border rounded-lg px-3">
                     <AccordionTrigger>

@@ -1299,7 +1299,7 @@ export default function AtividadesAuditoria() {
                                   )}
                                 </div>
                               )}
-                                {atvsGrupo.map((a) => <ItemRow key={a.id} a={a} />)}
+                                <AtvDndList atvs={atvsGrupo} />
                               </AccordionContent>
                             </AccordionItem>
                           );

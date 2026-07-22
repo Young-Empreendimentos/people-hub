@@ -606,7 +606,7 @@ export default function AtividadesAuditoria() {
       const oldIdx = ids.indexOf(String(active.id));
       const newIdx = ids.indexOf(String(over.id));
       if (oldIdx < 0 || newIdx < 0) return;
-      reorderAtividades.mutate(arrayMove(ids, oldIdx, newIdx));
+      applyReorderAtividades(arrayMove(ids, oldIdx, newIdx));
     };
 
     const renderCells = (a: Atividade, drag: React.ReactNode) => (
@@ -817,7 +817,7 @@ export default function AtividadesAuditoria() {
       const oldIdx = ids.indexOf(String(active.id));
       const newIdx = ids.indexOf(String(over.id));
       if (oldIdx < 0 || newIdx < 0) return;
-      reorderAtividades.mutate(arrayMove(ids, oldIdx, newIdx));
+      applyReorderAtividades(arrayMove(ids, oldIdx, newIdx));
     };
     if (!podeArrastar) return <>{atvs.map((a) => <ItemRow key={a.id} a={a} showGrupo={showGrupo} />)}</>;
     return (
@@ -851,7 +851,7 @@ export default function AtividadesAuditoria() {
       const oldIdx = atvsIds.indexOf(String(active.id));
       const newIdx = atvsIds.indexOf(String(over.id));
       if (oldIdx < 0 || newIdx < 0) return;
-      reorderAtividades.mutate(arrayMove(atvsIds, oldIdx, newIdx));
+      applyReorderAtividades(arrayMove(atvsIds, oldIdx, newIdx));
     };
     return (
       <AccordionItem ref={setNodeRef} style={style} value={g.id} className="border rounded-lg px-3">
@@ -1129,7 +1129,7 @@ export default function AtividadesAuditoria() {
               const oldIdx = gruposIds.indexOf(String(active.id));
               const newIdx = gruposIds.indexOf(String(over.id));
               if (oldIdx < 0 || newIdx < 0) return;
-              reorderGrupos.mutate(arrayMove(gruposIds, oldIdx, newIdx));
+              applyReorderGrupos(arrayMove(gruposIds, oldIdx, newIdx));
             };
             return (
               <>
@@ -1272,7 +1272,7 @@ export default function AtividadesAuditoria() {
                   const oldIdx = gruposDaEquipeIds.indexOf(String(active.id));
                   const newIdx = gruposDaEquipeIds.indexOf(String(over.id));
                   if (oldIdx < 0 || newIdx < 0) return;
-                  reorderGrupos.mutate(arrayMove(gruposDaEquipeIds, oldIdx, newIdx));
+                  applyReorderGrupos(arrayMove(gruposDaEquipeIds, oldIdx, newIdx));
                 };
                 const renderGrupoItem = (g: any, dragProps?: { listeners?: any; attributes?: any; setNodeRef?: any; style?: any }) => {
                   const atvsGrupo = atvsEquipe.filter((a) => a.grupo_id === g.id);

@@ -558,6 +558,52 @@ export default function AtividadesAuditoria() {
   );
 
 
+  // ===== Relatório PDF (sempre sobre o que está filtrado) =====
+  const emitirRelatorioFiltrado = () => {
+    const rows = [...atividadesFiltradas].sort((a, b) => {
+      const ea = equipeNome(a.equipe_id) || "";
+      const eb = equipeNome(b.equipe_id) || "";
+      const cmpEq = ea.localeCompare(eb, "pt-BR"); if (cmpEq) return cmpEq;
+      const ra = funcNome(a.responsavel_funcionario_id) || "";
+      const rb = funcNome(b.responsavel_funcionario_id) || "";
+      const cmpR = ra.localeCompare(rb, "pt-BR"); if (cmpR) return cmpR;
+      const cmpG = (a.grupo_nome || "").localeCompare(b.grupo_nome || "", "pt-BR"); if (cmpG) return cmpG;
+      return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+    });
+    if (rows.length === 0) { toast.error("Nenhuma atividade no filtro atual."); return; }
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    doc.setFontSize(14);
+    doc.text("Relatório de Atividades de Auditoria", 40, 40);
+    doc.setFontSize(10);
+    const partesFiltro: string[] = [];
+    if (filtroEquipe) partesFiltro.push(`Equipe: ${equipeNome(filtroEquipe)}`);
+    if (filtroResp) partesFiltro.push(`Responsável: ${funcNome(filtroResp)}`);
+    if (filtroGrupo) partesFiltro.push(`Grupo: ${(grupos as any[]).find((g) => g.id === filtroGrupo)?.nome ?? "—"}`);
+    if (busca) partesFiltro.push(`Busca: "${busca}"`);
+    const filtroTxt = partesFiltro.length ? partesFiltro.join("  •  ") : "Sem filtros";
+    doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}  •  ${rows.length} atividade(s)`, 40, 56);
+    doc.text(filtroTxt, 40, 70);
+    autoTable(doc, {
+      startY: 84,
+      head: [["Equipe", "Responsável", "Grupo", "Atividade", "Peso", "Normas"]],
+      body: rows.map((a) => [
+        equipeNome(a.equipe_id),
+        funcNome(a.responsavel_funcionario_id),
+        a.grupo_nome || "—",
+        a.nome || "—",
+        String(a.peso ?? ""),
+        a.normas || "—",
+      ]),
+      styles: { fontSize: 9, cellPadding: 4, valign: "top" },
+      headStyles: { fillColor: [30, 41, 59] },
+      columnStyles: {
+        0: { cellWidth: 90 }, 1: { cellWidth: 120 }, 2: { cellWidth: 110 },
+        3: { cellWidth: 160 }, 4: { cellWidth: 40, halign: "center" }, 5: { cellWidth: "auto" },
+      },
+    });
+    doc.save(`atividades-auditoria-${new Date().toISOString().slice(0,10)}.pdf`);
+  };
+
   return (
     <div className="space-y-4 max-w-6xl">
       <div className="flex flex-wrap items-center gap-2">
@@ -592,6 +638,22 @@ export default function AtividadesAuditoria() {
         )}
       </div>
 
+      {/* Filtros compartilhados entre todas as subpáginas */}
+      <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
+        <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
+        <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
+        <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Grupo" emptyMessage="—" />
+        {(filtroEquipe || filtroResp || filtroGrupo) && (
+          <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); setFiltroGrupo(""); }}>Limpar filtros</Button>
+        )}
+        <div className="flex-1" />
+        <span className="text-xs text-muted-foreground">{atividadesFiltradas.length} atividade(s)</span>
+        <Button variant="outline" size="sm" onClick={emitirRelatorioFiltrado}>
+          <FileDown className="mr-2 h-4 w-4" />
+          Emitir relatório PDF
+        </Button>
+      </div>
+
       {canConfig && selecionadas.size > 0 && (
         <div className="sticky top-2 z-10 flex flex-wrap items-center gap-2 bg-primary/10 border border-primary/30 rounded-lg px-3 py-2">
           <span className="text-sm font-medium">{selecionadas.size} selecionada(s)</span>
@@ -610,22 +672,16 @@ export default function AtividadesAuditoria() {
       )}
 
 
-      <Tabs defaultValue="grupo" onValueChange={() => { setFiltroGrupo(""); setFiltroResp(""); setFiltroEquipe(""); }}>
+      <Tabs defaultValue="grupo">
         <TabsList className="mb-3">
           <TabsTrigger value="grupo">Por Grupo</TabsTrigger>
+
           <TabsTrigger value="responsavel">Por Responsável</TabsTrigger>
           <TabsTrigger value="equipe">Por Equipe</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grupo" className="space-y-3">
-          <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
-            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
-            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
-            <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Grupo" emptyMessage="—" />
-            {(filtroEquipe || filtroResp || filtroGrupo) && (
-              <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); setFiltroGrupo(""); }}>Limpar filtros</Button>
-            )}
-          </div>
+
 
           {viewMode === "tabela" ? (
             <TableView rows={[...atividadesFiltradas].sort((a, b) =>
@@ -723,49 +779,9 @@ export default function AtividadesAuditoria() {
               if (allSel) rows.forEach((r) => { if (selecionadas.has(r.id)) toggleSel(r.id); });
               else rows.forEach((r) => { if (!selecionadas.has(r.id)) toggleSel(r.id); });
             };
-            const emitirPDF = () => {
-              const sel = rows.filter((r) => selecionadas.has(r.id));
-              if (sel.length === 0) { toast.error("Selecione ao menos uma atividade."); return; }
-              const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-              doc.setFontSize(14);
-              doc.text("Relatório de Atividades de Auditoria", 40, 40);
-              doc.setFontSize(10);
-              doc.text(`Emitido em ${new Date().toLocaleString("pt-BR")}  •  ${sel.length} atividade(s)`, 40, 56);
-              autoTable(doc, {
-                startY: 72,
-                head: [["Equipe", "Responsável", "Grupo", "Atividade", "Peso", "Normas"]],
-                body: sel.map((a) => [
-                  equipeNome(a.equipe_id),
-                  funcNome(a.responsavel_funcionario_id),
-                  a.grupo_nome || "—",
-                  a.nome || "—",
-                  String(a.peso ?? ""),
-                  a.normas || "—",
-                ]),
-                styles: { fontSize: 9, cellPadding: 4, valign: "top" },
-                headStyles: { fillColor: [30, 41, 59] },
-                columnStyles: {
-                  0: { cellWidth: 90 },
-                  1: { cellWidth: 120 },
-                  2: { cellWidth: 110 },
-                  3: { cellWidth: 160 },
-                  4: { cellWidth: 40, halign: "center" },
-                  5: { cellWidth: "auto" },
-                },
-              });
-              doc.save(`atividades-auditoria-${new Date().toISOString().slice(0,10)}.pdf`);
-            };
             return (
               <div className="space-y-3">
-                <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
-                  <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
-                  {filtroResp && <Button size="sm" variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
-                  <div className="flex-1" />
-                  <Button variant="outline" onClick={emitirPDF} disabled={selecionadas.size === 0}>
-                    <FileDown className="mr-2 h-4 w-4" />
-                    Emitir relatório PDF{selecionadas.size > 0 ? ` (${selecionadas.size})` : ""}
-                  </Button>
-                </div>
+
 
                 {viewMode === "tabela" ? (
                 <Card>
@@ -863,22 +879,7 @@ export default function AtividadesAuditoria() {
         </TabsContent>
 
         <TabsContent value="equipe" className="space-y-3">
-          <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
-            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
-            {(() => {
-              const atvsEscopo = atividades.filter((a) => !filtroEquipe || a.equipe_id === filtroEquipe);
-              const respIds = Array.from(new Set(atvsEscopo.map((a) => a.responsavel_funcionario_id).filter(Boolean))) as string[];
-              const respOpts = respIds
-                .map((id) => ({ value: id, label: funcNome(id) }))
-                .sort((a, b) => a.label.localeCompare(b.label));
-              return (
-                <Combobox options={respOpts} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
-              );
-            })()}
-            {(filtroEquipe || filtroResp) && (
-              <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); }}>Limpar filtros</Button>
-            )}
-          </div>
+
 
           {viewMode === "tabela" ? (
             <TableView rows={[...atividadesFiltradas].sort((a, b) =>

@@ -527,18 +527,34 @@ export default function AtividadesAuditoria() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Equipe</TableHead>
                     <TableHead>Responsável</TableHead>
-                    <TableHead>Atividade</TableHead>
                     <TableHead>Grupo</TableHead>
+                    <TableHead>Atividade</TableHead>
                     <TableHead>Peso</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {atividadesFiltradas.map((a) => (
+                  {[...atividadesFiltradas]
+                    .sort((a, b) => {
+                      const ea = equipeNome(a.equipe_id) || "";
+                      const eb = equipeNome(b.equipe_id) || "";
+                      const cmpEq = ea.localeCompare(eb, "pt-BR");
+                      if (cmpEq) return cmpEq;
+                      const ra = funcNome(a.responsavel_funcionario_id) || "";
+                      const rb = funcNome(b.responsavel_funcionario_id) || "";
+                      const cmpR = ra.localeCompare(rb, "pt-BR");
+                      if (cmpR) return cmpR;
+                      const cmpG = (a.grupo_nome || "").localeCompare(b.grupo_nome || "", "pt-BR");
+                      if (cmpG) return cmpG;
+                      return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+                    })
+                    .map((a) => (
                     <TableRow key={a.id}>
+                      <TableCell>{equipeNome(a.equipe_id)}</TableCell>
                       <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
-                      <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
                       <TableCell>{a.grupo_nome}</TableCell>
+                      <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
                       <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
                     </TableRow>
                   ))}

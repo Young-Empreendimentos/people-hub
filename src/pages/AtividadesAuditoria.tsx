@@ -534,7 +534,7 @@ export default function AtividadesAuditoria() {
       const maxOrdem = (grupos as any[]).reduce((m, x) => Math.max(m, Number(x.ordem) || 0), 0);
       const { data: novo, error: e1 } = await supabase
         .from("rh_grupos_atividades_auditoria")
-        .insert({ nome: `${g.nome} (cópia)`, equipe_id: g.equipe_id ?? null, peso: Number(g.peso) || 1, ordem: maxOrdem + 1 })
+        .insert({ nome: g.nome, equipe_id: g.equipe_id ?? null, peso: Number(g.peso) || 1, ordem: maxOrdem + 1 })
         .select("id")
         .single();
       if (e1) throw e1;

@@ -188,7 +188,114 @@ export default function AtividadesAuditoria() {
   const funcOptions = (funcionarios as any[]).map((f) => ({ value: f.id, label: f.nome_completo }));
   const equipeOptions = (equipes as any[]).map((e) => ({ value: e.id, label: e.nome }));
 
-  const ItemRow = ({ a, showGrupo = false }: { a: Atividade; showGrupo?: boolean }) => (
+  // ===== Inline patch mutations (admin) =====
+  const patchAtv = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
+      const { error } = await supabase.from("rh_atividades_auditoria").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      toast.success("Atualizado.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+  const patchGrupo = useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
+      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
+      qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
+      toast.success("Atualizado.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  // Inline editor for text/number values
+  const InlineText = ({
+    value, onSave, multiline = false, type = "text", placeholder, className, display,
+    stopProp = false,
+  }: {
+    value: string | number | null; onSave: (v: string) => void;
+    multiline?: boolean; type?: "text" | "number"; placeholder?: string; className?: string;
+    display?: React.ReactNode; stopProp?: boolean;
+  }) => {
+    const [editing, setEditing] = useState(false);
+    const [val, setVal] = useState(value == null ? "" : String(value));
+    const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+    useEffect(() => { if (editing) { setVal(value == null ? "" : String(value)); setTimeout(() => inputRef.current?.focus(), 0); } }, [editing]);
+    if (!isAdmin) {
+      return <span className={className}>{display ?? (value ?? placeholder ?? "—")}</span>;
+    }
+    if (!editing) {
+      return (
+        <span
+          className={(className ?? "") + " cursor-text hover:bg-accent/50 rounded px-1 -mx-1"}
+          onClick={(e) => { if (stopProp) { e.stopPropagation(); e.preventDefault(); } setEditing(true); }}
+          title="Clique para editar"
+        >
+          {display ?? (value != null && value !== "" ? value : (placeholder ?? "—"))}
+        </span>
+      );
+    }
+    const commit = () => { setEditing(false); const nv = val.trim(); if (nv !== String(value ?? "")) onSave(nv); };
+    const cancel = () => setEditing(false);
+    const stop = (e: React.SyntheticEvent) => { if (stopProp) e.stopPropagation(); };
+    if (multiline) {
+      return (
+        <Textarea
+          ref={inputRef as any}
+          value={val}
+          onChange={(e) => setVal(e.target.value)}
+          onBlur={commit}
+          onClick={stop}
+          onKeyDown={(e) => { stop(e); if (e.key === "Escape") cancel(); if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) commit(); }}
+          rows={2}
+          className="text-xs"
+        />
+      );
+    }
+    return (
+      <Input
+        ref={inputRef as any}
+        type={type}
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onBlur={commit}
+        onClick={stop}
+        onKeyDown={(e) => { stop(e); if (e.key === "Escape") cancel(); if (e.key === "Enter") commit(); }}
+        className={"h-7 " + (type === "number" ? "w-20" : "")}
+      />
+    );
+  };
+
+  // Inline editor for responsável (uses Combobox in popover)
+  const InlineResp = ({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) => {
+    const [open, setOpen] = useState(false);
+    if (!isAdmin) return <span>{funcNome(value)}</span>;
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <span className="cursor-pointer hover:bg-accent/50 rounded px-1 -mx-1" title="Clique para editar">
+            {funcNome(value)}
+          </span>
+        </PopoverTrigger>
+        <PopoverContent className="p-2 w-64" align="start">
+          <Combobox
+            options={funcOptions}
+            value={value ?? ""}
+            onValueChange={(v) => { onSave(v || null); setOpen(false); }}
+            placeholder="Selecionar responsável"
+            emptyMessage="—"
+          />
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
+
     <div className="flex items-start justify-between gap-3 py-2 border-b last:border-0">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">

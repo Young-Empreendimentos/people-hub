@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, Table2, Copy, GripVertical } from "lucide-react";
 import jsPDF from "jspdf";
@@ -939,6 +940,7 @@ export default function AtividadesAuditoria() {
   return (
     <div className="space-y-4 max-w-6xl">
       <div className="flex flex-wrap items-center gap-2">
+        <SidebarTrigger className="shrink-0" />
         <div className="relative flex-1 min-w-[240px]">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input

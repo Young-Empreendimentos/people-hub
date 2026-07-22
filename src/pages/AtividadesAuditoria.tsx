@@ -560,7 +560,7 @@ export default function AtividadesAuditoria() {
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)
               .map((e) => {
                 const atvsEquipe = atividades.filter(
-                  (a) => a.equipe_id === e.id && (!filtroResp || a.responsavel_funcionario_id === filtroResp)
+                  (a) => a.equipe_id === e.id && (!filtroResp || a.responsavel_funcionario_id === filtroResp) && matchBusca(a)
                 );
                 if (atvsEquipe.length === 0) return null;
                 const gruposDaEquipe = (grupos as any[])

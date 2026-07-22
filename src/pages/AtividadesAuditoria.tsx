@@ -63,6 +63,20 @@ export default function AtividadesAuditoria() {
     },
   });
 
+  const { data: atividadesInativas = [] } = useQuery({
+    queryKey: ["rh_atividades_auditoria_inativas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("rh_atividades_auditoria")
+        .select("id, grupo_id, nome, peso, responsavel_funcionario_id, normas, updated_at, ativo, rh_grupos_atividades_auditoria!inner(id, nome, ativo, equipe_id, rh_equipes(nome))")
+        .eq("ativo", false)
+        .order("updated_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+
 
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],

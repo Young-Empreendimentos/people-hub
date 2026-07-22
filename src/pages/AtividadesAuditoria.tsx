@@ -70,6 +70,28 @@ export default function AtividadesAuditoria() {
     queryFn: async () => (await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo")).data ?? [],
   });
 
+  const { data: activeMap = {} } = useQuery({
+    queryKey: ["rh_funcionarios_active_map"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("rh_admissoes_desligamentos")
+        .select("funcionario_id, tipo, data")
+        .order("data", { ascending: false });
+      const status: Record<string, string> = {};
+      for (const row of (data || []) as any[]) {
+        if (!status[row.funcionario_id]) status[row.funcionario_id] = row.tipo;
+      }
+      const map: Record<string, boolean> = {};
+      for (const f of (funcionarios as any[])) {
+        map[f.id] = status[f.id] !== "desligamento";
+      }
+      return map;
+    },
+    enabled: (funcionarios as any[]).length > 0,
+  });
+
+  const isRespInativo = (id: string | null) => !!id && activeMap[id] === false;
+
   const funcNome = (id: string | null) =>
     id ? funcionarios.find((f: any) => f.id === id)?.nome_completo ?? "—" : "—";
   const equipeNome = (id: string | null) =>

@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -451,14 +451,29 @@ export default function AtividadesAuditoria() {
 
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Atividades de Auditoria</h1>
-          <p className="text-sm text-muted-foreground">Cadastro de grupos e atividades auditáveis.</p>
+    <div className="space-y-4 max-w-6xl">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[240px]">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por normas, atividade ou grupo…"
+            className="pl-8 pr-8"
+          />
+          {busca && (
+            <button
+              type="button"
+              onClick={() => setBusca("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
+              aria-label="Limpar busca"
+            >
+              ✕
+            </button>
+          )}
         </div>
         {canConfig && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 shrink-0">
             <Button variant="outline" onClick={openNewGrupo}><Plus className="mr-2 h-4 w-4" />Novo grupo</Button>
             <Button onClick={() => openNewAtv()}><Plus className="mr-2 h-4 w-4" />Nova atividade</Button>
           </div>
@@ -474,47 +489,29 @@ export default function AtividadesAuditoria() {
           </Button>
           <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
             <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
-
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
         </div>
       )}
 
-      <div className="relative">
-        <Input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar por normas, atividade ou grupo…"
-          className="pr-8"
-        />
-        {busca && (
-          <button
-            type="button"
-            onClick={() => setBusca("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
-            aria-label="Limpar busca"
-          >
-            ✕
-          </button>
-        )}
-      </div>
 
       <Tabs defaultValue="grupo" onValueChange={() => { setFiltroGrupo(""); setFiltroResp(""); setFiltroEquipe(""); }}>
-        <TabsList>
+        <TabsList className="mb-3">
           <TabsTrigger value="grupo">Por Grupo</TabsTrigger>
           <TabsTrigger value="responsavel">Por Responsável</TabsTrigger>
           <TabsTrigger value="equipe">Por Equipe</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="grupo">
-          <div className="flex flex-wrap gap-2 mb-3 items-center">
-            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Filtrar equipe" emptyMessage="—" />
-            {filtroEquipe && <Button variant="ghost" onClick={() => setFiltroEquipe("")}>Limpar equipe</Button>}
-            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
-            {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar responsável</Button>}
-            <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Filtrar grupo" emptyMessage="—" />
-            {filtroGrupo && <Button variant="ghost" onClick={() => setFiltroGrupo("")}>Limpar grupo</Button>}
+        <TabsContent value="grupo" className="space-y-3">
+          <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
+            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
+            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
+            <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Grupo" emptyMessage="—" />
+            {(filtroEquipe || filtroResp || filtroGrupo) && (
+              <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); setFiltroGrupo(""); }}>Limpar filtros</Button>
+            )}
           </div>
+
           <Accordion type="multiple" className="space-y-2">
             {(grupos as any[])
               .filter((g) => !filtroGrupo || g.id === filtroGrupo)
@@ -622,16 +619,17 @@ export default function AtividadesAuditoria() {
               doc.save(`atividades-auditoria-${new Date().toISOString().slice(0,10)}.pdf`);
             };
             return (
-              <>
-                <div className="flex flex-wrap gap-2 mb-3 items-center">
-                  <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
-                  {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
+                  <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
+                  {filtroResp && <Button size="sm" variant="ghost" onClick={() => setFiltroResp("")}>Limpar</Button>}
                   <div className="flex-1" />
                   <Button variant="outline" onClick={emitirPDF} disabled={selecionadas.size === 0}>
                     <FileDown className="mr-2 h-4 w-4" />
                     Emitir relatório PDF{selecionadas.size > 0 ? ` (${selecionadas.size})` : ""}
                   </Button>
                 </div>
+
                 <Card>
                   <CardContent className="pt-4">
                     <Table>
@@ -679,15 +677,15 @@ export default function AtividadesAuditoria() {
                     </Table>
                   </CardContent>
                 </Card>
-              </>
+              </div>
+
             );
           })()}
         </TabsContent>
 
-        <TabsContent value="equipe">
-          <div className="flex flex-wrap gap-2 mb-3">
-            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Filtrar equipe" emptyMessage="—" />
-            {filtroEquipe && <Button variant="ghost" onClick={() => setFiltroEquipe("")}>Limpar equipe</Button>}
+        <TabsContent value="equipe" className="space-y-3">
+          <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
+            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
             {(() => {
               const atvsEscopo = atividades.filter((a) => !filtroEquipe || a.equipe_id === filtroEquipe);
               const respIds = Array.from(new Set(atvsEscopo.map((a) => a.responsavel_funcionario_id).filter(Boolean))) as string[];
@@ -695,13 +693,14 @@ export default function AtividadesAuditoria() {
                 .map((id) => ({ value: id, label: funcNome(id) }))
                 .sort((a, b) => a.label.localeCompare(b.label));
               return (
-                <>
-                  <Combobox options={respOpts} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
-                  {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar responsável</Button>}
-                </>
+                <Combobox options={respOpts} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
               );
             })()}
+            {(filtroEquipe || filtroResp) && (
+              <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); }}>Limpar filtros</Button>
+            )}
           </div>
+
           <div className="space-y-3">
             {(equipes as any[])
               .filter((e) => !filtroEquipe || e.id === filtroEquipe)

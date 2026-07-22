@@ -1208,7 +1208,7 @@ export default function AtividadesAuditoria() {
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                              {atvs.map((a) => <ItemRow key={a.id} a={a} showGrupo />)}
+                              <AtvDndList atvs={atvs} showGrupo />
                             </AccordionContent>
                           </AccordionItem>
                         );

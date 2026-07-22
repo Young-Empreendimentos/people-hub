@@ -126,16 +126,18 @@ export default function AtividadesAuditoria() {
 
   const deleteGrupo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_grupos_atividades_auditoria").delete().eq("id", id);
+      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
+      await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("grupo_id", id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
       qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] });
-      toast.success("Grupo excluído.");
+      toast.success("Grupo desativado (histórico preservado).");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
 
   // ===== CRUD Atividade =====
   const [atvOpen, setAtvOpen] = useState(false);
@@ -190,12 +192,13 @@ export default function AtividadesAuditoria() {
 
   const deleteAtv = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").delete().eq("id", id);
+      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Excluída."); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Desativada (histórico preservado)."); },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
 
   const grupoOptions = (grupos as any[]).map((g) => ({ value: g.id, label: g.nome }));
   const funcOptions = (funcionarios as any[]).map((f) => ({ value: f.id, label: f.nome_completo }));
@@ -320,12 +323,13 @@ export default function AtividadesAuditoria() {
 
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").delete().in("id", ids);
+      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).in("id", ids);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades excluídas."); clearSel(); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades desativadas."); clearSel(); },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
+
   const bulkPatchResp = useMutation({
     mutationFn: async ({ ids, resp }: { ids: string[]; resp: string | null }) => {
       const { error } = await supabase.from("rh_atividades_auditoria").update({ responsavel_funcionario_id: resp }).in("id", ids);
@@ -391,7 +395,7 @@ export default function AtividadesAuditoria() {
       {canConfig && (
         <div className="flex gap-1 shrink-0">
           <Button size="icon" variant="ghost" onClick={() => openEditAtv(a)}><Pencil className="h-4 w-4" /></Button>
-          <Button size="icon" variant="ghost" onClick={() => { if (confirm("Excluir atividade?")) deleteAtv.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
+          <Button size="icon" variant="ghost" onClick={() => { if (confirm("Desativar atividade? O histórico das auditorias é preservado.")) deleteAtv.mutate(a.id); }}><Trash2 className="h-4 w-4" /></Button>
         </div>
       )}
     </div>
@@ -420,8 +424,9 @@ export default function AtividadesAuditoria() {
           <Button size="sm" variant="outline" onClick={() => { setBulkResp(""); setBulkRespOpen(true); }}>
             <Pencil className="mr-1 h-3 w-3" />Alterar responsável
           </Button>
-          <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Excluir ${selecionadas.size} atividade(s)?`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
-            <Trash2 className="mr-1 h-3 w-3" />Excluir selecionadas
+          <Button size="sm" variant="destructive" onClick={() => { if (confirm(`Desativar ${selecionadas.size} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(Array.from(selecionadas)); }}>
+            <Trash2 className="mr-1 h-3 w-3" />Desativar selecionadas
+
           </Button>
           <Button size="sm" variant="ghost" onClick={clearSel}>Limpar seleção</Button>
         </div>
@@ -493,7 +498,7 @@ export default function AtividadesAuditoria() {
                         <div className="flex gap-2 mb-2">
                           <Button size="sm" variant="outline" onClick={() => openEditGrupo(g)}><Pencil className="mr-1 h-3 w-3" />Editar grupo</Button>
                           <Button size="sm" variant="outline" onClick={() => openNewAtv(g.id)}><Plus className="mr-1 h-3 w-3" />Atividade neste grupo</Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Excluir grupo? As atividades também serão excluídas.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Excluir grupo</Button>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
                         </div>
                       )}
                       {atvs.length === 0

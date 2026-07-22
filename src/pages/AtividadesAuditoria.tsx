@@ -429,10 +429,10 @@ export default function AtividadesAuditoria() {
                 <TableBody>
                   {atividadesFiltradas.map((a) => (
                     <TableRow key={a.id}>
-                      <TableCell>{funcNome(a.responsavel_funcionario_id)}</TableCell>
-                      <TableCell>{a.nome}</TableCell>
+                      <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
+                      <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
                       <TableCell>{a.grupo_nome}</TableCell>
-                      <TableCell>{Number(a.peso)}</TableCell>
+                      <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

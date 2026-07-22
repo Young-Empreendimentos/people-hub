@@ -976,13 +976,17 @@ export default function AtividadesAuditoria() {
                                 </div>
                               </AccordionTrigger>
                               <AccordionContent>
-                                {canConfig && (
-                                  <div className="flex gap-2 mb-2 flex-wrap">
+                              {canConfig && (
+                                <div className="flex gap-2 mb-2 flex-wrap">
+                                  {isAdmin && (
                                     <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvsGrupo.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
-                                    <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvsGrupo.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvsGrupo.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
+                                  )}
+                                  <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar ${atvsGrupo.length} atividade(s) deste grupo?`)) bulkDuplicate.mutate(atvsGrupo.map((a) => a.id)); }}><Copy className="mr-1 h-3 w-3" />Duplicar atividades</Button>
+                                  {isAdmin && (
                                     <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm(`Desativar ${atvsGrupo.length} atividade(s)? O histórico é preservado.`)) bulkDelete.mutate(atvsGrupo.map((a) => a.id)); }}><Trash2 className="mr-1 h-3 w-3" />Desativar atividades</Button>
-                                  </div>
-                                )}
+                                  )}
+                                </div>
+                              )}
                                 {atvsGrupo.map((a) => <ItemRow key={a.id} a={a} />)}
                               </AccordionContent>
                             </AccordionItem>

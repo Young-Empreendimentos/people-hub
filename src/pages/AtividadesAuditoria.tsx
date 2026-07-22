@@ -496,20 +496,22 @@ export default function AtividadesAuditoria() {
 
 
       <Tabs defaultValue="grupo" onValueChange={() => { setFiltroGrupo(""); setFiltroResp(""); setFiltroEquipe(""); }}>
-        <TabsList>
+        <TabsList className="mb-3">
           <TabsTrigger value="grupo">Por Grupo</TabsTrigger>
           <TabsTrigger value="responsavel">Por Responsável</TabsTrigger>
           <TabsTrigger value="equipe">Por Equipe</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="grupo">
-          <div className="flex flex-wrap gap-2 mb-3 items-center">
-            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Filtrar equipe" emptyMessage="—" />
-            {filtroEquipe && <Button variant="ghost" onClick={() => setFiltroEquipe("")}>Limpar equipe</Button>}
-            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Filtrar responsável" emptyMessage="—" />
-            {filtroResp && <Button variant="ghost" onClick={() => setFiltroResp("")}>Limpar responsável</Button>}
-            <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Filtrar grupo" emptyMessage="—" />
-            {filtroGrupo && <Button variant="ghost" onClick={() => setFiltroGrupo("")}>Limpar grupo</Button>}
+        <TabsContent value="grupo" className="space-y-3">
+          <div className="flex flex-wrap gap-2 items-center rounded-lg border bg-muted/30 px-3 py-2">
+            <Combobox options={equipeOptions} value={filtroEquipe} onValueChange={setFiltroEquipe} placeholder="Equipe" emptyMessage="—" />
+            <Combobox options={funcOptions} value={filtroResp} onValueChange={setFiltroResp} placeholder="Responsável" emptyMessage="—" />
+            <Combobox options={grupoOptions} value={filtroGrupo} onValueChange={setFiltroGrupo} placeholder="Grupo" emptyMessage="—" />
+            {(filtroEquipe || filtroResp || filtroGrupo) && (
+              <Button size="sm" variant="ghost" onClick={() => { setFiltroEquipe(""); setFiltroResp(""); setFiltroGrupo(""); }}>Limpar filtros</Button>
+            )}
+          </div>
+
           </div>
           <Accordion type="multiple" className="space-y-2">
             {(grupos as any[])

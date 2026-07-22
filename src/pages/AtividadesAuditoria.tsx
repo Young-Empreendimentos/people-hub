@@ -815,7 +815,7 @@ export default function AtividadesAuditoria() {
               {isAdmin && (
                 <Button size="sm" variant="outline" onClick={() => { setSelecionadas(new Set(atvs.map((a) => a.id))); setBulkResp(""); setBulkRespOpen(true); }}><Pencil className="mr-1 h-3 w-3" />Trocar responsável do grupo</Button>
               )}
-              <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo "${g.nome}" com ${atvs.length} atividade(s)? Será criado um novo grupo "${g.nome} (cópia)".`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo</Button>
+              <Button size="sm" variant="outline" onClick={() => { if (confirm(`Duplicar o grupo inteiro "${g.nome}" com ${atvs.length} atividade(s)? Será criado um novo grupo com o mesmo nome e as atividades duplicadas.`)) duplicateGrupo.mutate(g.id); }}><Copy className="mr-1 h-3 w-3" />Duplicar grupo inteiro</Button>
               {isAdmin && (
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => { if (confirm("Desativar grupo e suas atividades? O histórico é preservado.")) deleteGrupo.mutate(g.id); }}><Trash2 className="mr-1 h-3 w-3" />Desativar grupo</Button>
               )}

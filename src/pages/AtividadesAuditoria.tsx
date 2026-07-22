@@ -388,6 +388,113 @@ export default function AtividadesAuditoria() {
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
 
+  const bulkDuplicate = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const originais = atividades.filter((a) => ids.includes(a.id));
+      if (originais.length === 0) return;
+      const payload = originais.map((a) => ({
+        grupo_id: a.grupo_id,
+        nome: `${a.nome} (cópia)`,
+        peso: Number(a.peso) || 1,
+        responsavel_funcionario_id: a.responsavel_funcionario_id,
+        normas: a.normas,
+        manuais: a.manuais,
+        indicadores: a.indicadores,
+        metodo_auditoria: a.metodo_auditoria,
+        ordem: Number(a.ordem) || 0,
+      }));
+      const { error } = await supabase.from("rh_atividades_auditoria").insert(payload);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades duplicadas."); clearSel(); },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
+
+  // ===== View mode (lista / tabela) =====
+  const [viewMode, setViewMode] = useState<"lista" | "tabela">("lista");
+
+  // Select all activities within a group
+  const toggleGroupSel = (atvs: Atividade[]) => {
+    const ids = atvs.map((a) => a.id);
+    const allIn = ids.every((id) => selecionadas.has(id));
+    setSelecionadas((prev) => {
+      const n = new Set(prev);
+      if (allIn) ids.forEach((id) => n.delete(id));
+      else ids.forEach((id) => n.add(id));
+      return n;
+    });
+  };
+  const groupSelState = (atvs: Atividade[]): "none" | "some" | "all" => {
+    if (atvs.length === 0) return "none";
+    const c = atvs.filter((a) => selecionadas.has(a.id)).length;
+    if (c === 0) return "none";
+    if (c === atvs.length) return "all";
+    return "some";
+  };
+
+  // Shared table renderer
+  const TableView = ({ rows }: { rows: Atividade[] }) => {
+    const allSel = rows.length > 0 && rows.every((r) => selecionadas.has(r.id));
+    const someSel = rows.some((r) => selecionadas.has(r.id));
+    const toggleAll = () => {
+      setSelecionadas((prev) => {
+        const n = new Set(prev);
+        if (allSel) rows.forEach((r) => n.delete(r.id));
+        else rows.forEach((r) => n.add(r.id));
+        return n;
+      });
+    };
+    return (
+      <Card>
+        <CardContent className="pt-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4"
+                    checked={allSel}
+                    ref={(el) => { if (el) el.indeterminate = !allSel && someSel; }}
+                    onChange={toggleAll}
+                    aria-label="Selecionar todas"
+                  />
+                </TableHead>
+                <TableHead>Equipe</TableHead>
+                <TableHead>Responsável</TableHead>
+                <TableHead>Grupo</TableHead>
+                <TableHead>Atividade</TableHead>
+                <TableHead>Peso</TableHead>
+                <TableHead>Normas</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((a) => (
+                <TableRow key={a.id} data-state={selecionadas.has(a.id) ? "selected" : undefined}>
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4"
+                      checked={selecionadas.has(a.id)}
+                      onChange={() => toggleSel(a.id)}
+                      aria-label="Selecionar atividade"
+                    />
+                  </TableCell>
+                  <TableCell>{equipeNome(a.equipe_id)}</TableCell>
+                  <TableCell><InlineResp value={a.responsavel_funcionario_id} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { responsavel_funcionario_id: v } })} /></TableCell>
+                  <TableCell>{a.grupo_nome}</TableCell>
+                  <TableCell><InlineText value={a.nome} onSave={(v) => v && patchAtv.mutate({ id: a.id, patch: { nome: v } })} /></TableCell>
+                  <TableCell><InlineText type="number" value={a.peso} onSave={(v) => { const n = Number(v); if (!isNaN(n)) patchAtv.mutate({ id: a.id, patch: { peso: n } }); }} /></TableCell>
+                  <TableCell className="max-w-[280px] text-xs text-muted-foreground whitespace-pre-wrap">{a.normas || "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  };
+
   const ItemRow = ({ a, showGrupo = false }: { a: Atividade; showGrupo?: boolean }) => (
     <div className="flex items-start justify-between gap-3 py-2 border-b last:border-0">
       <div className="flex-1 min-w-0 flex items-start gap-2">

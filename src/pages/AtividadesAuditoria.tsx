@@ -21,6 +21,7 @@ import { Plus, Pencil, Trash2, Lock, FileDown, AlertTriangle, Search, List, Tabl
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 import { DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -972,6 +973,37 @@ export default function AtividadesAuditoria() {
     doc.save(`atividades-auditoria-${new Date().toISOString().slice(0,10)}.pdf`);
   };
 
+  // ===== Exportar Excel (completo, sem "Método") — respeita os filtros atuais =====
+  const exportarExcel = () => {
+    const rows = [...atividadesFiltradas].sort((a, b) => {
+      const ea = equipeNome(a.equipe_id) || "";
+      const eb = equipeNome(b.equipe_id) || "";
+      const cmpEq = ea.localeCompare(eb, "pt-BR"); if (cmpEq) return cmpEq;
+      const cmpG = (a.grupo_nome || "").localeCompare(b.grupo_nome || "", "pt-BR"); if (cmpG) return cmpG;
+      return ((a.ordem ?? 0) - (b.ordem ?? 0)) || (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+    });
+    if (rows.length === 0) { toast.error("Nenhuma atividade no filtro atual."); return; }
+    const data = rows.map((a) => ({
+      "Equipe": equipeNome(a.equipe_id),
+      "Grupo": a.grupo_nome || "",
+      "Peso do grupo": Number(a.grupo_peso ?? 0),
+      "Atividade": a.nome || "",
+      "Peso": Number(a.peso ?? 0),
+      "Responsável": funcNome(a.responsavel_funcionario_id),
+      "Normas": a.normas || "",
+      "Manuais": a.manuais || "",
+      "Indicadores": a.indicadores || "",
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = [
+      { wch: 18 }, { wch: 24 }, { wch: 12 }, { wch: 44 }, { wch: 8 },
+      { wch: 26 }, { wch: 40 }, { wch: 40 }, { wch: 40 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Atividades");
+    XLSX.writeFile(wb, `atividades-auditoria-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div className="space-y-4 max-w-6xl">
       <div className="flex flex-wrap items-center gap-2">
@@ -1045,6 +1077,10 @@ export default function AtividadesAuditoria() {
           <Button variant="outline" size="sm" onClick={emitirRelatorioFiltrado}>
             <FileDown className="mr-2 h-4 w-4" />
             Relatório PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportarExcel}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Excel
           </Button>
         </div>
       </div>

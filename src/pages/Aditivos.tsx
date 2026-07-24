@@ -59,7 +59,7 @@ export default function Aditivos() {
   const { data: tiposAditivo = [] } = useQuery({ queryKey: ["rh_tipos_aditivo"], queryFn: async () => { const { data } = await supabase.from("rh_tipos_aditivo").select("*").order("nome"); return data || []; }});
   const { data: empresas = [] } = useQuery({ queryKey: ["rh_empresas"], queryFn: async () => { const { data } = await supabase.from("rh_empresas").select("*").order("nome"); return data || []; }});
   const { data: equipes = [] } = useQuery({ queryKey: ["rh_equipes"], queryFn: async () => { const { data } = await supabase.from("rh_equipes").select("*").order("nome"); return data || []; }});
-  const { data: cargos = [] } = useQuery({ queryKey: ["rh_cargos"], queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*").order("nome"); return data || []; }});
+  const { data: cargos = [] } = useQuery({ queryKey: ["rh_cargos"], queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*").order("nome").order("nivel").order("remuneracao"); return data || []; }});
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -263,7 +263,7 @@ export default function Aditivos() {
               <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={empresaFinalId} onValueChange={setEmpresaFinalId} placeholder="Selecione" />
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Cargo Final</label>
-              <Combobox options={cargos.map((c: any) => ({ value: c.id, label: c.nivel != null ? `${c.nome} — Nível ${c.nivel}` : c.nome }))} value={cargoFinalId} onValueChange={setCargoFinalId} placeholder="Selecione" disabled={!canEditCargoSalario} />
+              <Combobox options={cargos.map((c: any) => ({ value: c.id, label: `${c.nome}${c.nivel != null ? ` — Nível ${c.nivel}` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` }))} value={cargoFinalId} onValueChange={setCargoFinalId} placeholder="Selecione" disabled={!canEditCargoSalario} />
               {!canEditCargoSalario && <p className="text-xs text-muted-foreground">Apenas coordenadores podem alterar cargo/salário.</p>}
             </div>
             <div className="space-y-2"><label className="text-sm font-medium">Equipe Final</label>

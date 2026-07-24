@@ -24,6 +24,8 @@ export default function Auditorias() {
   const qc = useQueryClient();
   const { user, isAuditor, canConfig } = useAuth();
   const podeCriar = isAuditor || canConfig;
+  // Somente o Eduardo pode ver/gerenciar o vínculo de auditores.
+  const isEduardo = (user?.email ?? "").toLowerCase() === "eduardo@youngempreendimentos.com.br";
 
   const { data: auditorias = [], isLoading } = useQuery({
     queryKey: ["rh_auditorias"],
@@ -88,7 +90,7 @@ export default function Auditorias() {
           <p className="text-sm text-muted-foreground">Execução, finalização e histórico de auditorias.</p>
         </div>
         <div className="flex gap-2">
-          {canConfig && <VinculoAuditoresButton />}
+          {isEduardo && <VinculoAuditoresButton />}
           {podeCriar && (
             <Button onClick={() => setOpen(true)}><Plus className="mr-2 h-4 w-4" />Nova auditoria</Button>
           )}
@@ -186,12 +188,6 @@ function VinculoAuditoresButton() {
     enabled: open,
   });
 
-  const { data: funcionarios = [] } = useQuery({
-    queryKey: ["rh_funcionarios_equipe_map"],
-    queryFn: async () => (await supabase.from("rh_funcionarios").select("id, equipe_id")).data ?? [],
-    enabled: open,
-  });
-
   const { data: vinculos = [], refetch } = useQuery({
     queryKey: ["rh_auditor_equipes_all"],
     queryFn: async () => {
@@ -202,24 +198,11 @@ function VinculoAuditoresButton() {
     enabled: open,
   });
 
-  // Equipe do auditor selecionado (não pode auditar a própria equipe)
-  const equipeDoAuditor = (() => {
-    const auditor = (auditores as any[]).find((u) => u.id === userId);
-    if (!auditor?.funcionario_id) return null;
-    const f = (funcionarios as any[]).find((x) => x.id === auditor.funcionario_id);
-    return f?.equipe_id ?? null;
-  })();
-
-  const equipesDisponiveis = equipeDoAuditor
-    ? (equipes as any[]).filter((e) => e.id !== equipeDoAuditor)
-    : (equipes as any[]);
+  // Um auditor pode ser vinculado a qualquer equipe (inclusive a própria).
+  const equipesDisponiveis = (equipes as any[]);
 
   const addVinculo = async () => {
     if (!userId || !equipeId) return;
-    if (equipeDoAuditor && equipeId === equipeDoAuditor) {
-      toast.error("Um auditor não pode ser vinculado à própria equipe.");
-      return;
-    }
     const { error } = await supabase.from("rh_auditor_equipes").insert({ user_id: userId, equipe_id: equipeId });
     if (error) { toast.error(error.message); return; }
     toast.success("Vinculado.");

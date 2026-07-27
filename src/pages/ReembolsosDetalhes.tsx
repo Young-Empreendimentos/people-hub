@@ -63,9 +63,15 @@ export default function ReembolsosDetalhes() {
     queryKey: ["rh_user_names", userIds],
     enabled: userIds.length > 0,
     queryFn: async () => {
-      const { data } = await supabase.from("rh_user_profiles").select("user_id, nome").in("user_id", userIds);
       const m: Record<string, string> = {};
-      (data || []).forEach((u: any) => { m[u.user_id] = u.nome || ""; });
+      const { data: profs } = await supabase.from("rh_user_profiles").select("user_id, nome").in("user_id", userIds);
+      (profs || []).forEach((u: any) => { if (u.nome) m[u.user_id] = u.nome; });
+      // Fallback: quem não tem perfil, usa o nome do papel (rh_user_roles).
+      const faltando = userIds.filter((id) => !m[id]);
+      if (faltando.length) {
+        const { data: roles } = await supabase.from("rh_user_roles").select("user_id, nome").in("user_id", faltando);
+        (roles || []).forEach((u: any) => { if (u.nome && !m[u.user_id]) m[u.user_id] = u.nome; });
+      }
       return m;
     },
   });
@@ -205,9 +211,9 @@ export default function ReembolsosDetalhes() {
                   ) : (
                     <div className="flex flex-col">
                       <Badge variant="default" className="w-fit">Aprovado</Badge>
-                      {aprovadoNome && (
+                      {(aprovadoNome || d.aprovado_em) && (
                         <span className="text-[11px] text-muted-foreground mt-1">
-                          por {aprovadoNome}{d.aprovado_em ? ` em ${new Date(d.aprovado_em).toLocaleDateString("pt-BR")}` : ""}
+                          {aprovadoNome ? `por ${aprovadoNome}` : "aprovado"}{d.aprovado_em ? ` em ${new Date(d.aprovado_em).toLocaleDateString("pt-BR")}` : ""}
                         </span>
                       )}
                     </div>

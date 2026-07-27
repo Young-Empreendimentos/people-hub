@@ -110,7 +110,7 @@ export default function FolhaMensal() {
     "Educação e Treinamento",
     "Outro",
   ];
-  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string; _kmIds?: string[] };
+  type ReembolsoItem = { id?: string; tipo: string; valor: string; observacao: string; origem?: string; _kmIds?: string[] };
   const [reembolsosLista, setReembolsosLista] = useState<ReembolsoItem[]>([]);
   const [novoReembolsoTipo, setNovoReembolsoTipo] = useState("");
   const [novoReembolsoValor, setNovoReembolsoValor] = useState("");
@@ -661,7 +661,8 @@ export default function FolhaMensal() {
         const existingManual = (existingReemb || []).filter((r: any) => r.origem === "manual");
         const keepIds = reembolsosLista.map((d) => d.id).filter(Boolean) as string[];
         const toDelete = (existingReemb || [])
-          .filter((r: any) => r.origem !== "manual" || !keepIds.includes(r.id))
+          // preserva reembolsos manuais e de KM que continuam na lista; beneficio_moradia é recriado
+          .filter((r: any) => (r.origem !== "manual" && r.origem !== "km") || !keepIds.includes(r.id))
           .map((r: any) => r.id);
         if (toDelete.length > 0) {
           await supabase.from("rh_folha_reembolsos").delete().in("id", toDelete);
@@ -694,10 +695,12 @@ export default function FolhaMensal() {
               valor: parseFloat(km.valor) || 0,
               observacao: km.observacao || null,
               origem: "km",
-              status: novoStatus,
+              // KM já foi aprovado em "Aprovações de KM"; ao lançar na folha já entra
+              // como aprovado (não precisa de 2ª aprovação em Reembolsos).
+              status: "aprovado",
               criado_por: user?.id || null,
-              aprovado_por: isUsuario ? null : (user?.id || null),
-              aprovado_em: isUsuario ? null : new Date().toISOString(),
+              aprovado_por: user?.id || null,
+              aprovado_em: new Date().toISOString(),
             })
             .select("id")
             .single();
@@ -812,9 +815,9 @@ export default function FolhaMensal() {
       .from("rh_folha_reembolsos")
       .select("id, tipo, valor, observacao, origem")
       .eq("folha_id", f.id)
-      .eq("origem", "manual");
+      .in("origem", ["manual", "km"]);
     setReembolsosLista((reembData || []).map((d: any) => ({
-      id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
+      id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "", origem: d.origem,
     })));
     setDialogOpen(true);
   };

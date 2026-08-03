@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ export default function Equipes() {
   const { data: equipes = [], isLoading } = useQuery({
     queryKey: ["rh_equipes"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_equipes").select("*").order("nome");
+      const { data, error } = await rhDb.from("rh_equipes").select("*").order("nome");
       if (error) throw error;
       return data;
     },
@@ -37,10 +37,10 @@ export default function Equipes() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingId) {
-        const { error } = await supabase.from("rh_equipes").update({ nome }).eq("id", editingId);
+        const { error } = await rhDb.from("rh_equipes").update({ nome }).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_equipes").insert({ nome });
+        const { error } = await rhDb.from("rh_equipes").insert({ nome });
         if (error) throw error;
       }
     },
@@ -54,7 +54,7 @@ export default function Equipes() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_equipes").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_equipes").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

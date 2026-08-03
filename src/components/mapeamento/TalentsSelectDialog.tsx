@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -86,7 +86,7 @@ export function TalentsSelectDialog({
         cargo_atual: r.position_name,
         observacoes: r.notes,
       }));
-      const { error } = await supabase.from("rh_mapeamento_alternativas").insert(payload);
+      const { error } = await rhDb.from("rh_mapeamento_alternativas").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -44,7 +44,7 @@ export default function Advertencias() {
   const { data: advertencias = [] } = useQuery({
     queryKey: ["rh_advertencias"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_advertencias")
         .select("*")
         .order("data", { ascending: false });
@@ -94,7 +94,7 @@ export default function Advertencias() {
         if (upErr) throw upErr;
         arquivo_url = path;
       }
-      const { error } = await supabase.from("rh_advertencias").insert({
+      const { error } = await rhDb.from("rh_advertencias").insert({
         funcionario_id: funcId,
         data: format(data, "yyyy-MM-dd"),
         tipo,
@@ -116,7 +116,7 @@ export default function Advertencias() {
       if (a.arquivo_url) {
         await supabase.storage.from("rh-anexos").remove([a.arquivo_url]);
       }
-      const { error } = await supabase.from("rh_advertencias").delete().eq("id", a.id);
+      const { error } = await rhDb.from("rh_advertencias").delete().eq("id", a.id);
       if (error) throw error;
     },
     onSuccess: () => {

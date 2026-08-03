@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarDays } from "lucide-react";
 
@@ -9,7 +9,7 @@ export default function Reembolsos() {
   const { data: reembolsos = [], isLoading } = useQuery({
     queryKey: ["rh_folha_reembolsos_meses"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_folha_reembolsos")
         .select("valor, status, rh_folha_mensal!inner(mes_referencia)");
       if (error) throw error;

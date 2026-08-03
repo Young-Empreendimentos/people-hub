@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ function EstoqueTab() {
   const { data: estoque = [], isLoading } = useQuery({
     queryKey: ["rh_uniformes_estoque"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_uniformes_estoque" as any)
         .select("*");
       if (error) throw error;
@@ -83,7 +83,7 @@ function EstoqueTab() {
 
   const update = useMutation({
     mutationFn: async ({ id, quantidade }: { id: string; quantidade: number }) => {
-      const { error } = await supabase
+      const { error } = await rhDb
         .from("rh_uniformes_estoque" as any)
         .update({ quantidade })
         .eq("id", id);
@@ -192,7 +192,7 @@ function EncomendasTab() {
   const { data: encomendas = [] } = useQuery({
     queryKey: ["rh_uniformes_encomendas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_uniformes_encomendas" as any)
         .select("*, rh_funcionarios(nome_completo)")
         .order("created_at", { ascending: false });
@@ -236,12 +236,12 @@ function EncomendasTab() {
         observacoes: observacoes || null,
       };
       if (editing) {
-        const { error } = await supabase
+        const { error } = await rhDb
           .from("rh_uniformes_encomendas" as any)
           .update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
+        const { error } = await rhDb
           .from("rh_uniformes_encomendas" as any)
           .insert(payload);
         if (error) throw error;
@@ -257,7 +257,7 @@ function EncomendasTab() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_uniformes_encomendas" as any).delete().eq("id", id);
+      const { error } = await rhDb.from("rh_uniformes_encomendas" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -269,7 +269,7 @@ function EncomendasTab() {
 
   const toggleField = useMutation({
     mutationFn: async ({ id, field, value }: { id: string; field: string; value: boolean }) => {
-      const { error } = await supabase
+      const { error } = await rhDb
         .from("rh_uniformes_encomendas" as any)
         .update({ [field]: value }).eq("id", id);
       if (error) throw error;
@@ -420,7 +420,7 @@ function EntregasTab() {
   const { data: entregas = [] } = useQuery({
     queryKey: ["rh_uniformes_entregas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_uniformes_entregas" as any)
         .select("*, rh_funcionarios(nome_completo)")
         .order("data_entrega", { ascending: false });
@@ -443,7 +443,7 @@ function EntregasTab() {
       const path = `entregas/${funcId}/${Date.now()}_${file.name}`;
       const { error: upErr } = await supabase.storage.from(BUCKET).upload(path, file);
       if (upErr) throw upErr;
-      const { error } = await supabase.from("rh_uniformes_entregas" as any).insert({
+      const { error } = await rhDb.from("rh_uniformes_entregas" as any).insert({
         funcionario_id: funcId,
         tipo, genero, tamanho,
         quantidade: Number(quantidade) || 1,
@@ -464,7 +464,7 @@ function EntregasTab() {
   const devolver = useMutation({
     mutationFn: async () => {
       if (!devDialog || !dataDevolucao) return;
-      const { error } = await supabase.from("rh_uniformes_entregas" as any).update({
+      const { error } = await rhDb.from("rh_uniformes_entregas" as any).update({
         devolvido: true,
         data_devolucao: format(dataDevolucao, "yyyy-MM-dd"),
       }).eq("id", devDialog.id);
@@ -481,7 +481,7 @@ function EntregasTab() {
   const remove = useMutation({
     mutationFn: async (e: any) => {
       if (e.recibo_path) await supabase.storage.from(BUCKET).remove([e.recibo_path]);
-      const { error } = await supabase.from("rh_uniformes_entregas" as any).delete().eq("id", e.id);
+      const { error } = await rhDb.from("rh_uniformes_entregas" as any).delete().eq("id", e.id);
       if (error) throw error;
     },
     onSuccess: () => {

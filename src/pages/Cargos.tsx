@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ export default function Cargos() {
   const { data: trilhas = [], isLoading: loadingTrilhas } = useQuery({
     queryKey: ["rh_trilhas_cargo"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_trilhas_cargo").select("*").order("nome");
+      const { data, error } = await rhDb.from("rh_trilhas_cargo").select("*").order("nome");
       if (error) throw error;
       return data;
     },
@@ -47,7 +47,7 @@ export default function Cargos() {
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_cargos").select("*").order("nivel");
+      const { data, error } = await rhDb.from("rh_cargos").select("*").order("nivel");
       if (error) throw error;
       return data;
     },
@@ -61,16 +61,16 @@ export default function Cargos() {
   const saveTrilha = useMutation({
     mutationFn: async () => {
       if (editingTrilhaId) {
-        const { error } = await supabase.from("rh_trilhas_cargo").update({ nome: trilhaNome }).eq("id", editingTrilhaId);
+        const { error } = await rhDb.from("rh_trilhas_cargo").update({ nome: trilhaNome }).eq("id", editingTrilhaId);
         if (error) throw error;
         // Update all cargo names under this trilha
         const trilhaCargos = cargos.filter((c) => c.trilha_id === editingTrilhaId);
         for (const cargo of trilhaCargos) {
           const newName = buildCargoName(trilhaNome, cargo.nivel);
-          await supabase.from("rh_cargos").update({ nome: newName }).eq("id", cargo.id);
+          await rhDb.from("rh_cargos").update({ nome: newName }).eq("id", cargo.id);
         }
       } else {
-        const { error } = await supabase.from("rh_trilhas_cargo").insert({ nome: trilhaNome });
+        const { error } = await rhDb.from("rh_trilhas_cargo").insert({ nome: trilhaNome });
         if (error) throw error;
       }
     },
@@ -85,7 +85,7 @@ export default function Cargos() {
 
   const deleteTrilha = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_trilhas_cargo").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_trilhas_cargo").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -107,10 +107,10 @@ export default function Cargos() {
         adicionais: cargoAdicionais || null,
       };
       if (editingCargoId) {
-        const { error } = await supabase.from("rh_cargos").update(payload).eq("id", editingCargoId);
+        const { error } = await rhDb.from("rh_cargos").update(payload).eq("id", editingCargoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_cargos").insert(payload);
+        const { error } = await rhDb.from("rh_cargos").insert(payload);
         if (error) throw error;
       }
     },
@@ -124,7 +124,7 @@ export default function Cargos() {
 
   const deleteCargo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_cargos").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_cargos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

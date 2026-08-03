@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export default function Index() {
@@ -15,10 +15,10 @@ export default function Index() {
     queryKey: ["rh_dashboard_counts"],
     queryFn: async () => {
       const [funcRes, equipesRes, cargosRes, avalRes] = await Promise.all([
-        supabase.from("rh_funcionarios").select("id", { count: "exact", head: true }),
-        supabase.from("rh_equipes").select("id", { count: "exact", head: true }),
-        supabase.from("rh_cargos").select("id", { count: "exact", head: true }),
-        supabase.from("rh_avaliacoes").select("id", { count: "exact", head: true }),
+        rhDb.from("rh_funcionarios").select("id", { count: "exact", head: true }),
+        rhDb.from("rh_equipes").select("id", { count: "exact", head: true }),
+        rhDb.from("rh_cargos").select("id", { count: "exact", head: true }),
+        rhDb.from("rh_avaliacoes").select("id", { count: "exact", head: true }),
       ]);
       return {
         funcionarios: funcRes.count ?? 0,
@@ -42,7 +42,7 @@ export default function Index() {
 
   const aprovar = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.from("rh_user_roles").update({ status: "ativo" } as any).eq("user_id", userId);
+      const { error } = await rhDb.from("rh_user_roles").update({ status: "ativo" } as any).eq("user_id", userId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -56,7 +56,7 @@ export default function Index() {
   const recusar = useMutation({
     mutationFn: async (userId: string) => {
       // Recusa e limpa o funcionário escolhido (libera o vínculo para nova solicitação).
-      const { error } = await supabase.from("rh_user_roles")
+      const { error } = await rhDb.from("rh_user_roles")
         .update({ status: "rejeitado", funcionario_id: null } as any)
         .eq("user_id", userId);
       if (error) throw error;

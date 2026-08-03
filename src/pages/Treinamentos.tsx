@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export default function Treinamentos() {
   const { data: tipos = [] } = useQuery({
     queryKey: ["rh_tipos_treinamento"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_tipos_treinamento").select("*").order("nome");
+      const { data, error } = await rhDb.from("rh_tipos_treinamento").select("*").order("nome");
       if (error) throw error;
       return data;
     },
@@ -49,7 +49,7 @@ export default function Treinamentos() {
   const { data: treinamentos = [], isLoading } = useQuery({
     queryKey: ["rh_treinamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_treinamentos")
         .select("*, rh_tipos_treinamento(nome)")
         .order("data", { ascending: false });
@@ -61,7 +61,7 @@ export default function Treinamentos() {
   const { data: allParticipantes = [] } = useQuery({
     queryKey: ["rh_treinamento_participantes"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_treinamento_participantes")
         .select("*, rh_funcionarios(nome_completo)");
       if (error) throw error;
@@ -75,7 +75,7 @@ export default function Treinamentos() {
   // Mutations
   const saveTipo = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("rh_tipos_treinamento").insert({ nome: novoTipoNome.trim() });
+      const { error } = await rhDb.from("rh_tipos_treinamento").insert({ nome: novoTipoNome.trim() });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -94,15 +94,15 @@ export default function Treinamentos() {
       let treinamentoId = editingId;
 
       if (editingId) {
-        const { error } = await supabase
+        const { error } = await rhDb
           .from("rh_treinamentos")
           .update({ tipo_treinamento_id: tipoTreinamentoId, data, observacoes: obs || null })
           .eq("id", editingId);
         if (error) throw error;
         // Remove old participants and re-insert
-        await supabase.from("rh_treinamento_participantes").delete().eq("treinamento_id", editingId);
+        await rhDb.from("rh_treinamento_participantes").delete().eq("treinamento_id", editingId);
       } else {
-        const { data: newRow, error } = await supabase
+        const { data: newRow, error } = await rhDb
           .from("rh_treinamentos")
           .insert({ tipo_treinamento_id: tipoTreinamentoId, data, observacoes: obs || null })
           .select("id")
@@ -115,7 +115,7 @@ export default function Treinamentos() {
         treinamento_id: treinamentoId!,
         funcionario_id: fid,
       }));
-      const { error: pError } = await supabase.from("rh_treinamento_participantes").insert(rows);
+      const { error: pError } = await rhDb.from("rh_treinamento_participantes").insert(rows);
       if (pError) throw pError;
     },
     onSuccess: () => {
@@ -129,7 +129,7 @@ export default function Treinamentos() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_treinamentos").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_treinamentos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

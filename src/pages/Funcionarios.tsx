@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -66,21 +66,21 @@ export default function Funcionarios() {
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
-    queryFn: async () => { const { data } = await supabase.from("rh_empresas").select("*").order("nome"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_empresas").select("*").order("nome"); return data || []; },
   });
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],
-    queryFn: async () => { const { data } = await supabase.from("rh_equipes").select("*").order("nome"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_equipes").select("*").order("nome"); return data || []; },
   });
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos"],
-    queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome"); return data || []; },
   });
 
   const { data: ultimoAditivoPorFunc = {} } = useQuery({
     queryKey: ["rh_aditivos_ultimo"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_aditivos")
         .select("funcionario_id, cargo_final_id, empresa_final_id, equipe_final_id, data")
         .order("data", { ascending: false })
@@ -101,7 +101,7 @@ export default function Funcionarios() {
   const { data: planoSaudePorFunc = {} } = useQuery({
     queryKey: ["rh_plano_saude_ultimo"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_plano_saude")
         .select("funcionario_id, mes_referencia, valor_saude, valor_odonto")
         .order("mes_referencia", { ascending: false });
@@ -174,10 +174,10 @@ export default function Funcionarios() {
         tem_desconto_parque: temDescontoParque,
       };
       if (editingId) {
-        const { error } = await supabase.from("rh_funcionarios").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_funcionarios").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_funcionarios").insert(payload);
+        const { error } = await rhDb.from("rh_funcionarios").insert(payload);
         if (error) throw error;
       }
     },
@@ -191,7 +191,7 @@ export default function Funcionarios() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_funcionarios").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_funcionarios").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

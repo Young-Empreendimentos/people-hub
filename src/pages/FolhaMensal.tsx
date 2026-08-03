@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { hhmmToHours, hoursToHHMM, calcDescontoPlanoSaude, calcAuxilioMoradia, calcValorKm } from "@/lib/folha";
@@ -142,7 +142,7 @@ export default function FolhaMensal() {
       const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
       const ini = `${prev.y}-${String(prev.m).padStart(2, "0")}-20`;
       const fim = `${mesRef}-19`;
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_km_lancamentos" as any)
         .select("id, data, km, valor_km_snapshot, valor_total")
         .eq("funcionario_id", funcId)
@@ -160,7 +160,7 @@ export default function FolhaMensal() {
       const precisaRecalc = rows.some((r) => !Number(r.valor_total) || Number(r.valor_total) === 0);
       let vkAtual = 0;
       if (precisaRecalc) {
-        const { data: f } = await supabase
+        const { data: f } = await rhDb
           .from("rh_funcionarios").select("valor_km").eq("id", funcId).maybeSingle();
         vkAtual = Number((f as any)?.valor_km || 0);
       }
@@ -178,7 +178,7 @@ export default function FolhaMensal() {
       if (idsParaAtualizar.length > 0) {
         await Promise.all(
           idsParaAtualizar.map((u) =>
-            supabase
+            rhDb
               .from("rh_km_lancamentos" as any)
               .update({ valor_total: u.valor_total, valor_km_snapshot: u.valor_km_snapshot })
               .eq("id", u.id)
@@ -216,7 +216,7 @@ export default function FolhaMensal() {
   const { data: folhas = [], isLoading } = useQuery({
     queryKey: ["rh_folha_mensal"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_folha_mensal")
         .select("*, rh_funcionarios(nome_completo, empresa_id)")
         .order("mes_referencia", { ascending: false });
@@ -228,7 +228,7 @@ export default function FolhaMensal() {
   const { data: pendencias = [] } = useQuery({
     queryKey: ["rh_folha_reembolsos_pendentes"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_folha_reembolsos")
         .select("id, folha_id, tipo, valor, criado_por")
         .eq("status", "pendente");
@@ -245,14 +245,14 @@ export default function FolhaMensal() {
   const { data: descontosAll = [] } = useQuery({
     queryKey: ["rh_folha_descontos_all"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_folha_descontos").select("folha_id, tipo, valor");
+      const { data } = await rhDb.from("rh_folha_descontos").select("folha_id, tipo, valor");
       return data || [];
     },
   });
   const { data: reembolsosAll = [] } = useQuery({
     queryKey: ["rh_folha_reembolsos_all"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_folha_reembolsos").select("folha_id, valor, status");
+      const { data } = await rhDb.from("rh_folha_reembolsos").select("folha_id, valor, status");
       return data || [];
     },
   });
@@ -275,7 +275,7 @@ export default function FolhaMensal() {
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato, tem_plano_saude, tem_desconto_parque").order("nome_completo");
+      const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo, empresa_id, cargo_id, tipo_contrato, tem_plano_saude, tem_desconto_parque").order("nome_completo");
       return data || [];
     },
   });
@@ -308,7 +308,7 @@ export default function FolhaMensal() {
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos_folha"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_cargos").select("id, remuneracao, nome, nivel");
+      const { data } = await rhDb.from("rh_cargos").select("id, remuneracao, nome, nivel");
       return data || [];
     },
   });
@@ -358,7 +358,7 @@ export default function FolhaMensal() {
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_empresas").select("id, nome");
+      const { data } = await rhDb.from("rh_empresas").select("id, nome");
       return data || [];
     },
   });
@@ -366,7 +366,7 @@ export default function FolhaMensal() {
   const { data: aditivos = [] } = useQuery({
     queryKey: ["rh_aditivos_empresas"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_aditivos")
         .select("funcionario_id, empresa_final_id, data")
         .not("empresa_final_id", "is", null)
@@ -434,7 +434,7 @@ export default function FolhaMensal() {
     queryKey: ["rh_advertencias_ciclo", funcId, cicloRange?.ini, cicloRange?.fim],
     enabled: !!funcId && !!cicloRange,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_advertencias")
         .select("id, data, tipo, motivo")
         .eq("funcionario_id", funcId)
@@ -451,7 +451,7 @@ export default function FolhaMensal() {
     enabled: !!funcId && !!mesRef,
     queryFn: async () => {
       const alvo = mesRef + "-01";
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_adiantamentos")
         .select("id, data, valor, datas_pagamento_pretendidas, parcelas, observacoes")
         .eq("funcionario_id", funcId)
@@ -491,7 +491,7 @@ export default function FolhaMensal() {
       const ini = `${mesRef}-01`;
       const fimDate = new Date(y, m, 0); // último dia do mês
       const fim = format(fimDate, "yyyy-MM-dd");
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionario_beneficios_moradia")
         .select("*")
         .eq("funcionario_id", funcId)
@@ -538,7 +538,7 @@ export default function FolhaMensal() {
     queryKey: ["rh_plano_saude_mes", funcId, planoSaudeMesRef],
     enabled: !!funcId && !!planoSaudeMesRef,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_plano_saude")
         .select("valor_saude, valor_odonto, uso_plano")
         .eq("funcionario_id", funcId)
@@ -599,11 +599,11 @@ export default function FolhaMensal() {
 
       let folhaId = editingId;
       if (editingId) {
-        const { error } = await supabase.from("rh_folha_mensal").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_folha_mensal").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
         // Verifica duplicidade: 1 folha por funcionário/mês
-        const { data: existente, error: errCheck } = await supabase
+        const { data: existente, error: errCheck } = await rhDb
           .from("rh_folha_mensal")
           .select("id")
           .eq("funcionario_id", funcId)
@@ -614,14 +614,14 @@ export default function FolhaMensal() {
           throw new Error("Esta folha já foi cadastrada");
         }
         payload.anexo_holerite_path = anexo_holerite_path;
-        const { data, error } = await supabase.from("rh_folha_mensal").insert(payload).select("id").single();
+        const { data, error } = await rhDb.from("rh_folha_mensal").insert(payload).select("id").single();
         if (error) throw error;
         folhaId = data.id;
       }
 
       // Sincroniza lista de descontos (manual + automático do plano de saúde)
       if (folhaId) {
-        await supabase.from("rh_folha_descontos").delete().eq("folha_id", folhaId);
+        await rhDb.from("rh_folha_descontos").delete().eq("folha_id", folhaId);
         const descRows: any[] = descontosLista.map((d) => ({
           folha_id: folhaId,
           tipo: d.tipo,
@@ -648,13 +648,13 @@ export default function FolhaMensal() {
           });
         }
         if (descRows.length > 0) {
-          const { error } = await supabase.from("rh_folha_descontos").insert(descRows);
+          const { error } = await rhDb.from("rh_folha_descontos").insert(descRows);
           if (error) throw error;
         }
 
         // Sincroniza lista de reembolsos (manual + automático do benefício de moradia)
         // Preserva reembolsos manuais existentes para manter status/histórico de aprovação
-        const { data: existingReemb } = await supabase
+        const { data: existingReemb } = await rhDb
           .from("rh_folha_reembolsos")
           .select("id, tipo, valor, observacao, origem, status, criado_por, aprovado_por, aprovado_em")
           .eq("folha_id", folhaId);
@@ -665,7 +665,7 @@ export default function FolhaMensal() {
           .filter((r: any) => (r.origem !== "manual" && r.origem !== "km") || !keepIds.includes(r.id))
           .map((r: any) => r.id);
         if (toDelete.length > 0) {
-          await supabase.from("rh_folha_reembolsos").delete().in("id", toDelete);
+          await rhDb.from("rh_folha_reembolsos").delete().in("id", toDelete);
         }
 
         const isUsuario = role === "usuario";
@@ -687,7 +687,7 @@ export default function FolhaMensal() {
         // Importação de KMs: insere com origem 'km' e vincula os lançamentos
         const kmItens = novosManuais.filter((d) => d._kmIds && d._kmIds.length > 0);
         for (const km of kmItens) {
-          const { data: inserted, error: insErr } = await supabase
+          const { data: inserted, error: insErr } = await rhDb
             .from("rh_folha_reembolsos")
             .insert({
               folha_id: folhaId,
@@ -706,7 +706,7 @@ export default function FolhaMensal() {
             .single();
           if (insErr) throw insErr;
           const reembId = (inserted as any).id;
-          const { error: upErr } = await supabase
+          const { error: upErr } = await rhDb
             .from("rh_km_lancamentos" as any)
             .update({ status: "pago", folha_reembolso_id: reembId })
             .in("id", km._kmIds as string[]);
@@ -719,7 +719,7 @@ export default function FolhaMensal() {
           const novoValor = parseFloat(d.valor) || 0;
           const novaObs = d.observacao || null;
           if (!prev || (Number(prev.valor) === novoValor && (prev.observacao || null) === novaObs && prev.tipo === d.tipo)) continue;
-          await supabase.from("rh_folha_reembolsos").update({
+          await rhDb.from("rh_folha_reembolsos").update({
             tipo: d.tipo, valor: novoValor, observacao: novaObs,
           }).eq("id", d.id);
         }
@@ -752,7 +752,7 @@ export default function FolhaMensal() {
           }
         }
         if (reembRowsInsert.length > 0) {
-          const { error } = await supabase.from("rh_folha_reembolsos").insert(reembRowsInsert);
+          const { error } = await rhDb.from("rh_folha_reembolsos").insert(reembRowsInsert);
           if (error) throw error;
         }
       }
@@ -773,7 +773,7 @@ export default function FolhaMensal() {
   const deleteMutation = useMutation({
     mutationFn: async (r: { id: string; anexo_holerite_path: string | null }) => {
       if (r.anexo_holerite_path) await supabase.storage.from("rh-anexos").remove([r.anexo_holerite_path]);
-      const { error } = await supabase.from("rh_folha_mensal").delete().eq("id", r.id);
+      const { error } = await rhDb.from("rh_folha_mensal").delete().eq("id", r.id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_folha_mensal"] }); toast.success("Folha excluída."); },
@@ -803,7 +803,7 @@ export default function FolhaMensal() {
     setValorVr(String(f.valor_vr || 0));
     setNovoDescontoTipo(""); setNovoDescontoValor(""); setNovoDescontoObs("");
     setNovoReembolsoTipo(""); setNovoReembolsoValor(""); setNovoReembolsoObs("");
-    const { data } = await supabase
+    const { data } = await rhDb
       .from("rh_folha_descontos")
       .select("id, tipo, valor, observacao, origem")
       .eq("folha_id", f.id)
@@ -811,7 +811,7 @@ export default function FolhaMensal() {
     setDescontosLista((data || []).map((d: any) => ({
       id: d.id, tipo: d.tipo, valor: String(d.valor), observacao: d.observacao || "",
     })));
-    const { data: reembData } = await supabase
+    const { data: reembData } = await rhDb
       .from("rh_folha_reembolsos")
       .select("id, tipo, valor, observacao, origem")
       .eq("folha_id", f.id)
@@ -849,7 +849,7 @@ export default function FolhaMensal() {
   const exportCSV = async () => {
     if (!filtered.length) { toast.error("Nenhum registro para exportar."); return; }
     const ids = filtered.map((f: any) => f.id);
-    const { count: pendCount } = await supabase
+    const { count: pendCount } = await rhDb
       .from("rh_folha_reembolsos")
       .select("id", { count: "exact", head: true })
       .in("folha_id", ids)
@@ -859,8 +859,8 @@ export default function FolhaMensal() {
       return;
     }
     const [{ data: descData }, { data: reembData }] = await Promise.all([
-      supabase.from("rh_folha_descontos").select("folha_id, tipo, valor, observacao").in("folha_id", ids),
-      supabase.from("rh_folha_reembolsos").select("folha_id, tipo, valor, observacao, origem").in("folha_id", ids),
+      rhDb.from("rh_folha_descontos").select("folha_id, tipo, valor, observacao").in("folha_id", ids),
+      rhDb.from("rh_folha_reembolsos").select("folha_id, tipo, valor, observacao, origem").in("folha_id", ids),
     ]);
     const descByFolha: Record<string, any[]> = {};
     (descData || []).forEach((d: any) => { (descByFolha[d.folha_id] ||= []).push(d); });

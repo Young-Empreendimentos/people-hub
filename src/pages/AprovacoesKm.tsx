@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ export default function AprovacoesKm() {
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["funcionarios_para_aprovacao"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
+      const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
       return data || [];
     },
   });
@@ -55,7 +55,7 @@ export default function AprovacoesKm() {
   const { data: lancamentos = [], isLoading } = useQuery({
     queryKey: ["km_aprovacoes", statusFilter, funcFilter, iniFilter, fimFilter],
     queryFn: async () => {
-      let q = supabase.from("rh_km_lancamentos" as any).select("*");
+      let q = rhDb.from("rh_km_lancamentos" as any).select("*");
       if (statusFilter !== "todos") q = q.eq("status", statusFilter);
       if (funcFilter) q = q.eq("funcionario_id", funcFilter);
       if (iniFilter) q = q.gte("data", iniFilter);
@@ -71,7 +71,7 @@ export default function AprovacoesKm() {
   const { data: kmConfig } = useQuery({
     queryKey: ["rh_km_config"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_km_config").select("retroativo_ate").maybeSingle();
+      const { data, error } = await rhDb.from("rh_km_config").select("retroativo_ate").maybeSingle();
       if (error) throw error;
       return data as { retroativo_ate: string | null } | null;
     },
@@ -79,7 +79,7 @@ export default function AprovacoesKm() {
 
   const saveRetro = useMutation({
     mutationFn: async (value: string | null) => {
-      const { error } = await supabase.from("rh_km_config")
+      const { error } = await rhDb.from("rh_km_config")
         .update({ retroativo_ate: value, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
         .eq("id", 1);
       if (error) throw error;
@@ -102,7 +102,7 @@ export default function AprovacoesKm() {
       };
       // Se o snapshot estava zerado, recalcula com o valor atual do funcionário
       if (lanc && (!Number(lanc.valor_km_snapshot) || Number(lanc.valor_km_snapshot) === 0)) {
-        const { data: func } = await supabase
+        const { data: func } = await rhDb
           .from("rh_funcionarios")
           .select("valor_km")
           .eq("id", lanc.funcionario_id)
@@ -113,7 +113,7 @@ export default function AprovacoesKm() {
           patch.valor_total = +(Number(lanc.km) * vk).toFixed(2);
         }
       }
-      const { error } = await supabase.from("rh_km_lancamentos" as any).update(patch).eq("id", id);
+      const { error } = await rhDb.from("rh_km_lancamentos" as any).update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -126,7 +126,7 @@ export default function AprovacoesKm() {
 
   const rejectMutation = useMutation({
     mutationFn: async ({ id, motivo }: { id: string; motivo: string }) => {
-      const { error } = await supabase.from("rh_km_lancamentos" as any).update({
+      const { error } = await rhDb.from("rh_km_lancamentos" as any).update({
         status: "rejeitado",
         aprovado_por: user?.id ?? null,
         aprovado_em: new Date().toISOString(),

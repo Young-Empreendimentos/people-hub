@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -71,12 +71,13 @@ export default function Absenteismo() {
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["rh_absenteismo"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_absenteismo")
         .select("*, rh_funcionarios(nome_completo)")
         .order("mes_referencia", { ascending: false });
       if (error) throw error;
-      return data as Registro[];
+      // embed resolve em runtime (FK dentro do schema rh); tipo gerado perdeu a relation
+      return data as unknown as Registro[];
     },
   });
 
@@ -94,17 +95,17 @@ export default function Absenteismo() {
         observacoes: obs || null,
       };
       if (editingId) {
-        const { error } = await supabase.from("rh_absenteismo").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_absenteismo").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { data: existente } = await supabase
+        const { data: existente } = await rhDb
           .from("rh_absenteismo")
           .select("id")
           .eq("funcionario_id", funcId)
           .eq("mes_referencia", mesRef + "-01")
           .maybeSingle();
         if (existente) throw new Error("Já existe um lançamento para esse funcionário neste mês.");
-        const { error } = await supabase.from("rh_absenteismo").insert(payload);
+        const { error } = await rhDb.from("rh_absenteismo").insert(payload);
         if (error) throw error;
       }
     },
@@ -118,7 +119,7 @@ export default function Absenteismo() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_absenteismo").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_absenteismo").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_absenteismo"] }); toast.success("Excluído."); },

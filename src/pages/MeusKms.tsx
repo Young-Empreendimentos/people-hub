@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { periodoKm, periodoKmAnterior } from "@/lib/folha";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +45,7 @@ export default function MeusKms() {
     queryFn: async () => {
       const [{ data, error }, { data: admDesl, error: errAdm }] = await Promise.all([
         supabase.rpc("rh_list_funcionarios_para_vinculo" as any),
-        supabase
+        rhDb
           .from("rh_admissoes_desligamentos")
           .select("funcionario_id, tipo, data")
           .order("data", { ascending: false }),
@@ -79,7 +79,7 @@ export default function MeusKms() {
     queryKey: ["meu_funcionario", funcionarioId],
     enabled: !!funcionarioId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionarios")
         .select("id, nome_completo, valor_km")
         .eq("id", funcionarioId!)
@@ -95,7 +95,7 @@ export default function MeusKms() {
     queryKey: ["meus_kms", funcionarioId],
     enabled: !!funcionarioId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_km_lancamentos" as any)
         .select("*")
         .eq("funcionario_id", funcionarioId!)
@@ -118,7 +118,7 @@ export default function MeusKms() {
   const { data: kmConfig } = useQuery({
     queryKey: ["rh_km_config"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_km_config").select("retroativo_ate").maybeSingle();
+      const { data, error } = await rhDb.from("rh_km_config").select("retroativo_ate").maybeSingle();
       if (error) throw error;
       return data as { retroativo_ate: string | null } | null;
     },
@@ -149,7 +149,7 @@ export default function MeusKms() {
       }
       if (!kmN || kmN <= 0) throw new Error("Informe um valor de km válido.");
       const valor_total = +(kmN * valorKm).toFixed(2);
-      const { error } = await supabase.from("rh_km_lancamentos" as any).insert({
+      const { error } = await rhDb.from("rh_km_lancamentos" as any).insert({
         funcionario_id: funcionarioId,
         data,
         km: kmN,
@@ -172,7 +172,7 @@ export default function MeusKms() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_km_lancamentos" as any).delete().eq("id", id);
+      const { error } = await rhDb.from("rh_km_lancamentos" as any).delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

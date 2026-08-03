@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 
 export function useActiveEmployees() {
   const { data: funcionarios = [], isLoading } = useQuery({
     queryKey: ["rh_funcionarios"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionarios")
         .select("*, rh_empresas(nome), rh_equipes(nome), rh_cargos(nome)")
         .order("nome_completo");
@@ -17,7 +17,7 @@ export function useActiveEmployees() {
   const { data: admissaoData = { statusMap: {}, admissaoMap: {} } } = useQuery({
     queryKey: ["rh_status_funcionarios"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_admissoes_desligamentos")
         .select("*")
         .order("data", { ascending: false });

@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,7 +68,7 @@ export default function Admissoes() {
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["rh_admissoes_desligamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_admissoes_desligamentos")
         .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id)")
         .order("data", { ascending: false });
@@ -79,19 +79,19 @@ export default function Admissoes() {
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios"],
-    queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
   });
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas"],
-    queryFn: async () => { const { data } = await supabase.from("rh_empresas").select("*").order("nome"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_empresas").select("*").order("nome"); return data || []; },
   });
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],
-    queryFn: async () => { const { data } = await supabase.from("rh_equipes").select("*").order("nome"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_equipes").select("*").order("nome"); return data || []; },
   });
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos"],
-    queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome").order("nivel").order("remuneracao"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome").order("nivel").order("remuneracao"); return data || []; },
   });
 
   const isNewAdmission = tipo === "admissao" && !editingId;
@@ -118,7 +118,7 @@ export default function Admissoes() {
           data_contrato_vigente: dataContratoVigente || data || null,
           tipo_contrato: tipoContrato || null,
         };
-        const { data: newFunc, error: funcError } = await supabase
+        const { data: newFunc, error: funcError } = await rhDb
           .from("rh_funcionarios")
           .insert(employeePayload)
           .select("id")
@@ -146,12 +146,12 @@ export default function Admissoes() {
       if (file) { payload.anexo_path = anexo_path; payload.anexo_name = anexo_name; }
 
       if (editingId) {
-        const { error } = await supabase.from("rh_admissoes_desligamentos").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_admissoes_desligamentos").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
         payload.anexo_path = anexo_path;
         payload.anexo_name = anexo_name;
-        const { error } = await supabase.from("rh_admissoes_desligamentos").insert(payload);
+        const { error } = await rhDb.from("rh_admissoes_desligamentos").insert(payload);
         if (error) throw error;
       }
     },
@@ -168,7 +168,7 @@ export default function Admissoes() {
   const deleteMutation = useMutation({
     mutationFn: async (r: { id: string; anexo_path: string | null }) => {
       if (r.anexo_path) await supabase.storage.from("rh-anexos").remove([r.anexo_path]);
-      const { error } = await supabase.from("rh_admissoes_desligamentos").delete().eq("id", r.id);
+      const { error } = await rhDb.from("rh_admissoes_desligamentos").delete().eq("id", r.id);
       if (error) throw error;
     },
     onSuccess: () => {

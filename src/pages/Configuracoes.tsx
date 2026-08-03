@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +28,7 @@ function TiposAditivoTab() {
   const { data: tipos = [], isLoading } = useQuery({
     queryKey: ["rh_tipos_aditivo"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_tipos_aditivo").select("*").order("nome");
+      const { data, error } = await rhDb.from("rh_tipos_aditivo").select("*").order("nome");
       if (error) throw error;
       return data;
     },
@@ -37,10 +37,10 @@ function TiposAditivoTab() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingId) {
-        const { error } = await supabase.from("rh_tipos_aditivo").update({ nome }).eq("id", editingId);
+        const { error } = await rhDb.from("rh_tipos_aditivo").update({ nome }).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_tipos_aditivo").insert({ nome });
+        const { error } = await rhDb.from("rh_tipos_aditivo").insert({ nome });
         if (error) throw error;
       }
     },
@@ -54,7 +54,7 @@ function TiposAditivoTab() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_tipos_aditivo").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_tipos_aditivo").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -153,7 +153,7 @@ function UsuariosTab() {
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios_config"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
+      const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
       return data || [];
     },
   });
@@ -161,7 +161,7 @@ function UsuariosTab() {
   const saveRoleMutation = useMutation({
     mutationFn: async () => {
       if (!editingUserId) return;
-      await supabase.from("rh_user_roles").delete().eq("user_id", editingUserId);
+      await rhDb.from("rh_user_roles").delete().eq("user_id", editingUserId);
       const rows: any[] = [];
       if (selectedRole) {
         const payload: any = {
@@ -182,7 +182,7 @@ function UsuariosTab() {
         });
       }
       if (rows.length > 0) {
-        const { error } = await supabase.from("rh_user_roles").insert(rows as any);
+        const { error } = await rhDb.from("rh_user_roles").insert(rows as any);
         if (error) throw error;
       }
     },
@@ -196,7 +196,7 @@ function UsuariosTab() {
 
   const quickApprove = useMutation({
     mutationFn: async (userId: string) => {
-      const { error } = await supabase.from("rh_user_roles").update({ status: "ativo" } as any).eq("user_id", userId);
+      const { error } = await rhDb.from("rh_user_roles").update({ status: "ativo" } as any).eq("user_id", userId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -209,7 +209,7 @@ function UsuariosTab() {
   const quickReject = useMutation({
     mutationFn: async (userId: string) => {
       // Recusa e limpa o funcionário escolhido (libera o vínculo para nova solicitação).
-      const { error } = await supabase.from("rh_user_roles")
+      const { error } = await rhDb.from("rh_user_roles")
         .update({ status: "rejeitado", funcionario_id: null } as any)
         .eq("user_id", userId);
       if (error) throw error;

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,7 @@ export default function Atividades() {
   const { data: grupos = [], isLoading } = useQuery({
     queryKey: ["rh_grupos_atividades"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_grupos_atividades").select("*, rh_funcionarios(nome_completo)").order("nome");
+      const { data, error } = await rhDb.from("rh_grupos_atividades").select("*, rh_funcionarios(nome_completo)").order("nome");
       if (error) throw error;
       return data;
     },
@@ -48,7 +48,7 @@ export default function Atividades() {
   const { data: atividades = [] } = useQuery({
     queryKey: ["rh_atividades"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_atividades").select("*, rh_funcionarios(nome_completo)").order("descricao");
+      const { data, error } = await rhDb.from("rh_atividades").select("*, rh_funcionarios(nome_completo)").order("descricao");
       if (error) throw error;
       return data;
     },
@@ -56,17 +56,17 @@ export default function Atividades() {
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios"],
-    queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
   });
 
   const saveGrupo = useMutation({
     mutationFn: async () => {
       const payload = { nome: grupoNome, responsavel_id: grupoResponsavelId || null };
       if (editingGrupoId) {
-        const { error } = await supabase.from("rh_grupos_atividades").update(payload).eq("id", editingGrupoId);
+        const { error } = await rhDb.from("rh_grupos_atividades").update(payload).eq("id", editingGrupoId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_grupos_atividades").insert(payload);
+        const { error } = await rhDb.from("rh_grupos_atividades").insert(payload);
         if (error) throw error;
       }
     },
@@ -75,7 +75,7 @@ export default function Atividades() {
   });
 
   const deleteGrupo = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("rh_grupos_atividades").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { const { error } = await rhDb.from("rh_grupos_atividades").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_grupos_atividades"] }); queryClient.invalidateQueries({ queryKey: ["rh_atividades"] }); toast.success("Grupo excluído."); },
     onError: () => toast.error("Erro ao excluir grupo."),
   });
@@ -90,10 +90,10 @@ export default function Atividades() {
         responsavel_id: atividadeResponsavelId || null,
       };
       if (editingAtividadeId) {
-        const { error } = await supabase.from("rh_atividades").update(payload).eq("id", editingAtividadeId);
+        const { error } = await rhDb.from("rh_atividades").update(payload).eq("id", editingAtividadeId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_atividades").insert(payload);
+        const { error } = await rhDb.from("rh_atividades").insert(payload);
         if (error) throw error;
       }
     },
@@ -102,7 +102,7 @@ export default function Atividades() {
   });
 
   const deleteAtividade = useMutation({
-    mutationFn: async (id: string) => { const { error } = await supabase.from("rh_atividades").delete().eq("id", id); if (error) throw error; },
+    mutationFn: async (id: string) => { const { error } = await rhDb.from("rh_atividades").delete().eq("id", id); if (error) throw error; },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_atividades"] }); toast.success("Atividade excluída."); },
     onError: () => toast.error("Erro ao excluir atividade."),
   });

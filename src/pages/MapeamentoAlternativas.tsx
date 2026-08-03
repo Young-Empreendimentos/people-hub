@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { differenceInMonths } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,7 +78,7 @@ export default function MapeamentoAlternativas() {
   const { data: mappedCargos = [], isLoading: loadingCargos } = useQuery({
     queryKey: ["rh_mapeamento_cargos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_mapeamento_cargos")
         .select("id, cargo_id, rh_cargos(id, nome, nivel, trilha_id, rh_trilhas_cargo(nome))");
       if (error) throw error;
@@ -95,7 +95,7 @@ export default function MapeamentoAlternativas() {
   const { data: alternativas = [] } = useQuery({
     queryKey: ["rh_mapeamento_alternativas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_mapeamento_alternativas")
         .select("*")
         .order("created_at");
@@ -108,7 +108,7 @@ export default function MapeamentoAlternativas() {
     queryKey: ["rh_cargos_com_trilha"],
     enabled: addCargoOpen,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_cargos")
         .select("id, nome, nivel, rh_trilhas_cargo(nome)")
         .order("nome");
@@ -171,7 +171,7 @@ export default function MapeamentoAlternativas() {
   // --- Mutations ---
   const addCargo = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("rh_mapeamento_cargos").insert({ cargo_id: selectedCargoId });
+      const { error } = await rhDb.from("rh_mapeamento_cargos").insert({ cargo_id: selectedCargoId });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -185,7 +185,7 @@ export default function MapeamentoAlternativas() {
 
   const removeCargo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_mapeamento_cargos").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_mapeamento_cargos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -198,7 +198,7 @@ export default function MapeamentoAlternativas() {
 
   const addManual = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("rh_mapeamento_alternativas").insert({
+      const { error } = await rhDb.from("rh_mapeamento_alternativas").insert({
         mapeamento_cargo_id: manualCargoId!,
         origem: "manual",
         nome: mNome.trim(),
@@ -218,7 +218,7 @@ export default function MapeamentoAlternativas() {
 
   const removeAlternativa = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_mapeamento_alternativas").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_mapeamento_alternativas").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -230,7 +230,7 @@ export default function MapeamentoAlternativas() {
 
   const updateAderencia = useMutation({
     mutationFn: async ({ id, aderencia }: { id: string; aderencia: Aderencia }) => {
-      const { error } = await supabase.from("rh_mapeamento_alternativas").update({ aderencia }).eq("id", id);
+      const { error } = await rhDb.from("rh_mapeamento_alternativas").update({ aderencia }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["rh_mapeamento_alternativas"] }),

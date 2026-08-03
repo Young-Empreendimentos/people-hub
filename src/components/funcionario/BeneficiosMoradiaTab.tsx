@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ export default function BeneficiosMoradiaTab({ funcionarioId, remuneracaoCargo }
   const { data: beneficios = [], isLoading } = useQuery({
     queryKey: ["rh_beneficios_moradia", funcionarioId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionario_beneficios_moradia")
         .select("*")
         .eq("funcionario_id", funcionarioId)
@@ -61,7 +61,7 @@ export default function BeneficiosMoradiaTab({ funcionarioId, remuneracaoCargo }
         observacao: obs || null,
       };
       if (editingId) {
-        const { error } = await supabase
+        const { error } = await rhDb
           .from("rh_funcionario_beneficios_moradia")
           .update(payload)
           .eq("id", editingId);
@@ -72,13 +72,13 @@ export default function BeneficiosMoradiaTab({ funcionarioId, remuneracaoCargo }
           const novaIni = new Date(dataInicio);
           novaIni.setDate(novaIni.getDate() - 1);
           const fim = novaIni.toISOString().slice(0, 10);
-          const { error: e1 } = await supabase
+          const { error: e1 } = await rhDb
             .from("rh_funcionario_beneficios_moradia")
             .update({ data_fim: fim })
             .eq("id", vigente.id);
           if (e1) throw e1;
         }
-        const { error } = await supabase
+        const { error } = await rhDb
           .from("rh_funcionario_beneficios_moradia")
           .insert(payload);
         if (error) throw error;
@@ -94,7 +94,7 @@ export default function BeneficiosMoradiaTab({ funcionarioId, remuneracaoCargo }
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await rhDb
         .from("rh_funcionario_beneficios_moradia")
         .delete()
         .eq("id", id);

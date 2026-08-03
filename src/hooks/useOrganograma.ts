@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 
 export interface OrgNode {
   id: string;
@@ -17,7 +17,7 @@ export function useOrganograma() {
   const { data: statusMap = {} } = useQuery({
     queryKey: ["rh_status_funcionarios"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_admissoes_desligamentos")
         .select("*")
         .order("data", { ascending: false });
@@ -32,7 +32,7 @@ export function useOrganograma() {
   const { data: employees = [], isLoading } = useQuery({
     queryKey: ["rh_funcionarios_org"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionarios")
         .select("id, nome_completo, gestor_id, foto_url, cargo_id, equipe_id, rh_cargos(nome), rh_equipes(nome)")
         .order("nome_completo");
@@ -109,7 +109,7 @@ export function useOrganograma() {
 
   const updateGestorMutation = useMutation({
     mutationFn: async ({ employeeId, gestorId }: { employeeId: string; gestorId: string | null }) => {
-      const { error } = await supabase
+      const { error } = await rhDb
         .from("rh_funcionarios")
         .update({ gestor_id: gestorId })
         .eq("id", employeeId);

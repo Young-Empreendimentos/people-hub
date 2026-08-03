@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export default function Adiantamentos() {
   const { data: adiantamentos = [], isLoading } = useQuery({
     queryKey: ["rh_adiantamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_adiantamentos")
         .select("*, rh_funcionarios(nome_completo)")
         .order("data", { ascending: false });
@@ -53,7 +53,7 @@ export default function Adiantamentos() {
   const { data: folhas = [] } = useQuery({
     queryKey: ["rh_folha_mensal_para_adiantamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_folha_mensal")
         .select("funcionario_id, mes_referencia");
       if (error) throw error;
@@ -80,10 +80,10 @@ export default function Adiantamentos() {
         observacoes: obs || null,
       };
       if (editingId) {
-        const { error } = await supabase.from("rh_adiantamentos").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_adiantamentos").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_adiantamentos").insert(payload);
+        const { error } = await rhDb.from("rh_adiantamentos").insert(payload);
         if (error) throw error;
       }
     },
@@ -97,7 +97,7 @@ export default function Adiantamentos() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_adiantamentos").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_adiantamentos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_adiantamentos"] }); toast.success("Adiantamento excluído."); },

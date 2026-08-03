@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useEffect, useRef } from "react";
@@ -43,7 +43,7 @@ export default function AtividadesAuditoria() {
   const { data: grupos = [] } = useQuery({
     queryKey: ["rh_grupos_atividades_auditoria"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_grupos_atividades_auditoria")
         .select("*, rh_equipes(nome)")
         .order("ordem").order("nome");
@@ -69,7 +69,7 @@ export default function AtividadesAuditoria() {
   const { data: atividadesInativas = [] } = useQuery({
     queryKey: ["rh_atividades_auditoria_inativas"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_atividades_auditoria")
         .select("id, grupo_id, nome, peso, responsavel_funcionario_id, normas, updated_at, ativo, rh_grupos_atividades_auditoria!inner(id, nome, ativo, equipe_id, rh_equipes(nome))")
         .eq("ativo", false)
@@ -83,18 +83,18 @@ export default function AtividadesAuditoria() {
 
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],
-    queryFn: async () => (await supabase.from("rh_equipes").select("id, nome").order("nome")).data ?? [],
+    queryFn: async () => (await rhDb.from("rh_equipes").select("id, nome").order("nome")).data ?? [],
   });
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios_lite"],
-    queryFn: async () => (await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo")).data ?? [],
+    queryFn: async () => (await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo")).data ?? [],
   });
 
   const { data: activeMap = {} } = useQuery({
     queryKey: ["rh_funcionarios_active_map_v2"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_admissoes_desligamentos")
         .select("funcionario_id, tipo, data")
         .order("data", { ascending: false });
@@ -167,10 +167,10 @@ export default function AtividadesAuditoria() {
     mutationFn: async () => {
       const payload = { nome: gNome, equipe_id: gEquipe || null, peso: Number(gPeso), ordem: Number(gOrdem) };
       if (editingGrupo) {
-        const { error } = await supabase.from("rh_grupos_atividades_auditoria").update(payload).eq("id", editingGrupo.id);
+        const { error } = await rhDb.from("rh_grupos_atividades_auditoria").update(payload).eq("id", editingGrupo.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_grupos_atividades_auditoria").insert(payload);
+        const { error } = await rhDb.from("rh_grupos_atividades_auditoria").insert(payload);
         if (error) throw error;
       }
     },
@@ -184,9 +184,9 @@ export default function AtividadesAuditoria() {
 
   const deleteGrupo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update({ ativo: false }).eq("id", id);
+      const { error } = await rhDb.from("rh_grupos_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
-      await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("grupo_id", id);
+      await rhDb.from("rh_atividades_auditoria").update({ ativo: false }).eq("grupo_id", id);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["rh_grupos_atividades_auditoria"] });
@@ -234,10 +234,10 @@ export default function AtividadesAuditoria() {
         ordem: Number(aOrdem),
       };
       if (editingAtv) {
-        const { error } = await supabase.from("rh_atividades_auditoria").update(payload).eq("id", editingAtv.id);
+        const { error } = await rhDb.from("rh_atividades_auditoria").update(payload).eq("id", editingAtv.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("rh_atividades_auditoria").insert(payload);
+        const { error } = await rhDb.from("rh_atividades_auditoria").insert(payload);
         if (error) throw error;
       }
     },
@@ -250,7 +250,7 @@ export default function AtividadesAuditoria() {
 
   const deleteAtv = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).eq("id", id);
+      const { error } = await rhDb.from("rh_atividades_auditoria").update({ ativo: false }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); qc.invalidateQueries({ queryKey: ["rh_atividades_auditoria_inativas"] }); toast.success("Desativada (histórico preservado)."); },
@@ -259,7 +259,7 @@ export default function AtividadesAuditoria() {
 
   const reativarAtv = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: true }).eq("id", id);
+      const { error } = await rhDb.from("rh_atividades_auditoria").update({ ativo: true }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -272,7 +272,7 @@ export default function AtividadesAuditoria() {
 
   const reativarGrupo = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update({ ativo: true }).eq("id", id);
+      const { error } = await rhDb.from("rh_grupos_atividades_auditoria").update({ ativo: true }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -286,7 +286,7 @@ export default function AtividadesAuditoria() {
 
   const excluirAtvPerm = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_atividades_auditoria").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -305,7 +305,7 @@ export default function AtividadesAuditoria() {
   // ===== Inline patch mutations (admin) =====
   const patchAtv = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").update(patch).eq("id", id);
+      const { error } = await rhDb.from("rh_atividades_auditoria").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -316,7 +316,7 @@ export default function AtividadesAuditoria() {
   });
   const patchGrupo = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Record<string, any> }) => {
-      const { error } = await supabase.from("rh_grupos_atividades_auditoria").update(patch).eq("id", id);
+      const { error } = await rhDb.from("rh_grupos_atividades_auditoria").update(patch).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -331,7 +331,7 @@ export default function AtividadesAuditoria() {
   const reorderGrupos = useMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id, idx) =>
-        supabase.from("rh_grupos_atividades_auditoria").update({ ordem: idx + 1 }).eq("id", id)
+        rhDb.from("rh_grupos_atividades_auditoria").update({ ordem: idx + 1 }).eq("id", id)
       ));
     },
     onSuccess: () => {
@@ -344,7 +344,7 @@ export default function AtividadesAuditoria() {
   const reorderAtividades = useMutation({
     mutationFn: async (ids: string[]) => {
       await Promise.all(ids.map((id, idx) =>
-        supabase.from("rh_atividades_auditoria").update({ ordem: idx + 1 }).eq("id", id)
+        rhDb.from("rh_atividades_auditoria").update({ ordem: idx + 1 }).eq("id", id)
       ));
     },
     onSuccess: () => {
@@ -533,7 +533,7 @@ export default function AtividadesAuditoria() {
 
   const bulkDelete = useMutation({
     mutationFn: async (ids: string[]) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").update({ ativo: false }).in("id", ids);
+      const { error } = await rhDb.from("rh_atividades_auditoria").update({ ativo: false }).in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Atividades desativadas."); clearSel(); },
@@ -542,7 +542,7 @@ export default function AtividadesAuditoria() {
 
   const bulkPatchResp = useMutation({
     mutationFn: async ({ ids, resp }: { ids: string[]; resp: string | null }) => {
-      const { error } = await supabase.from("rh_atividades_auditoria").update({ responsavel_funcionario_id: resp }).in("id", ids);
+      const { error } = await rhDb.from("rh_atividades_auditoria").update({ responsavel_funcionario_id: resp }).in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["rh_listar_atividades_auditoria"] }); toast.success("Responsável atualizado."); clearSel(); setBulkRespOpen(false); },

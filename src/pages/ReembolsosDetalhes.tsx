@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
@@ -40,7 +40,7 @@ export default function ReembolsosDetalhes() {
       const nextY = m === 12 ? y + 1 : y;
       const nextM = m === 12 ? 1 : m + 1;
       const fim = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_folha_reembolsos")
         .select("id, tipo, valor, observacao, origem, status, criado_por, aprovado_por, aprovado_em, rh_folha_mensal!inner(mes_referencia, funcionario_id, rh_funcionarios(nome_completo, empresa_id))")
         .gte("rh_folha_mensal.mes_referencia", ini)
@@ -64,12 +64,12 @@ export default function ReembolsosDetalhes() {
     enabled: userIds.length > 0,
     queryFn: async () => {
       const m: Record<string, string> = {};
-      const { data: profs } = await supabase.from("rh_user_profiles").select("user_id, nome").in("user_id", userIds);
+      const { data: profs } = await rhDb.from("rh_user_profiles").select("user_id, nome").in("user_id", userIds);
       (profs || []).forEach((u: any) => { if (u.nome) m[u.user_id] = u.nome; });
       // Fallback: quem não tem perfil, usa o nome do papel (rh_user_roles).
       const faltando = userIds.filter((id) => !m[id]);
       if (faltando.length) {
-        const { data: roles } = await supabase.from("rh_user_roles").select("user_id, nome").in("user_id", faltando);
+        const { data: roles } = await rhDb.from("rh_user_roles").select("user_id, nome").in("user_id", faltando);
         (roles || []).forEach((u: any) => { if (u.nome && !m[u.user_id]) m[u.user_id] = u.nome; });
       }
       return m;
@@ -78,7 +78,7 @@ export default function ReembolsosDetalhes() {
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await rhDb
         .from("rh_folha_reembolsos")
         .update({ status: "aprovado", aprovado_por: user?.id, aprovado_em: new Date().toISOString() })
         .eq("id", id);
@@ -95,7 +95,7 @@ export default function ReembolsosDetalhes() {
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios_reemb"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
+      const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
       return data || [];
     },
   });
@@ -103,7 +103,7 @@ export default function ReembolsosDetalhes() {
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas_reemb"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_empresas").select("id, nome").order("nome");
+      const { data } = await rhDb.from("rh_empresas").select("id, nome").order("nome");
       return data || [];
     },
   });

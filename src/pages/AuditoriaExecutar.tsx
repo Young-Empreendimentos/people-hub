@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +44,7 @@ export default function AuditoriaExecutar() {
     queryKey: ["rh_auditoria", id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_auditorias")
+      const { data, error } = await rhDb.from("rh_auditorias")
         .select("*, rh_equipes(nome)").eq("id", id!).single();
       if (error) throw error;
       return data as any;
@@ -55,7 +55,7 @@ export default function AuditoriaExecutar() {
     queryKey: ["rh_auditoria_itens", id],
     enabled: !!id,
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_auditoria_itens")
+      const { data, error } = await rhDb.from("rh_auditoria_itens")
         .select("*").eq("auditoria_id", id!);
       if (error) throw error;
       return data as Item[];
@@ -122,7 +122,7 @@ export default function AuditoriaExecutar() {
 
   const updateItem = useMutation({
     mutationFn: async (payload: { id: string; patch: Partial<Item> }) => {
-      const { error } = await supabase.from("rh_auditoria_itens")
+      const { error } = await rhDb.from("rh_auditoria_itens")
         .update({ ...payload.patch, avaliado_em: new Date().toISOString() })
         .eq("id", payload.id);
       if (error) throw error;

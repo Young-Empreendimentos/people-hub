@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -46,7 +46,7 @@ export default function Aditivos() {
   const { data: aditivos = [], isLoading } = useQuery({
     queryKey: ["rh_aditivos"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_aditivos")
         .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id), rh_aditivo_tipo_aditivo(tipo_aditivo_id, rh_tipos_aditivo(id, nome)), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
         .order("data", { ascending: false });
@@ -55,11 +55,11 @@ export default function Aditivos() {
     },
   });
 
-  const { data: funcionarios = [] } = useQuery({ queryKey: ["rh_funcionarios"], queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; }});
-  const { data: tiposAditivo = [] } = useQuery({ queryKey: ["rh_tipos_aditivo"], queryFn: async () => { const { data } = await supabase.from("rh_tipos_aditivo").select("*").order("nome"); return data || []; }});
-  const { data: empresas = [] } = useQuery({ queryKey: ["rh_empresas"], queryFn: async () => { const { data } = await supabase.from("rh_empresas").select("*").order("nome"); return data || []; }});
-  const { data: equipes = [] } = useQuery({ queryKey: ["rh_equipes"], queryFn: async () => { const { data } = await supabase.from("rh_equipes").select("*").order("nome"); return data || []; }});
-  const { data: cargos = [] } = useQuery({ queryKey: ["rh_cargos"], queryFn: async () => { const { data } = await supabase.from("rh_cargos").select("*").order("nome").order("nivel").order("remuneracao"); return data || []; }});
+  const { data: funcionarios = [] } = useQuery({ queryKey: ["rh_funcionarios"], queryFn: async () => { const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; }});
+  const { data: tiposAditivo = [] } = useQuery({ queryKey: ["rh_tipos_aditivo"], queryFn: async () => { const { data } = await rhDb.from("rh_tipos_aditivo").select("*").order("nome"); return data || []; }});
+  const { data: empresas = [] } = useQuery({ queryKey: ["rh_empresas"], queryFn: async () => { const { data } = await rhDb.from("rh_empresas").select("*").order("nome"); return data || []; }});
+  const { data: equipes = [] } = useQuery({ queryKey: ["rh_equipes"], queryFn: async () => { const { data } = await rhDb.from("rh_equipes").select("*").order("nome"); return data || []; }});
+  const { data: cargos = [] } = useQuery({ queryKey: ["rh_cargos"], queryFn: async () => { const { data } = await rhDb.from("rh_cargos").select("*").order("nome").order("nivel").order("remuneracao"); return data || []; }});
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -83,19 +83,19 @@ export default function Aditivos() {
       let aditivoId: string;
 
       if (editingId) {
-        const { error } = await supabase.from("rh_aditivos").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_aditivos").update(payload).eq("id", editingId);
         if (error) throw error;
         aditivoId = editingId;
       } else {
         payload.anexo_path = anexo_path;
         payload.anexo_name = anexo_name;
-        const { data: inserted, error } = await supabase.from("rh_aditivos").insert(payload).select("id").single();
+        const { data: inserted, error } = await rhDb.from("rh_aditivos").insert(payload).select("id").single();
         if (error) throw error;
         aditivoId = inserted.id;
       }
 
       // Update junction table: delete existing entries, then insert new ones
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await rhDb
         .from("rh_aditivo_tipo_aditivo")
         .delete()
         .eq("aditivo_id", aditivoId);
@@ -106,7 +106,7 @@ export default function Aditivos() {
           aditivo_id: aditivoId,
           tipo_aditivo_id: tipoId,
         }));
-        const { error: insertError } = await supabase
+        const { error: insertError } = await rhDb
           .from("rh_aditivo_tipo_aditivo")
           .insert(junctionRows);
         if (insertError) throw insertError;
@@ -118,7 +118,7 @@ export default function Aditivos() {
       if (equipeFinalId) funcUpdate.equipe_id = equipeFinalId;
       if (cargoFinalId && canEditCargoSalario) funcUpdate.cargo_id = cargoFinalId;
       if (Object.keys(funcUpdate).length > 0) {
-        const { error: updErr } = await supabase
+        const { error: updErr } = await rhDb
           .from("rh_funcionarios")
           .update(funcUpdate)
           .eq("id", funcId);
@@ -137,7 +137,7 @@ export default function Aditivos() {
   const deleteMutation = useMutation({
     mutationFn: async (r: { id: string; anexo_path: string | null }) => {
       if (r.anexo_path) await supabase.storage.from("rh-anexos").remove([r.anexo_path]);
-      const { error } = await supabase.from("rh_aditivos").delete().eq("id", r.id);
+      const { error } = await rhDb.from("rh_aditivos").delete().eq("id", r.id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_aditivos"] }); toast.success("Aditivo excluído."); },

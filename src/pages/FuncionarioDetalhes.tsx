@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export default function FuncionarioDetalhes() {
   const { data: func } = useQuery({
     queryKey: ["rh_funcionario", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionarios")
         .select("*, rh_empresas(nome), rh_equipes(nome), rh_cargos(nome, nivel, remuneracao, rh_trilhas_cargo(nome))")
         .eq("id", id!)
@@ -41,7 +41,7 @@ export default function FuncionarioDetalhes() {
   const { data: anexos = [] } = useQuery({
     queryKey: ["rh_funcionario_anexos", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionario_anexos")
         .select("*")
         .eq("funcionario_id", id!)
@@ -55,7 +55,7 @@ export default function FuncionarioDetalhes() {
   const { data: historico = [] } = useQuery({
     queryKey: ["rh_admissoes_desligamentos", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_admissoes_desligamentos")
         .select("*")
         .eq("funcionario_id", id!)
@@ -69,7 +69,7 @@ export default function FuncionarioDetalhes() {
   const { data: aditivos = [] } = useQuery({
     queryKey: ["rh_aditivos_funcionario", id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_aditivos")
         .select("*, rh_aditivo_tipo_aditivo(rh_tipos_aditivo(id, nome)), rh_empresas(nome), rh_cargos(nome, nivel, remuneracao), rh_equipes(nome)")
         .eq("funcionario_id", id!)
@@ -111,14 +111,14 @@ export default function FuncionarioDetalhes() {
   const { data: treinamentos = [] } = useQuery({
     queryKey: ["rh_treinamentos_funcionario", id],
     queryFn: async () => {
-      const { data: partRows, error: pErr } = await supabase
+      const { data: partRows, error: pErr } = await rhDb
         .from("rh_treinamento_participantes")
         .select("treinamento_id")
         .eq("funcionario_id", id!);
       if (pErr) throw pErr;
       if (!partRows || partRows.length === 0) return [];
       const ids = partRows.map((r) => r.treinamento_id);
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_treinamentos")
         .select("*, rh_tipos_treinamento(nome)")
         .in("id", ids)
@@ -137,7 +137,7 @@ export default function FuncionarioDetalhes() {
         .upload(path, file);
       if (uploadError) throw uploadError;
 
-      const { error } = await supabase.from("rh_funcionario_anexos").insert({
+      const { error } = await rhDb.from("rh_funcionario_anexos").insert({
         funcionario_id: id!,
         tipo: uploadTipo,
         file_path: path,
@@ -155,7 +155,7 @@ export default function FuncionarioDetalhes() {
   const deleteAnexoMutation = useMutation({
     mutationFn: async (anexo: { id: string; file_path: string }) => {
       await supabase.storage.from("rh-anexos").remove([anexo.file_path]);
-      const { error } = await supabase.from("rh_funcionario_anexos").delete().eq("id", anexo.id);
+      const { error } = await rhDb.from("rh_funcionario_anexos").delete().eq("id", anexo.id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -169,7 +169,7 @@ export default function FuncionarioDetalhes() {
 
   const toggleFieldMutation = useMutation({
     mutationFn: async ({ field, value }: { field: "seguro_vida" | "kit_onboarding"; value: boolean }) => {
-      const { error } = await supabase
+      const { error } = await rhDb
         .from("rh_funcionarios")
         .update({ [field]: value })
         .eq("id", id!);

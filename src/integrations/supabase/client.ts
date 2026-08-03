@@ -15,3 +15,13 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// As tabelas do RH foram movidas para o schema dedicado `rh` (nomes seguem `rh_*`).
+// Use `rhDb` para TODA leitura/escrita de tabela rh_* (rhDb.from("rh_...")).
+// ⚠️ As RPCs continuam no schema `public` — chame com supabase.rpc("rh_..."), sem .schema.
+//
+// Runtime: recebe a string "rh" → consultas vão para o schema `rh` (Accept/Content-Profile: rh).
+// Tipos: o gerador do Supabase emite os shapes das tabelas rh_* dentro de `public`,
+// então tipamos o argumento como "public" (só em tempo de compilação) para o rhDb.from()
+// manter o autocompletar/checagem de colunas e os selects aninhados (relations).
+export const rhDb = supabase.schema("rh" as unknown as "public");

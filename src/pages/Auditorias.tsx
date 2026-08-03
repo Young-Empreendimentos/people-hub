@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +30,7 @@ export default function Auditorias() {
   const { data: auditorias = [], isLoading } = useQuery({
     queryKey: ["rh_auditorias"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_auditorias")
         .select("*, rh_equipes(nome)")
         .order("created_at", { ascending: false });
@@ -41,14 +41,14 @@ export default function Auditorias() {
 
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],
-    queryFn: async () => (await supabase.from("rh_equipes").select("id, nome").order("nome")).data ?? [],
+    queryFn: async () => (await rhDb.from("rh_equipes").select("id, nome").order("nome")).data ?? [],
   });
 
   const { data: minhasEquipes = [] } = useQuery({
     queryKey: ["rh_auditor_equipes", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data } = await supabase.from("rh_auditor_equipes").select("equipe_id").eq("user_id", user!.id);
+      const { data } = await rhDb.from("rh_auditor_equipes").select("equipe_id").eq("user_id", user!.id);
       return data ?? [];
     },
   });
@@ -184,14 +184,14 @@ function VinculoAuditoresButton() {
 
   const { data: equipes = [] } = useQuery({
     queryKey: ["rh_equipes"],
-    queryFn: async () => (await supabase.from("rh_equipes").select("id, nome").order("nome")).data ?? [],
+    queryFn: async () => (await rhDb.from("rh_equipes").select("id, nome").order("nome")).data ?? [],
     enabled: open,
   });
 
   const { data: vinculos = [], refetch } = useQuery({
     queryKey: ["rh_auditor_equipes_all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_auditor_equipes").select("*");
+      const { data, error } = await rhDb.from("rh_auditor_equipes").select("*");
       if (error) throw error;
       return data as any[];
     },
@@ -203,14 +203,14 @@ function VinculoAuditoresButton() {
 
   const addVinculo = async () => {
     if (!userId || !equipeId) return;
-    const { error } = await supabase.from("rh_auditor_equipes").insert({ user_id: userId, equipe_id: equipeId });
+    const { error } = await rhDb.from("rh_auditor_equipes").insert({ user_id: userId, equipe_id: equipeId });
     if (error) { toast.error(error.message); return; }
     toast.success("Vinculado.");
     setUserId(""); setEquipeId(""); refetch();
   };
 
   const removeVinculo = async (id: string) => {
-    const { error } = await supabase.from("rh_auditor_equipes").delete().eq("id", id);
+    const { error } = await rhDb.from("rh_auditor_equipes").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     refetch();
   };

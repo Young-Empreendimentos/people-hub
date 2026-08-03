@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
@@ -27,7 +27,7 @@ export default function PrimeiroAcesso() {
     queryFn: async () => {
       const [{ data, error }, { data: admDesl, error: errAdm }] = await Promise.all([
         supabase.rpc("rh_list_funcionarios_para_vinculo" as any),
-        supabase
+        rhDb
           .from("rh_admissoes_desligamentos")
           .select("funcionario_id, tipo, data")
           .order("data", { ascending: false }),

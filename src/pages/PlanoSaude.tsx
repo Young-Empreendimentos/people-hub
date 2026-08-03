@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Button } from "@/components/ui/button";
@@ -89,19 +89,20 @@ export default function PlanoSaude() {
   const { data: registros = [], isLoading } = useQuery({
     queryKey: ["rh_plano_saude"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_plano_saude")
         .select("*, rh_funcionarios(nome_completo, aniversario, empresa_id, rh_empresas(nome))")
         .order("mes_referencia", { ascending: false });
       if (error) throw error;
-      return data as Registro[];
+      // embed resolve em runtime (FK dentro do schema rh); tipo gerado perdeu a relation
+      return data as unknown as Registro[];
     },
   });
 
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas_all"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("rh_empresas").select("id, nome").order("nome");
+      const { data, error } = await rhDb.from("rh_empresas").select("id, nome").order("nome");
       if (error) throw error;
       return data as { id: string; nome: string }[];
     },
@@ -119,17 +120,17 @@ export default function PlanoSaude() {
         observacoes: obs || null,
       };
       if (editingId) {
-        const { error } = await supabase.from("rh_plano_saude").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_plano_saude").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { data: existente } = await supabase
+        const { data: existente } = await rhDb
           .from("rh_plano_saude")
           .select("id")
           .eq("funcionario_id", funcId)
           .eq("mes_referencia", mesRef + "-01")
           .maybeSingle();
         if (existente) throw new Error("Já existe um lançamento para esse funcionário neste mês.");
-        const { error } = await supabase.from("rh_plano_saude").insert(payload);
+        const { error } = await rhDb.from("rh_plano_saude").insert(payload);
         if (error) throw error;
       }
     },
@@ -143,7 +144,7 @@ export default function PlanoSaude() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("rh_plano_saude").delete().eq("id", id);
+      const { error } = await rhDb.from("rh_plano_saude").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_plano_saude"] }); toast.success("Excluído."); },

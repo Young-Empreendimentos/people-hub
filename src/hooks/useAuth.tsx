@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 
 type RhRole = "admin" | "coordenador" | "usuario" | "colaborador";
 type RoleStatus = "pendente" | "ativo" | "rejeitado";
@@ -40,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchRole = async (userId: string) => {
-    const { data } = await supabase
+    const { data } = await rhDb
       .from("rh_user_roles")
       .select("role, nome, status, funcionario_id")
       .eq("user_id", userId);

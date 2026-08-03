@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
 import { Button } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function DescontosDetalhes() {
       const nextY = m === 12 ? y + 1 : y;
       const nextM = m === 12 ? 1 : m + 1;
       const fim = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_folha_descontos")
         .select("id, tipo, valor, observacao, rh_folha_mensal!inner(mes_referencia, funcionario_id, rh_funcionarios(nome_completo, empresa_id))")
         .gte("rh_folha_mensal.mes_referencia", ini)
@@ -50,7 +50,7 @@ export default function DescontosDetalhes() {
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios_desc"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
+      const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo");
       return data || [];
     },
   });
@@ -58,7 +58,7 @@ export default function DescontosDetalhes() {
   const { data: empresas = [] } = useQuery({
     queryKey: ["rh_empresas_desc"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_empresas").select("id, nome").order("nome");
+      const { data } = await rhDb.from("rh_empresas").select("id, nome").order("nome");
       return data || [];
     },
   });

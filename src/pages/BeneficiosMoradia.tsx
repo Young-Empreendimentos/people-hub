@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ export default function BeneficiosMoradia() {
   const { data: beneficios = [], isLoading } = useQuery({
     queryKey: ["rh_beneficios_moradia_all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_funcionario_beneficios_moradia")
         .select("*, rh_funcionarios(nome_completo, cargo_id)")
         .order("data_inicio", { ascending: false });
@@ -51,7 +51,7 @@ export default function BeneficiosMoradia() {
   const { data: funcionariosAll = [] } = useQuery({
     queryKey: ["rh_funcionarios_moradia"],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await rhDb
         .from("rh_funcionarios")
         .select("id, nome_completo, cargo_id")
         .order("nome_completo");
@@ -66,7 +66,7 @@ export default function BeneficiosMoradia() {
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos_moradia"],
     queryFn: async () => {
-      const { data } = await supabase.from("rh_cargos").select("id, remuneracao");
+      const { data } = await rhDb.from("rh_cargos").select("id, remuneracao");
       return data || [];
     },
   });
@@ -99,7 +99,7 @@ export default function BeneficiosMoradia() {
         observacao: obs || null,
       };
       if (editingId) {
-        const { error } = await supabase
+        const { error } = await rhDb
           .from("rh_funcionario_beneficios_moradia")
           .update(payload)
           .eq("id", editingId);
@@ -111,13 +111,13 @@ export default function BeneficiosMoradia() {
           const d = new Date(dataInicio);
           d.setDate(d.getDate() - 1);
           const fim = d.toISOString().slice(0, 10);
-          const { error: e1 } = await supabase
+          const { error: e1 } = await rhDb
             .from("rh_funcionario_beneficios_moradia")
             .update({ data_fim: fim })
             .eq("id", vig.id);
           if (e1) throw e1;
         }
-        const { error } = await supabase
+        const { error } = await rhDb
           .from("rh_funcionario_beneficios_moradia")
           .insert(payload);
         if (error) throw error;
@@ -134,7 +134,7 @@ export default function BeneficiosMoradia() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
+      const { error } = await rhDb
         .from("rh_funcionario_beneficios_moradia")
         .delete()
         .eq("id", id);

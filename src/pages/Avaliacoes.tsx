@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, rhDb } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ export default function Avaliacoes() {
   const { data: avaliacoes = [], isLoading } = useQuery({
     queryKey: ["rh_avaliacoes"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("rh_avaliacoes")
         .select("*, funcionario:rh_funcionarios!rh_avaliacoes_funcionario_id_fkey(nome_completo), avaliador:rh_funcionarios!rh_avaliacoes_avaliador_id_fkey(nome_completo)")
         .order("data_avaliacao", { ascending: false });
@@ -48,7 +48,7 @@ export default function Avaliacoes() {
 
   const { data: funcionarios = [] } = useQuery({
     queryKey: ["rh_funcionarios"],
-    queryFn: async () => { const { data } = await supabase.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_funcionarios").select("id, nome_completo").order("nome_completo"); return data || []; },
   });
 
   const saveMutation = useMutation({
@@ -74,12 +74,12 @@ export default function Avaliacoes() {
       if (file) { payload.anexo_path = anexo_path; payload.anexo_name = anexo_name; }
 
       if (editingId) {
-        const { error } = await supabase.from("rh_avaliacoes").update(payload).eq("id", editingId);
+        const { error } = await rhDb.from("rh_avaliacoes").update(payload).eq("id", editingId);
         if (error) throw error;
       } else {
         payload.anexo_path = anexo_path;
         payload.anexo_name = anexo_name;
-        const { error } = await supabase.from("rh_avaliacoes").insert(payload);
+        const { error } = await rhDb.from("rh_avaliacoes").insert(payload);
         if (error) throw error;
       }
     },
@@ -94,7 +94,7 @@ export default function Avaliacoes() {
   const deleteMutation = useMutation({
     mutationFn: async (r: { id: string; anexo_path: string | null }) => {
       if (r.anexo_path) await supabase.storage.from("rh-anexos").remove([r.anexo_path]);
-      const { error } = await supabase.from("rh_avaliacoes").delete().eq("id", r.id);
+      const { error } = await rhDb.from("rh_avaliacoes").delete().eq("id", r.id);
       if (error) throw error;
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["rh_avaliacoes"] }); toast.success("Avaliação excluída."); },

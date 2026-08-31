@@ -131,9 +131,15 @@ export default function MeusKms() {
       (l) => l.data >= periodo.ini && l.data <= periodo.fim && l.status !== "rejeitado"
     );
     const km = items.reduce((s, l) => s + Number(l.km || 0), 0);
-    const total = items.reduce((s, l) => s + Number(l.valor_total || 0), 0);
+    // Se o snapshot estava zerado (valor por KM ainda não definido no cadastro),
+    // usa o valor atual do funcionário para mostrar a previsão correta.
+    const total = items.reduce((s, l) => {
+      const salvo = Number(l.valor_total || 0);
+      return s + (salvo > 0 ? salvo : Number(l.km || 0) * valorKm);
+    }, 0);
     return { km, total, qtd: items.length };
-  }, [lancamentos, periodo]);
+  }, [lancamentos, periodo, valorKm]);
+
 
   const dataForaDoPeriodo = !!data && (data < minData || data > periodo.fim);
 

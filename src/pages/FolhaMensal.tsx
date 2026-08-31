@@ -1271,6 +1271,15 @@ export default function FolhaMensal() {
                       Benefício de moradia aplicado automaticamente
                     </span>
                   )}
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" title="Inclui também os KMs aprovados com data posterior ao dia 19 (antecipa para esta folha)">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 accent-primary"
+                      checked={anteciparKm}
+                      onChange={(e) => setAnteciparKm(e.target.checked)}
+                    />
+                    Antecipar KMs fora do período
+                  </label>
                   <Button
                     type="button"
                     variant="outline"
@@ -1282,6 +1291,7 @@ export default function FolhaMensal() {
                     <Download className="mr-1 h-3 w-3" />
                     {importandoKm ? "Importando..." : "Importar KMs aprovados"}
                   </Button>
+
                 </div>
               </div>
 

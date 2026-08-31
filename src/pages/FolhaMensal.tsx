@@ -131,6 +131,7 @@ export default function FolhaMensal() {
   };
 
   const [importandoKm, setImportandoKm] = useState(false);
+  const [anteciparKm, setAnteciparKm] = useState(false);
   const importarKmsAprovados = async () => {
     if (!funcId || !mesRef) {
       toast.error("Selecione o funcionário e o mês de referência.");
@@ -142,16 +143,18 @@ export default function FolhaMensal() {
       const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
       const ini = `${prev.y}-${String(prev.m).padStart(2, "0")}-20`;
       const fim = `${mesRef}-19`;
-      const { data, error } = await rhDb
+      let q = rhDb
         .from("rh_km_lancamentos" as any)
         .select("id, data, km, valor_km_snapshot, valor_total")
         .eq("funcionario_id", funcId)
         .eq("status", "aprovado")
         .is("folha_reembolso_id", null)
-        .gte("data", ini)
-        .lte("data", fim);
+        .gte("data", ini);
+      if (!anteciparKm) q = q.lte("data", fim);
+      const { data, error } = await q;
       if (error) throw error;
       const rows = (data || []) as any[];
+
       if (rows.length === 0) {
         toast.info("Nenhum KM aprovado e não-pago neste período.");
         return;
@@ -196,7 +199,9 @@ export default function FolhaMensal() {
         {
           tipo: "Quilometragem",
           valor: total.toFixed(2),
-          observacao: `${rows.length} lançamento(s) aprovado(s) — período ${formatBR(ini)} a ${formatBR(fim)}`,
+          observacao: anteciparKm
+            ? `${rows.length} lançamento(s) aprovado(s) — antecipado (inclui KMs após ${formatBR(fim)})`
+            : `${rows.length} lançamento(s) aprovado(s) — período ${formatBR(ini)} a ${formatBR(fim)}`,
           _kmIds: rows.map((r) => r.id),
         },
       ]);
@@ -1266,6 +1271,15 @@ export default function FolhaMensal() {
                       Benefício de moradia aplicado automaticamente
                     </span>
                   )}
+                  <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer" title="Inclui também os KMs aprovados com data posterior ao dia 19 (antecipa para esta folha)">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 accent-primary"
+                      checked={anteciparKm}
+                      onChange={(e) => setAnteciparKm(e.target.checked)}
+                    />
+                    Antecipar KMs fora do período
+                  </label>
                   <Button
                     type="button"
                     variant="outline"
@@ -1277,6 +1291,7 @@ export default function FolhaMensal() {
                     <Download className="mr-1 h-3 w-3" />
                     {importandoKm ? "Importando..." : "Importar KMs aprovados"}
                   </Button>
+
                 </div>
               </div>
 

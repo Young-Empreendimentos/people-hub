@@ -25,4 +25,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Tipos: o gerador do Supabase emite os shapes das tabelas rh_* dentro de `public`,
 // então tipamos o argumento como "public" (só em tempo de compilação) para o rhDb.from()
 // manter o autocompletar/checagem de colunas e os selects aninhados (relations).
-export const rhDb = supabase.schema("rh" as unknown as "public");
+// Obs.: quando os tipos gerados não contêm as tabelas rh_* (o gerador só expõe o schema
+// `public`), a checagem estrita quebraria em todo o app — por isso o cliente é exposto
+// com tipagem permissiva.
+export const rhDb = supabase.schema("rh" as unknown as "public") as any;

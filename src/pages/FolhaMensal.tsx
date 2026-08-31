@@ -199,7 +199,9 @@ export default function FolhaMensal() {
         {
           tipo: "Quilometragem",
           valor: total.toFixed(2),
-          observacao: `${rows.length} lançamento(s) aprovado(s) — período ${formatBR(ini)} a ${formatBR(fim)}`,
+          observacao: anteciparKm
+            ? `${rows.length} lançamento(s) aprovado(s) — antecipado (inclui KMs após ${formatBR(fim)})`
+            : `${rows.length} lançamento(s) aprovado(s) — período ${formatBR(ini)} a ${formatBR(fim)}`,
           _kmIds: rows.map((r) => r.id),
         },
       ]);

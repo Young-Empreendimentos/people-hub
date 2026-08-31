@@ -131,6 +131,7 @@ export default function FolhaMensal() {
   };
 
   const [importandoKm, setImportandoKm] = useState(false);
+  const [anteciparKm, setAnteciparKm] = useState(false);
   const importarKmsAprovados = async () => {
     if (!funcId || !mesRef) {
       toast.error("Selecione o funcionário e o mês de referência.");
@@ -142,15 +143,16 @@ export default function FolhaMensal() {
       const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
       const ini = `${prev.y}-${String(prev.m).padStart(2, "0")}-20`;
       const fim = `${mesRef}-19`;
-      const { data, error } = await rhDb
+      let q = rhDb
         .from("rh_km_lancamentos" as any)
         .select("id, data, km, valor_km_snapshot, valor_total")
         .eq("funcionario_id", funcId)
         .eq("status", "aprovado")
         .is("folha_reembolso_id", null)
-        .gte("data", ini)
-        .lte("data", fim);
-      if (error) throw error;
+        .gte("data", ini);
+      if (!anteciparKm) q = q.lte("data", fim);
+      const { data, error } = await q;
+
       const rows = (data || []) as any[];
       if (rows.length === 0) {
         toast.info("Nenhum KM aprovado e não-pago neste período.");

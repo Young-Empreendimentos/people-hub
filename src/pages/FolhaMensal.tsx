@@ -152,8 +152,9 @@ export default function FolhaMensal() {
         .gte("data", ini);
       if (!anteciparKm) q = q.lte("data", fim);
       const { data, error } = await q;
-
+      if (error) throw error;
       const rows = (data || []) as any[];
+
       if (rows.length === 0) {
         toast.info("Nenhum KM aprovado e não-pago neste período.");
         return;

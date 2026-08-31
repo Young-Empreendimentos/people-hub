@@ -131,9 +131,15 @@ export default function MeusKms() {
       (l) => l.data >= periodo.ini && l.data <= periodo.fim && l.status !== "rejeitado"
     );
     const km = items.reduce((s, l) => s + Number(l.km || 0), 0);
-    const total = items.reduce((s, l) => s + Number(l.valor_total || 0), 0);
+    // Se o snapshot estava zerado (valor por KM ainda não definido no cadastro),
+    // usa o valor atual do funcionário para mostrar a previsão correta.
+    const total = items.reduce((s, l) => {
+      const salvo = Number(l.valor_total || 0);
+      return s + (salvo > 0 ? salvo : Number(l.km || 0) * valorKm);
+    }, 0);
     return { km, total, qtd: items.length };
-  }, [lancamentos, periodo]);
+  }, [lancamentos, periodo, valorKm]);
+
 
   const dataForaDoPeriodo = !!data && (data < minData || data > periodo.fim);
 
@@ -345,7 +351,7 @@ export default function MeusKms() {
                   <TableRow key={l.id}>
                     <TableCell>{fmtDate(l.data)}</TableCell>
                     <TableCell className="text-right tabular-nums">{Number(l.km).toFixed(2)}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.valor_total))}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmtBRL(Number(l.valor_total) > 0 ? Number(l.valor_total) : Number(l.km || 0) * valorKm)}</TableCell>
                     <TableCell>{statusBadge(l.status)}</TableCell>
                     <TableCell className="text-xs text-muted-foreground max-w-[260px] truncate">
                       {l.status === "rejeitado" && l.motivo_rejeicao

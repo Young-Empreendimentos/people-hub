@@ -1,5 +1,5 @@
 import {
-  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car, ClipboardList, FileCheck2,
+  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car, ClipboardList, FileCheck2, Target,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -26,13 +26,17 @@ const mainItems = [
 
 const auditoriasItem = { title: "Auditorias", url: "/auditorias", icon: FileCheck2 };
 
+// Planos de sucessão são restritos a admin (diretoria e autorizados).
+// O item aparece para todos, mas fica desabilitado para quem não é admin.
+const sucessaoItem = { title: "Sucessão", url: "/sucessao", icon: Target };
+
 const configItem = { title: "Configurações", url: "/configuracoes", icon: Settings };
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { canConfig, signOut, user, userName, isAuditor } = useAuth();
+  const { canConfig, signOut, user, userName, isAuditor, isAdmin } = useAuth();
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -72,6 +76,21 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+              <SidebarMenuItem>
+                {isAdmin ? (
+                  <SidebarMenuButton asChild isActive={isActive(sucessaoItem.url)}>
+                    <NavLink to={sucessaoItem.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                      <sucessaoItem.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {!collapsed && <span>{sucessaoItem.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton disabled>
+                    <sucessaoItem.icon className="mr-2 h-4 w-4 shrink-0" />
+                    {!collapsed && <span>{sucessaoItem.title}</span>}
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
               {canConfig && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive(configItem.url)}>

@@ -43,6 +43,8 @@ import Auditorias from "./pages/Auditorias";
 import AuditoriaExecutar from "./pages/AuditoriaExecutar";
 import AuditoriasHub from "./pages/AuditoriasHub";
 import MapeamentoAlternativas from "./pages/MapeamentoAlternativas";
+import Sucessao from "./pages/Sucessao";
+import SucessaoPlano from "./pages/SucessaoPlano";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +93,8 @@ const App = () => (
               <Route path="/gestao-pessoas/plano-saude" element={<PlanoSaude />} />
               <Route path="/gestao-pessoas/uniformes" element={<Uniformes />} />
               <Route path="/gestao-pessoas/mapeamento-alternativas" element={<MapeamentoAlternativas />} />
+              <Route path="/sucessao" element={<Sucessao />} />
+              <Route path="/sucessao/:id" element={<SucessaoPlano />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

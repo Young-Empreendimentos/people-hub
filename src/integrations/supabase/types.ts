@@ -848,6 +848,7 @@ export type Database = {
         Returns: {
           ativo: boolean
           created_at: string
+          criterio_proficiencia: string
           equipe_id: string
           grupo_id: string
           grupo_nome: string

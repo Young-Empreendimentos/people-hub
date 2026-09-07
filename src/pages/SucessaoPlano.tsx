@@ -475,39 +475,100 @@ export default function SucessaoPlano() {
     setPlanoOpen(true);
   };
 
+  /** Itens que entram no export, conforme os grupos marcados no seletor. */
+  const itensExport = useMemo(
+    () => itensAtivos.filter((i) => !pdfGruposFora.has(itemGrupo(i))),
+    [itensAtivos, pdfGruposFora, catalogo],
+  );
+  const exportParcial = itensExport.length < itensAtivos.length;
+  const nomeArquivo = (ext: string) =>
+    `sucessao-${cargoNome(plano?.cargo_id).toLowerCase().replace(/\s+/g, "-")}` +
+    `${exportParcial ? "-recorte" : ""}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+
   const exportarExcel = () => {
     if (itensAtivos.length === 0) { toast.error("Plano sem itens."); return; }
-    const rows = itensAtivos.map((i) => {
-      const base: Record<string, any> = {
-        "Grupo": itemGrupo(i),
-        "Categoria": categoriaLabel(i.categoria),
-        "Item": itemTitulo(i),
-        "Critério": itemCriterio(i) ?? "",
-        "Plano de treinamento": i.plano_treinamento ?? "",
-        "Peso": Number(i.peso ?? 1),
-      };
+    if (itensExport.length === 0) {
+      toast.error("Nenhum grupo selecionado — a planilha ficaria vazia.");
+      return;
+    }
+
+    const rows = itensExport.map((i) => {
+      const base: Record<string, any> = {};
+      if (pdfCampos.grupo) base["Grupo"] = itemGrupo(i);
+      base["Item"] = itemTitulo(i);
+      if (pdfCampos.categoria) base["Categoria"] = categoriaLabel(i.categoria);
+      if (pdfCampos.criterio) base["Critério"] = itemCriterio(i) ?? "";
+      if (pdfCampos.treinamento) base["Plano de treinamento"] = i.plano_treinamento ?? "";
+      if (pdfCampos.peso) base["Peso"] = Number(i.peso ?? 1);
       for (const c of candAtivos) {
+        const nome = funcNome(c.funcionario_id);
         const a = avalMap.get(`${c.id}|${i.id}`);
-        base[funcNome(c.funcionario_id)] = nivelLabel(a?.nivel ?? 0);
-        base[`${funcNome(c.funcionario_id)} — data alvo`] = a?.data_alvo ?? "";
+        base[nome] = nivelLabel(a?.nivel ?? 0);
+        if (pdfCampos.dataAlvo) base[`${nome} — data alvo`] = a?.data_alvo ?? "";
+        if (pdfCampos.evidencia) base[`${nome} — evidência`] = a?.evidencia ?? "";
       }
       return base;
     });
-    const ws = XLSX.utils.json_to_sheet(rows);
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Plano");
-    XLSX.writeFile(wb, `sucessao-${cargoNome(plano.cargo_id).toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), "Itens");
+
+    // As opções de cabeçalho não cabem numa grade; viram uma aba "Resumo".
+    if (pdfCampos.resumo || pdfCampos.fragilidades || pdfCampos.observacoes || exportParcial) {
+      const info: Record<string, any>[] = [
+        { Campo: "Cargo", Valor: cargoNome(plano.cargo_id) },
+        { Campo: "Titular", Valor: funcNome(plano.titular_funcionario_id) },
+        {
+          Campo: "Aprovação",
+          Valor: plano.data_aprovacao
+            ? `${new Date(plano.data_aprovacao + "T12:00").toLocaleDateString("pt-BR")}` +
+              (vencimentoAprovacao(plano.data_aprovacao)
+                ? ` (${aprovacaoVencida(plano.data_aprovacao) ? "venceu" : "vence"} em ${vencimentoAprovacao(plano.data_aprovacao)!.toLocaleDateString("pt-BR")})`
+                : "")
+            : "sem aprovação registrada",
+        },
+        { Campo: "Emitido em", Valor: new Date().toLocaleString("pt-BR") },
+      ];
+      if (exportParcial) {
+        info.push({
+          Campo: "Recorte",
+          Valor: `${itensExport.length} de ${itensAtivos.length} itens · grupos: ` +
+            grupos.filter(([n]) => !pdfGruposFora.has(n)).map(([n]) => n).join("; "),
+        });
+      }
+      if (pdfCampos.resumo) {
+        for (const c of candAtivos) {
+          const avs = (avaliacoes as any[]).filter((a) => a.candidato_id === c.id);
+          info.push({
+            Campo: `Prontidão — ${funcNome(c.funcionario_id)}`,
+            Valor: `${prontidao(itensExport, avs)}%` +
+              (exportParcial ? ` (${prontidao(itensAtivos, avs)}% no plano completo)` : "") +
+              ` · ${horizonteLabel(c.horizonte)}`,
+          });
+        }
+      }
+      if (pdfCampos.fragilidades && frags.length > 0) {
+        info.push({ Campo: "Fragilidades", Valor: frags.map((f) => f.mensagem).join(" · ") });
+      }
+      if (pdfCampos.observacoes && plano.observacoes) {
+        info.push({ Campo: "Observações", Valor: plano.observacoes });
+      }
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(info), "Resumo");
+    }
+
+    XLSX.writeFile(wb, nomeArquivo("xlsx"));
+    setPdfOpen(false);
   };
 
   const exportarPdf = () => {
     if (itensAtivos.length === 0) { toast.error("Plano sem itens."); return; }
 
-    const itensRelatorio = itensAtivos.filter((i) => !pdfGruposFora.has(itemGrupo(i)));
+    const itensRelatorio = itensExport;
     if (itensRelatorio.length === 0) {
       toast.error("Nenhum grupo selecionado — o relatório ficaria vazio.");
       return;
     }
-    const parcial = itensRelatorio.length < itensAtivos.length;
+    const parcial = exportParcial;
 
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const margem = 40;
@@ -618,11 +679,7 @@ export default function SucessaoPlano() {
       margin: { left: margem, right: margem },
     });
 
-    // "-recorte" no nome para não confundir um relatório parcial com o completo.
-    doc.save(
-      `sucessao-${cargoNome(plano.cargo_id).toLowerCase().replace(/\s+/g, "-")}` +
-      `${parcial ? "-recorte" : ""}-${new Date().toISOString().slice(0, 10)}.pdf`,
-    );
+    doc.save(nomeArquivo("pdf"));
     setPdfOpen(false);
   };
 
@@ -684,11 +741,8 @@ export default function SucessaoPlano() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={exportarExcel}>
-            <FileDown className="mr-2 h-4 w-4" />Excel
-          </Button>
           <Button variant="outline" size="sm" onClick={() => setPdfOpen(true)}>
-            <FileText className="mr-2 h-4 w-4" />PDF
+            <FileDown className="mr-2 h-4 w-4" />Exportar
           </Button>
           <Button variant="outline" size="sm" onClick={abrirEditPlano}>
             <Pencil className="mr-2 h-4 w-4" />Editar plano
@@ -1277,10 +1331,11 @@ export default function SucessaoPlano() {
       <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Exportar PDF</DialogTitle>
+            <DialogTitle>Exportar plano</DialogTitle>
             <DialogDescription>
-              Marque o que deve constar no relatório. O nível de cada candidato
-              entra sempre — é a matriz de prontidão.
+              Marque o que deve constar no arquivo — a seleção vale para PDF e
+              Excel. O nível de cada candidato entra sempre: é a matriz de
+              prontidão.
             </DialogDescription>
           </DialogHeader>
 
@@ -1323,19 +1378,12 @@ export default function SucessaoPlano() {
                   </label>
                 ))}
               </div>
-              {(() => {
-                const dentro = itensAtivos.filter((i) => !pdfGruposFora.has(itemGrupo(i))).length;
-                return (
-                  <p className={`text-[11px] mt-1 ${dentro === 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                    {dentro === 0
-                      ? "Nenhum grupo marcado — o relatório ficaria vazio."
-                      : `${dentro} de ${itensAtivos.length} itens entram no relatório.` +
-                        (dentro < itensAtivos.length
-                          ? " O PDF registra o recorte no cabeçalho."
-                          : "")}
-                  </p>
-                );
-              })()}
+              <p className={`text-[11px] mt-1 ${itensExport.length === 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                {itensExport.length === 0
+                  ? "Nenhum grupo marcado — o arquivo ficaria vazio."
+                  : `${itensExport.length} de ${itensAtivos.length} itens entram no arquivo.` +
+                    (exportParcial ? " O recorte fica registrado no arquivo." : "")}
+              </p>
             </div>
 
             <Separator />
@@ -1404,19 +1452,19 @@ export default function SucessaoPlano() {
             </div>
 
             <p className="text-[11px] text-muted-foreground">
-              Relatório em A4 paisagem. Muitas colunas com muitos candidatos deixam
-              o texto apertado — para um plano com vários candidatos, o critério e o
-              plano de treinamento costumam render melhor num PDF separado.
+              O PDF sai em A4 paisagem: muitas colunas com muitos candidatos deixam
+              o texto apertado. No Excel isso não é problema, e as opções de
+              cabeçalho viram uma aba “Resumo”.
             </p>
           </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setPdfOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={exportarPdf}
-              disabled={itensAtivos.every((i) => pdfGruposFora.has(itemGrupo(i)))}
-            >
-              <FileText className="mr-2 h-4 w-4" />Gerar PDF
+            <Button variant="outline" onClick={exportarExcel} disabled={itensExport.length === 0}>
+              <FileDown className="mr-2 h-4 w-4" />Excel
+            </Button>
+            <Button onClick={exportarPdf} disabled={itensExport.length === 0}>
+              <FileText className="mr-2 h-4 w-4" />PDF
             </Button>
           </DialogFooter>
         </DialogContent>

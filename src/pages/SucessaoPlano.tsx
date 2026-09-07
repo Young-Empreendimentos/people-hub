@@ -34,14 +34,17 @@ import {
 } from "recharts";
 import {
   ArrowLeft, Plus, Trash2, UserPlus, Lock, Info, TriangleAlert,
-  EyeOff, Eye, Pencil, FileDown, GraduationCap,
+  EyeOff, Eye, Pencil, FileDown, FileText, GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import {
   NIVEIS, NIVEL_PRONTO, HORIZONTES, CATEGORIAS, SITUACOES_PLANO, NIVEIS_RISCO,
   nivelLabel, nivelClasses, horizonteLabel, categoriaLabel, riscoClasses,
   prontidao, fragilidades,
+  MESES_VALIDADE_APROVACAO, vencimentoAprovacao, aprovacaoVencida,
 } from "@/lib/sucessao";
 
 const CORES_LINHA = [
@@ -69,7 +72,7 @@ export default function SucessaoPlano() {
   const [iAtividade, setIAtividade] = useState("");
   const [iTitulo, setITitulo] = useState("");
   const [iCriterio, setICriterio] = useState("");
-  const [iAvaliador, setIAvaliador] = useState("");
+  const [iTreinamento, setITreinamento] = useState("");
   const [iPeso, setIPeso] = useState("1");
 
   const [candOpen, setCandOpen] = useState(false);
@@ -80,7 +83,25 @@ export default function SucessaoPlano() {
   const [pSituacao, setPSituacao] = useState("rascunho");
   const [pImpacto, setPImpacto] = useState("alto");
   const [pRisco, setPRisco] = useState("medio");
-  const [pRevisao, setPRevisao] = useState("");
+  const [pAprovacao, setPAprovacao] = useState("");
+
+  // Campos que entram no PDF. O nível de cada candidato é sempre incluído —
+  // é a matriz em si; sem ele o relatório não é um plano de sucessão.
+  const [pdfOpen, setPdfOpen] = useState(false);
+  const [pdfCampos, setPdfCampos] = useState({
+    grupo: true,
+    categoria: false,
+    criterio: true,
+    treinamento: true,
+    peso: false,
+    dataAlvo: true,
+    evidencia: false,
+    resumo: true,
+    fragilidades: false,
+    observacoes: false,
+  });
+  const toggleCampo = (k: keyof typeof pdfCampos) =>
+    setPdfCampos((c) => ({ ...c, [k]: !c[k] }));
   const [pTitular, setPTitular] = useState("");
   const [pObs, setPObs] = useState("");
 
@@ -234,7 +255,7 @@ export default function SucessaoPlano() {
       candidatosAtivos: candAtivos.filter((c) => c.situacao === "ativo").length,
       temEmergencial: candAtivos.some((c) => c.situacao === "ativo" && c.horizonte === "emergencial"),
       melhorProntidao: melhor,
-      dataProximaRevisao: plano.data_proxima_revisao,
+      dataAprovacao: plano.data_aprovacao,
     });
   }, [plano, itensAtivos, itensSemCriterio, candAtivos, prontidaoPor]);
 
@@ -320,7 +341,7 @@ export default function SucessaoPlano() {
         atividade_id: iCategoria === "atividade" ? iAtividade : null,
         titulo: iCategoria === "atividade" ? null : iTitulo,
         criterio_override: iCriterio || null,
-        avaliador_id: iAvaliador || null,
+        plano_treinamento: iTreinamento || null,
         peso: Number(iPeso) || 1,
       };
       if (editingItem) {
@@ -373,7 +394,7 @@ export default function SucessaoPlano() {
         situacao: pSituacao,
         impacto_vacancia: pImpacto,
         risco_saida: pRisco,
-        data_proxima_revisao: pRevisao || null,
+        data_aprovacao: pAprovacao || null,
         titular_funcionario_id: pTitular || null,
         observacoes: pObs || null,
       }).eq("id", id);
@@ -418,7 +439,7 @@ export default function SucessaoPlano() {
   const abrirNovoItem = () => {
     setEditingItem(null);
     setICategoria("atividade"); setIAtividade(""); setITitulo("");
-    setICriterio(""); setIAvaliador(""); setIPeso("1");
+    setICriterio(""); setITreinamento(""); setIPeso("1");
     setItemOpen(true);
   };
 
@@ -428,7 +449,7 @@ export default function SucessaoPlano() {
     setIAtividade(i.atividade_id ?? "");
     setITitulo(i.titulo ?? "");
     setICriterio(i.criterio_override ?? "");
-    setIAvaliador(i.avaliador_id ?? "");
+    setITreinamento(i.plano_treinamento ?? "");
     setIPeso(String(i.peso ?? 1));
     setItemOpen(true);
   };
@@ -438,7 +459,7 @@ export default function SucessaoPlano() {
     setPSituacao(plano.situacao);
     setPImpacto(plano.impacto_vacancia);
     setPRisco(plano.risco_saida);
-    setPRevisao(plano.data_proxima_revisao ?? "");
+    setPAprovacao(plano.data_aprovacao ?? "");
     setPTitular(plano.titular_funcionario_id ?? "");
     setPObs(plano.observacoes ?? "");
     setPlanoOpen(true);
@@ -452,7 +473,7 @@ export default function SucessaoPlano() {
         "Categoria": categoriaLabel(i.categoria),
         "Item": itemTitulo(i),
         "Critério": itemCriterio(i) ?? "",
-        "Avaliador": funcNome(i.avaliador_id),
+        "Plano de treinamento": i.plano_treinamento ?? "",
         "Peso": Number(i.peso ?? 1),
       };
       for (const c of candAtivos) {
@@ -466,6 +487,108 @@ export default function SucessaoPlano() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Plano");
     XLSX.writeFile(wb, `sucessao-${cargoNome(plano.cargo_id).toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
+  const exportarPdf = () => {
+    if (itensAtivos.length === 0) { toast.error("Plano sem itens."); return; }
+
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const margem = 40;
+    const larguraUtil = doc.internal.pageSize.getWidth() - margem * 2;
+
+    doc.setFontSize(14);
+    doc.text(`Plano de sucessão — ${cargoNome(plano.cargo_id)}`, margem, 40);
+
+    doc.setFontSize(9);
+    let y = 56;
+    const linha = (txt: string) => {
+      for (const parte of doc.splitTextToSize(txt, larguraUtil)) {
+        doc.text(parte, margem, y);
+        y += 12;
+      }
+    };
+
+    const aprov = plano.data_aprovacao
+      ? `Aprovado em ${new Date(plano.data_aprovacao + "T12:00").toLocaleDateString("pt-BR")}` +
+        (vencimentoAprovacao(plano.data_aprovacao)
+          ? ` · ${aprovacaoVencida(plano.data_aprovacao) ? "venceu" : "vence"} em ${vencimentoAprovacao(plano.data_aprovacao)!.toLocaleDateString("pt-BR")}`
+          : "")
+      : "Sem aprovação registrada";
+    linha(
+      `Titular: ${funcNome(plano.titular_funcionario_id)}  •  ${aprov}  •  ` +
+      `Emitido em ${new Date().toLocaleString("pt-BR")}`,
+    );
+
+    if (pdfCampos.resumo) {
+      const resumo = candAtivos
+        .map((c) => {
+          const avs = (avaliacoes as any[]).filter((a) => a.candidato_id === c.id);
+          return `${funcNome(c.funcionario_id)}: ${prontidao(itensAtivos, avs)}% pronto (${horizonteLabel(c.horizonte)})`;
+        })
+        .join("  •  ");
+      if (resumo) linha(resumo);
+    }
+
+    if (pdfCampos.fragilidades && frags.length > 0) {
+      linha("Fragilidades: " + frags.map((f) => f.mensagem).join("  •  "));
+    }
+
+    if (pdfCampos.observacoes && plano.observacoes) {
+      linha("Observações: " + plano.observacoes);
+    }
+
+    // ---- colunas -----------------------------------------------------------
+    const head: string[] = [];
+    const larguras: Record<number, any> = {};
+    const push = (titulo: string, largura?: number | "auto") => {
+      if (largura !== undefined) larguras[head.length] = { cellWidth: largura };
+      head.push(titulo);
+    };
+
+    if (pdfCampos.grupo) push("Grupo", 95);
+    push("Item", "auto");
+    if (pdfCampos.categoria) push("Categoria", 65);
+    if (pdfCampos.criterio) push("Critério", 150);
+    if (pdfCampos.treinamento) push("Plano de treinamento", 150);
+    if (pdfCampos.peso) push("Peso", 34);
+    for (const c of candAtivos) push(funcNome(c.funcionario_id).split(" ")[0], 92);
+
+    const body = itensAtivos.map((i) => {
+      const celulas: string[] = [];
+      if (pdfCampos.grupo) celulas.push(itemGrupo(i) || "—");
+      celulas.push(itemTitulo(i));
+      if (pdfCampos.categoria) celulas.push(categoriaLabel(i.categoria));
+      if (pdfCampos.criterio) celulas.push(itemCriterio(i) || "—");
+      if (pdfCampos.treinamento) celulas.push(i.plano_treinamento || "—");
+      if (pdfCampos.peso) celulas.push(String(Number(i.peso ?? 1)));
+
+      for (const c of candAtivos) {
+        const a = avalMap.get(`${c.id}|${i.id}`);
+        // O nível abre a célula; os extras selecionados entram como linhas abaixo.
+        const partes = [nivelLabel(a?.nivel ?? 0)];
+        if (pdfCampos.dataAlvo && a?.data_alvo) {
+          partes.push(`até ${new Date(a.data_alvo + "T12:00").toLocaleDateString("pt-BR")}`);
+        }
+        if (pdfCampos.evidencia && a?.evidencia) partes.push(a.evidencia);
+        celulas.push(partes.join("\n"));
+      }
+      return celulas;
+    });
+
+    autoTable(doc, {
+      startY: y + 6,
+      head: [head],
+      body,
+      styles: { fontSize: 7.5, cellPadding: 3, valign: "top", overflow: "linebreak" },
+      headStyles: { fillColor: [30, 41, 59], fontSize: 8 },
+      columnStyles: larguras,
+      margin: { left: margem, right: margem },
+    });
+
+    doc.save(
+      `sucessao-${cargoNome(plano.cargo_id).toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.pdf`,
+    );
+    setPdfOpen(false);
   };
 
   // ---- guards --------------------------------------------------------------
@@ -508,12 +631,29 @@ export default function SucessaoPlano() {
           <h1 className="text-2xl font-bold tracking-tight">{cargoNome(plano.cargo_id)}</h1>
           <p className="text-sm text-muted-foreground">
             Titular: {funcNome(plano.titular_funcionario_id)}
-            {plano.data_proxima_revisao && <> · revisão em {new Date(plano.data_proxima_revisao + "T12:00").toLocaleDateString("pt-BR")}</>}
+            {plano.data_aprovacao ? (
+              <>
+                {" · "}aprovado em{" "}
+                {new Date(plano.data_aprovacao + "T12:00").toLocaleDateString("pt-BR")}
+                {vencimentoAprovacao(plano.data_aprovacao) && (
+                  <span className={aprovacaoVencida(plano.data_aprovacao) ? "text-amber-600 dark:text-amber-500 font-medium" : undefined}>
+                    {" · "}
+                    {aprovacaoVencida(plano.data_aprovacao) ? "venceu" : "vence"} em{" "}
+                    {vencimentoAprovacao(plano.data_aprovacao)!.toLocaleDateString("pt-BR")}
+                  </span>
+                )}
+              </>
+            ) : (
+              <> · sem aprovação registrada</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={exportarExcel}>
             <FileDown className="mr-2 h-4 w-4" />Excel
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setPdfOpen(true)}>
+            <FileText className="mr-2 h-4 w-4" />PDF
           </Button>
           <Button variant="outline" size="sm" onClick={abrirEditPlano}>
             <Pencil className="mr-2 h-4 w-4" />Editar plano
@@ -683,7 +823,7 @@ export default function SucessaoPlano() {
                   <TableHeader>
                     <TableRow>
                       <TableHead className="min-w-[280px]">Item</TableHead>
-                      <TableHead className="min-w-[140px]">Avaliador</TableHead>
+                      <TableHead className="min-w-[220px]">Plano de treinamento</TableHead>
                       {candAtivos.map((c) => (
                         <TableHead key={c.id} className="text-center min-w-[130px]">
                           {funcNome(c.funcionario_id).split(" ")[0]}
@@ -733,8 +873,26 @@ export default function SucessaoPlano() {
                                   </Badge>
                                 )}
                               </TableCell>
-                              <TableCell className="align-top text-xs text-muted-foreground">
-                                {funcNome(i.avaliador_id)}
+                              <TableCell className="align-top text-xs">
+                                {i.plano_treinamento ? (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="line-clamp-3 text-left cursor-default">
+                                        {i.plano_treinamento}
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent className="max-w-sm whitespace-pre-line">
+                                      {i.plano_treinamento}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                ) : (
+                                  <button
+                                    onClick={() => abrirEditItem(i)}
+                                    className="text-muted-foreground italic hover:text-foreground hover:underline"
+                                  >
+                                    definir plano
+                                  </button>
+                                )}
                               </TableCell>
                               {candAtivos.map((c) => {
                                 const a = avalMap.get(`${c.id}|${i.id}`);
@@ -938,16 +1096,21 @@ export default function SucessaoPlano() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm">Avaliador</label>
-                <Combobox options={funcOptions} value={iAvaliador} onValueChange={setIAvaliador}
-                  placeholder="—" emptyMessage="—" />
-              </div>
-              <div>
-                <label className="text-sm">Peso</label>
-                <Input type="number" step="0.5" min="0" value={iPeso} onChange={(e) => setIPeso(e.target.value)} />
-              </div>
+            <div>
+              <label className="text-sm">Plano de treinamento</label>
+              <Textarea
+                rows={3} value={iTreinamento} onChange={(e) => setITreinamento(e.target.value)}
+                placeholder="Ex.: Levantar uma área e fornecer um planialtimétrico em 10/2026, no loteamento Ilha dos Açores."
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                O caminho até o critério: o que será feito, quando e onde. O critério
+                diz se a pessoa está apta; isto diz como ela chega lá.
+              </p>
+            </div>
+
+            <div className="w-32">
+              <label className="text-sm">Peso</label>
+              <Input type="number" step="0.5" min="0" value={iPeso} onChange={(e) => setIPeso(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
@@ -1047,8 +1210,13 @@ export default function SucessaoPlano() {
               </div>
             </div>
             <div>
-              <label className="text-sm">Próxima revisão</label>
-              <Input type="date" value={pRevisao} onChange={(e) => setPRevisao(e.target.value)} />
+              <label className="text-sm">Data da aprovação</label>
+              <Input type="date" value={pAprovacao} onChange={(e) => setPAprovacao(e.target.value)} />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {pAprovacao && vencimentoAprovacao(pAprovacao)
+                  ? `Vence em ${vencimentoAprovacao(pAprovacao)!.toLocaleDateString("pt-BR")} — ${MESES_VALIDADE_APROVACAO} meses depois da aprovação.`
+                  : `A aprovação vale ${MESES_VALIDADE_APROVACAO} meses; depois disso o plano entra como vencido, para reavaliação.`}
+              </p>
             </div>
             <div>
               <label className="text-sm">Observações</label>
@@ -1066,6 +1234,97 @@ export default function SucessaoPlano() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setPlanoOpen(false)}>Cancelar</Button>
             <Button onClick={() => salvarPlano.mutate()} disabled={salvarPlano.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Exportar PDF — escolha do conteúdo */}
+      <Dialog open={pdfOpen} onOpenChange={setPdfOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Exportar PDF</DialogTitle>
+            <DialogDescription>
+              Marque o que deve constar no relatório. O nível de cada candidato
+              entra sempre — é a matriz de prontidão.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Colunas do item
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["grupo", "Grupo"],
+                  ["categoria", "Categoria"],
+                  ["criterio", "Critério"],
+                  ["treinamento", "Plano de treinamento"],
+                  ["peso", "Peso"],
+                ] as const).map(([k, label]) => (
+                  <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={pdfCampos[k]} onCheckedChange={() => toggleCampo(k)} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Dentro da célula de cada candidato
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Checkbox checked disabled />
+                  Nível (sempre)
+                </label>
+                {([
+                  ["dataAlvo", "Data-alvo"],
+                  ["evidencia", "Evidência"],
+                ] as const).map(([k, label]) => (
+                  <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={pdfCampos[k]} onCheckedChange={() => toggleCampo(k)} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Cabeçalho
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {([
+                  ["resumo", "Resumo de prontidão"],
+                  ["fragilidades", "Fragilidades"],
+                  ["observacoes", "Observações do plano"],
+                ] as const).map(([k, label]) => (
+                  <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                    <Checkbox checked={pdfCampos[k]} onCheckedChange={() => toggleCampo(k)} />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              Relatório em A4 paisagem. Muitas colunas com muitos candidatos deixam
+              o texto apertado — para um plano com vários candidatos, o critério e o
+              plano de treinamento costumam render melhor num PDF separado.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPdfOpen(false)}>Cancelar</Button>
+            <Button onClick={exportarPdf}>
+              <FileText className="mr-2 h-4 w-4" />Gerar PDF
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

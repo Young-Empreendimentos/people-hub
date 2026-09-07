@@ -34,7 +34,7 @@ type Plano = {
   id: string; cargo_id: string; titular_funcionario_id: string | null;
   titulo: string; situacao: string;
   impacto_vacancia: string; risco_saida: string;
-  data_proxima_revisao: string | null; observacoes: string | null;
+  data_aprovacao: string | null; observacoes: string | null;
   created_at: string;
 };
 
@@ -49,7 +49,7 @@ export default function Sucessao() {
   const [nTitulo, setNTitulo] = useState("");
   const [nImpacto, setNImpacto] = useState("alto");
   const [nRisco, setNRisco] = useState("medio");
-  const [nRevisao, setNRevisao] = useState("");
+  const [nAprovacao, setNAprovacao] = useState("");
   const [nObs, setNObs] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState("ativos");
 
@@ -168,7 +168,7 @@ export default function Sucessao() {
         candidatosAtivos: candAtivos.length,
         temEmergencial: emergenciais.length > 0,
         melhorProntidao,
-        dataProximaRevisao: p.data_proxima_revisao,
+        dataAprovacao: p.data_aprovacao,
       });
 
       return {
@@ -205,13 +205,13 @@ export default function Sucessao() {
       (r) => !r.frags.some((f) => f.tipo === "sem_emergencial") && r.candidatosAtivos > 0,
     ).length;
     const criticos = ativos.filter((r) => r.criticas > 0).length;
-    const revisaoVencida = ativos.filter(
-      (r) => r.frags.some((f) => f.tipo === "revisao_vencida"),
+    const aprovacaoVencida = ativos.filter(
+      (r) => r.frags.some((f) => f.tipo === "aprovacao_vencida"),
     ).length;
     const prontosMedia = ativos.length
       ? Math.round(ativos.reduce((s, r) => s + r.melhorProntidao, 0) / ativos.length)
       : 0;
-    return { total: ativos.length, cargosComPlano, comEmergencial, criticos, revisaoVencida, prontosMedia };
+    return { total: ativos.length, cargosComPlano, comEmergencial, criticos, aprovacaoVencida, prontosMedia };
   }, [resumos]);
 
   const dadosGrafico = useMemo(
@@ -273,7 +273,7 @@ export default function Sucessao() {
           titulo: nTitulo || `Sucessão — ${cargoNome(nCargo)}`,
           impacto_vacancia: nImpacto,
           risco_saida: nRisco,
-          data_proxima_revisao: nRevisao || null,
+          data_aprovacao: nAprovacao || null,
           observacoes: nObs || null,
         })
         .select("id")
@@ -286,7 +286,7 @@ export default function Sucessao() {
       toast.success("Plano criado.");
       setNovoOpen(false);
       setNCargo(""); setNTitular(""); setNTitulo(""); setNImpacto("alto");
-      setNRisco("medio"); setNRevisao(""); setNObs("");
+      setNRisco("medio"); setNAprovacao(""); setNObs("");
     },
     onError: (e: any) => toast.error("Erro: " + e.message),
   });
@@ -334,8 +334,8 @@ export default function Sucessao() {
           tone={kpis.total > 0 && kpis.comEmergencial < kpis.total ? "warn" : "ok"} />
         <KpiCard icon={ShieldAlert} label="Com fragilidade crítica" valor={String(kpis.criticos)}
           hint="exigem ação" tone={kpis.criticos > 0 ? "bad" : "ok"} />
-        <KpiCard icon={CalendarClock} label="Revisão vencida" valor={String(kpis.revisaoVencida)}
-          hint="plano desatualizado" tone={kpis.revisaoVencida > 0 ? "warn" : "ok"} />
+        <KpiCard icon={CalendarClock} label="Aprovação vencida" valor={String(kpis.aprovacaoVencida)}
+          hint="passou de 6 meses" tone={kpis.aprovacaoVencida > 0 ? "warn" : "ok"} />
         <KpiCard icon={Users} label="Prontidão média" valor={`${kpis.prontosMedia}%`}
           hint="melhor candidato por plano" />
       </div>
@@ -381,7 +381,10 @@ export default function Sucessao() {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-[auto_1fr_1fr_1fr] gap-1 text-[11px]">
+            {/* minmax(0,1fr) e não 1fr: com "1fr" o mínimo da trilha é o
+                min-content, e um cargo de nome longo empurra a coluna até
+                estourar o card. */}
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-1 text-[11px]">
               <div />
               {NIVEIS_RISCO.map((r) => (
                 <div key={r.value} className="text-center text-muted-foreground pb-1">
@@ -399,7 +402,7 @@ export default function Sucessao() {
                     return (
                       <div
                         key={cel.risco}
-                        className={`min-h-[52px] rounded border p-1 space-y-0.5 ${
+                        className={`min-h-[52px] min-w-0 rounded border p-1 space-y-0.5 ${
                           urgente
                             ? "border-red-400 bg-red-50 dark:bg-red-950/40"
                             : quente
@@ -411,7 +414,7 @@ export default function Sucessao() {
                           <Link
                             key={r.plano.id}
                             to={`/sucessao/${r.plano.id}`}
-                            className="block truncate hover:underline"
+                            className="block break-words leading-tight hover:underline"
                             title={`${r.cargo} — ${r.melhorProntidao}% pronto`}
                           >
                             {r.cargo}
@@ -614,10 +617,12 @@ export default function Sucessao() {
               </div>
             </div>
             <div>
-              <label className="text-sm">Próxima revisão</label>
-              <Input type="date" value={nRevisao} onChange={(e) => setNRevisao(e.target.value)} />
+              <label className="text-sm">Data da aprovação</label>
+              <Input type="date" value={nAprovacao} onChange={(e) => setNAprovacao(e.target.value)} />
               <p className="text-[11px] text-muted-foreground mt-1">
-                Trimestral costuma bastar. Sem data, o plano não avisa quando envelhecer.
+                Quando a diretoria aprovou/revisou o plano. Vale 6 meses — depois
+                disso o plano aparece como vencido, para reavaliação. Sem data, o
+                plano não avisa quando envelhecer.
               </p>
             </div>
             <div>

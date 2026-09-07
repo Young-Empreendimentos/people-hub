@@ -62,6 +62,43 @@ export const NIVEIS_RISCO = [
   { value: "baixo", label: "Baixo" },
 ] as const;
 
+// ---------------------------------------------------------------------------
+// Validade da aprovação
+// ---------------------------------------------------------------------------
+
+/** Uma aprovação vale 6 meses; depois disso o plano precisa ser reavaliado. */
+export const MESES_VALIDADE_APROVACAO = 6;
+
+/**
+ * Data em que a aprovação vence. Null quando o plano nunca foi aprovado.
+ *
+ * Soma os meses a partir do dia 1º e só depois reposiciona o dia, limitado ao
+ * último dia do mês de destino — senão 31/08 + 6 meses cairia em 03/03 (o
+ * transbordo de fevereiro) em vez de 28/02.
+ */
+export function vencimentoAprovacao(dataAprovacao: string | null | undefined): Date | null {
+  if (!dataAprovacao) return null;
+  const base = new Date(dataAprovacao + "T12:00:00");
+  if (Number.isNaN(base.getTime())) return null;
+
+  const dia = base.getDate();
+  const alvo = new Date(base);
+  alvo.setDate(1);
+  alvo.setMonth(alvo.getMonth() + MESES_VALIDADE_APROVACAO);
+  const ultimoDiaDoMes = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+  alvo.setDate(Math.min(dia, ultimoDiaDoMes));
+  return alvo;
+}
+
+/** A aprovação já passou da validade? Plano nunca aprovado não conta como vencido. */
+export function aprovacaoVencida(
+  dataAprovacao: string | null | undefined,
+  hoje: Date = new Date(),
+): boolean {
+  const venc = vencimentoAprovacao(dataAprovacao);
+  return venc ? venc < hoje : false;
+}
+
 export const riscoClasses = (v: string | null | undefined): string => {
   switch (v) {
     case "alto": return "bg-red-100 text-red-900 border-red-300 dark:bg-red-950 dark:text-red-200 dark:border-red-800";
@@ -101,7 +138,7 @@ export function lacunas<T extends ItemLite>(itens: T[], avaliacoes: AvaliacaoLit
 }
 
 export type Fragilidade = {
-  tipo: "sem_candidato" | "sem_emergencial" | "sem_itens" | "revisao_vencida" | "baixa_prontidao" | "sem_criterio" | "candidato_unico";
+  tipo: "sem_candidato" | "sem_emergencial" | "sem_itens" | "aprovacao_vencida" | "baixa_prontidao" | "sem_criterio" | "candidato_unico";
   severidade: "critica" | "atencao";
   mensagem: string;
 };
@@ -116,12 +153,12 @@ export function fragilidades(args: {
   candidatosAtivos: number;
   temEmergencial: boolean;
   melhorProntidao: number;
-  dataProximaRevisao: string | null;
+  dataAprovacao: string | null;
 }): Fragilidade[] {
   const f: Fragilidade[] = [];
   const {
     itensAtivos, itensSemCriterio, candidatosAtivos,
-    temEmergencial, melhorProntidao, dataProximaRevisao,
+    temEmergencial, melhorProntidao, dataAprovacao,
   } = args;
 
   if (candidatosAtivos === 0) {
@@ -138,8 +175,12 @@ export function fragilidades(args: {
     f.push({ tipo: "sem_itens", severidade: "critica", mensagem: "Plano sem itens mapeados" });
   }
 
-  if (dataProximaRevisao && new Date(dataProximaRevisao + "T23:59:59") < new Date()) {
-    f.push({ tipo: "revisao_vencida", severidade: "atencao", mensagem: "Revisão vencida" });
+  if (aprovacaoVencida(dataAprovacao)) {
+    f.push({
+      tipo: "aprovacao_vencida",
+      severidade: "atencao",
+      mensagem: `Aprovação vencida — reavaliar (vale ${MESES_VALIDADE_APROVACAO} meses)`,
+    });
   }
 
   if (candidatosAtivos > 0 && itensAtivos > 0 && melhorProntidao < 50) {

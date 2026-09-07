@@ -112,6 +112,16 @@ export default function SucessaoPlano() {
       if (n.has(nome)) n.delete(nome); else n.add(nome);
       return n;
     });
+
+  // Mesma lógica para candidatos: guardamos os excluídos, para um candidato novo
+  // entrar no relatório por padrão.
+  const [pdfCandsFora, setPdfCandsFora] = useState<Set<string>>(new Set());
+  const toggleCand = (id: string) =>
+    setPdfCandsFora((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
   const [pTitular, setPTitular] = useState("");
   const [pObs, setPObs] = useState("");
 
@@ -480,7 +490,14 @@ export default function SucessaoPlano() {
     () => itensAtivos.filter((i) => !pdfGruposFora.has(itemGrupo(i))),
     [itensAtivos, pdfGruposFora, catalogo],
   );
-  const exportParcial = itensExport.length < itensAtivos.length;
+  const candsExport = useMemo(
+    () => candAtivos.filter((c) => !pdfCandsFora.has(c.id)),
+    [candAtivos, pdfCandsFora],
+  );
+  // Sem nenhum candidato o arquivo ainda serve: sai a lista de requisitos em
+  // branco, útil para entregar como roteiro.
+  const exportParcial =
+    itensExport.length < itensAtivos.length || candsExport.length < candAtivos.length;
   const nomeArquivo = (ext: string) =>
     `sucessao-${cargoNome(plano?.cargo_id).toLowerCase().replace(/\s+/g, "-")}` +
     `${exportParcial ? "-recorte" : ""}-${new Date().toISOString().slice(0, 10)}.${ext}`;
@@ -500,7 +517,7 @@ export default function SucessaoPlano() {
       if (pdfCampos.criterio) base["Critério"] = itemCriterio(i) ?? "";
       if (pdfCampos.treinamento) base["Plano de treinamento"] = i.plano_treinamento ?? "";
       if (pdfCampos.peso) base["Peso"] = Number(i.peso ?? 1);
-      for (const c of candAtivos) {
+      for (const c of candsExport) {
         const nome = funcNome(c.funcionario_id);
         const a = avalMap.get(`${c.id}|${i.id}`);
         base[nome] = nivelLabel(a?.nivel ?? 0);
@@ -537,7 +554,7 @@ export default function SucessaoPlano() {
         });
       }
       if (pdfCampos.resumo) {
-        for (const c of candAtivos) {
+        for (const c of candsExport) {
           const avs = (avaliacoes as any[]).filter((a) => a.candidato_id === c.id);
           info.push({
             Campo: `Prontidão — ${funcNome(c.funcionario_id)}`,
@@ -600,17 +617,26 @@ export default function SucessaoPlano() {
     // Num relatório parcial o escopo tem de estar escrito: sem isso, quem lê
     // acha que está vendo o plano inteiro.
     if (parcial) {
-      const incluidos = grupos
-        .filter(([nome]) => !pdfGruposFora.has(nome))
-        .map(([nome]) => nome);
-      linha(
-        `Recorte: ${itensRelatorio.length} de ${itensAtivos.length} itens · ` +
-        `grupos incluídos: ${incluidos.join("; ")}`,
-      );
+      const partes: string[] = [];
+      if (itensRelatorio.length < itensAtivos.length) {
+        partes.push(
+          `${itensRelatorio.length} de ${itensAtivos.length} itens · grupos: ` +
+          grupos.filter(([n]) => !pdfGruposFora.has(n)).map(([n]) => n).join("; "),
+        );
+      }
+      if (candsExport.length < candAtivos.length) {
+        partes.push(
+          candsExport.length === 0
+            ? "sem colunas de candidato"
+            : `${candsExport.length} de ${candAtivos.length} candidatos: ` +
+              candsExport.map((c) => funcNome(c.funcionario_id)).join("; "),
+        );
+      }
+      linha("Recorte: " + partes.join("  •  "));
     }
 
     if (pdfCampos.resumo) {
-      const resumo = candAtivos
+      const resumo = candsExport
         .map((c) => {
           const avs = (avaliacoes as any[]).filter((a) => a.candidato_id === c.id);
           // A prontidão é calculada sobre os itens do relatório, para fechar com
@@ -645,7 +671,7 @@ export default function SucessaoPlano() {
     if (pdfCampos.criterio) push("Critério", 150);
     if (pdfCampos.treinamento) push("Plano de treinamento", 150);
     if (pdfCampos.peso) push("Peso", 34);
-    for (const c of candAtivos) push(funcNome(c.funcionario_id).split(" ")[0], 92);
+    for (const c of candsExport) push(funcNome(c.funcionario_id).split(" ")[0], 92);
 
     const body = itensRelatorio.map((i) => {
       const celulas: string[] = [];
@@ -656,7 +682,7 @@ export default function SucessaoPlano() {
       if (pdfCampos.treinamento) celulas.push(i.plano_treinamento || "—");
       if (pdfCampos.peso) celulas.push(String(Number(i.peso ?? 1)));
 
-      for (const c of candAtivos) {
+      for (const c of candsExport) {
         const a = avalMap.get(`${c.id}|${i.id}`);
         // O nível abre a célula; os extras selecionados entram como linhas abaixo.
         const partes = [nivelLabel(a?.nivel ?? 0)];
@@ -1384,6 +1410,57 @@ export default function SucessaoPlano() {
                   : `${itensExport.length} de ${itensAtivos.length} itens entram no arquivo.` +
                     (exportParcial ? " O recorte fica registrado no arquivo." : "")}
               </p>
+            </div>
+
+            <Separator />
+
+            <div>
+              <div className="flex items-baseline justify-between mb-2 gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Candidatos no relatório
+                </p>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button
+                    className="text-muted-foreground hover:text-foreground hover:underline"
+                    onClick={() => setPdfCandsFora(new Set())}
+                  >
+                    marcar todos
+                  </button>
+                  <span className="text-muted-foreground">·</span>
+                  <button
+                    className="text-muted-foreground hover:text-foreground hover:underline"
+                    onClick={() => setPdfCandsFora(new Set(candAtivos.map((c) => c.id)))}
+                  >
+                    limpar
+                  </button>
+                </div>
+              </div>
+              {candAtivos.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  O plano não tem candidatos.
+                </p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    {candAtivos.map((c) => (
+                      <label key={c.id} className="flex items-start gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          className="mt-0.5"
+                          checked={!pdfCandsFora.has(c.id)}
+                          onCheckedChange={() => toggleCand(c.id)}
+                        />
+                        <span className="min-w-0">{funcNome(c.funcionario_id)}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {candsExport.length === 0 && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Sem candidatos marcados, o arquivo sai como roteiro em branco:
+                      só os itens e o que você marcou abaixo.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
 
             <Separator />

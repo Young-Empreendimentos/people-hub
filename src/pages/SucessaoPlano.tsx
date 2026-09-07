@@ -34,8 +34,9 @@ import {
 } from "recharts";
 import {
   ArrowLeft, Plus, Trash2, UserPlus, Lock, Info, TriangleAlert,
-  EyeOff, Eye, Pencil, FileDown, FileText, GraduationCap,
+  EyeOff, Eye, Pencil, FileDown, FileText, GraduationCap, Share2, Users, X,
 } from "lucide-react";
+import { PlanoPublicadoView, type PlanoPublicado } from "@/components/sucessao/PlanoPublicadoView";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
@@ -122,6 +123,104 @@ export default function SucessaoPlano() {
       if (n.has(id)) n.delete(id); else n.add(id);
       return n;
     });
+
+  // ---- publicação ----------------------------------------------------------
+  // risco_saida e impacto_vacancia não estão aqui de propósito: a função do
+  // banco nunca os devolve ao destinatário, então não há o que alternar.
+  const CAMPOS_PUBLICACAO = [
+    ["nivel", "Nível (status de cada item)"],
+    ["criterio", "Critério de aptidão"],
+    ["treinamento", "Plano de treinamento"],
+    ["grupo", "Grupo da atividade"],
+    ["data_alvo", "Data-alvo"],
+    ["evidencia", "Evidência registrada"],
+    ["peso", "Peso do item"],
+    ["prontidao", "Percentual de prontidão"],
+  ] as const;
+
+  const [pubOpen, setPubOpen] = useState(false);
+  const [pubCampos, setPubCampos] = useState<Record<string, boolean>>({});
+  const [pubDest, setPubDest] = useState<string[]>([]);
+  const [previewDe, setPreviewDe] = useState<string | null>(null);
+
+  const { data: destinatarios = [] } = useQuery({
+    queryKey: ["rh_sucessao_destinatarios", id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data, error } = await rhDb
+        .from("rh_sucessao_publicacao_destinatarios")
+        .select("*").eq("plano_id", id);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const { data: previewDados, isFetching: previewCarregando, error: previewErro } = useQuery({
+    queryKey: ["rh_sucessao_preview", id, previewDe],
+    enabled: !!id && !!previewDe,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_sucessao_plano_publicado" as any, {
+        p_plano_id: id, p_como_funcionario: previewDe,
+      });
+      if (error) throw error;
+      return data as PlanoPublicado;
+    },
+  });
+
+  const abrirPublicacao = () => {
+    if (!plano) return;
+    setPubCampos({ ...(plano.publicacao_campos ?? {}) });
+    // Padrão da primeira publicação: titular + candidatos ativos.
+    const atuais = (destinatarios as any[]).map((d) => d.funcionario_id);
+    if (atuais.length > 0) {
+      setPubDest(atuais);
+    } else {
+      const sugeridos = new Set<string>();
+      if (plano.titular_funcionario_id) sugeridos.add(plano.titular_funcionario_id);
+      for (const c of candAtivos) if (c.situacao === "ativo") sugeridos.add(c.funcionario_id);
+      setPubDest([...sugeridos]);
+    }
+    setPreviewDe(null);
+    setPubOpen(true);
+  };
+
+  const salvarPublicacao = useMutation({
+    mutationFn: async (publicar: boolean) => {
+      const atuais: string[] = (destinatarios as any[]).map((d) => d.funcionario_id);
+      const remover = atuais.filter((f) => !pubDest.includes(f));
+      const incluir = pubDest.filter((f) => !atuais.includes(f));
+
+      if (remover.length > 0) {
+        const { error } = await rhDb
+          .from("rh_sucessao_publicacao_destinatarios")
+          .delete().eq("plano_id", id).in("funcionario_id", remover);
+        if (error) throw error;
+      }
+      if (incluir.length > 0) {
+        const { error } = await rhDb
+          .from("rh_sucessao_publicacao_destinatarios")
+          .insert(incluir.map((f) => ({ plano_id: id, funcionario_id: f })));
+        if (error) throw error;
+      }
+
+      const { error } = await rhDb.from("rh_sucessao_planos").update({
+        publicado: publicar,
+        publicacao_campos: pubCampos,
+        publicado_em: publicar ? new Date().toISOString() : null,
+        publicado_por: publicar ? (await supabase.auth.getUser()).data.user?.id ?? null : null,
+      }).eq("id", id);
+      if (error) throw error;
+      return publicar;
+    },
+    onSuccess: (publicar) => {
+      qc.invalidateQueries({ queryKey: ["rh_sucessao_destinatarios", id] });
+      qc.invalidateQueries({ queryKey: ["rh_sucessao_plano", id] });
+      qc.invalidateQueries({ queryKey: ["rh_sucessao_planos"] });
+      setPubOpen(false);
+      toast.success(publicar ? "Plano disponibilizado." : "Publicação encerrada.");
+    },
+    onError: (e: any) => toast.error("Erro: " + e.message),
+  });
   const [pTitular, setPTitular] = useState("");
   const [pObs, setPObs] = useState("");
 
@@ -770,6 +869,14 @@ export default function SucessaoPlano() {
           <Button variant="outline" size="sm" onClick={() => setPdfOpen(true)}>
             <FileDown className="mr-2 h-4 w-4" />Exportar
           </Button>
+          <Button
+            variant={plano.publicado ? "default" : "outline"}
+            size="sm"
+            onClick={abrirPublicacao}
+          >
+            <Share2 className="mr-2 h-4 w-4" />
+            {plano.publicado ? "Publicado" : "Disponibilizar"}
+          </Button>
           <Button variant="outline" size="sm" onClick={abrirEditPlano}>
             <Pencil className="mr-2 h-4 w-4" />Editar plano
           </Button>
@@ -786,6 +893,13 @@ export default function SucessaoPlano() {
         <Badge variant="outline" className={riscoClasses(plano.risco_saida)}>
           risco de saída: {plano.risco_saida}
         </Badge>
+        {plano.publicado && (
+          <Badge variant="outline" className="border-emerald-400 text-emerald-700 dark:text-emerald-300">
+            <Share2 className="mr-1 h-3 w-3" />
+            disponibilizado a {destinatarios.length}{" "}
+            {destinatarios.length === 1 ? "pessoa" : "pessoas"}
+          </Badge>
+        )}
       </div>
 
       {/* ---------------- Fragilidades ---------------- */}
@@ -1543,6 +1657,163 @@ export default function SucessaoPlano() {
             <Button onClick={exportarPdf} disabled={itensExport.length === 0}>
               <FileText className="mr-2 h-4 w-4" />PDF
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disponibilizar o plano */}
+      <Dialog open={pubOpen} onOpenChange={setPubOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Disponibilizar o plano</DialogTitle>
+            <DialogDescription>
+              Quem estiver na lista abaixo passa a ver este plano em modo leitura.
+              Cada pessoa vê apenas a própria coluna — não descobre que existem
+              outros candidatos, nem a prontidão deles.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                <Users className="inline h-3.5 w-3.5 mr-1" />
+                Quem pode ver
+              </p>
+              {pubDest.length === 0 ? (
+                <p className="text-[11px] text-destructive mb-2">
+                  Ninguém selecionado — sem destinatários, publicar não tem efeito.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {pubDest.map((f) => (
+                    <Badge key={f} variant="secondary" className="gap-1">
+                      {funcNome(f)}
+                      <button
+                        onClick={() => setPubDest((d) => d.filter((x) => x !== f))}
+                        className="hover:text-destructive"
+                        aria-label={`Remover ${funcNome(f)}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Combobox
+                options={funcOptions.filter((o: any) => !pubDest.includes(o.value))}
+                value=""
+                onValueChange={(v) => v && setPubDest((d) => [...d, v])}
+                placeholder="Adicionar pessoa…"
+                emptyMessage="Ninguém encontrado"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Por padrão sugerimos o titular e os candidatos ativos. Você pode
+                incluir ou remover quem quiser.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                O que aparece para essas pessoas
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {CAMPOS_PUBLICACAO.map(([k, label]) => (
+                  <label key={k} className="flex items-start gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={!!pubCampos[k]}
+                      onCheckedChange={() =>
+                        setPubCampos((c) => ({ ...c, [k]: !c[k] }))
+                      }
+                    />
+                    <span className="min-w-0">{label}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-2">
+                O título de cada item aparece sempre. <strong>Impacto da vacância e
+                risco de saída nunca são publicados</strong> — não há como ligá-los,
+                nem pela API: a função que serve o plano ao destinatário não devolve
+                esses campos.
+              </p>
+            </div>
+
+            <Separator />
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                Pré-visualizar
+              </p>
+              {pubDest.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Adicione alguém à lista para pré-visualizar.
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-1.5">
+                    {pubDest.map((f) => (
+                      <Button
+                        key={f}
+                        size="sm"
+                        variant={previewDe === f ? "default" : "outline"}
+                        onClick={() => setPreviewDe(previewDe === f ? null : f)}
+                      >
+                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                        {funcNome(f).split(" ")[0]}
+                      </Button>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    Mostra exatamente a tela que a pessoa vê — mesma função de banco,
+                    mesmo componente. Salve antes, para pré-visualizar as marcações
+                    atuais.
+                  </p>
+                </>
+              )}
+
+              {previewDe && (
+                <div className="mt-3 rounded border bg-muted/30 p-3">
+                  {previewCarregando ? (
+                    <p className="text-sm text-muted-foreground">Carregando pré-visualização…</p>
+                  ) : previewErro ? (
+                    <p className="text-sm text-destructive">
+                      Não foi possível pré-visualizar: {(previewErro as any).message}
+                    </p>
+                  ) : previewDados ? (
+                    <div className="scale-[0.92] origin-top">
+                      <PlanoPublicadoView dados={previewDados} />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-between">
+            <div>
+              {plano.publicado && (
+                <Button
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive"
+                  onClick={() => salvarPublicacao.mutate(false)}
+                  disabled={salvarPublicacao.isPending}
+                >
+                  <EyeOff className="mr-2 h-4 w-4" />Encerrar publicação
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setPubOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={() => salvarPublicacao.mutate(true)}
+                disabled={salvarPublicacao.isPending || pubDest.length === 0}
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                {plano.publicado ? "Salvar alterações" : "Disponibilizar"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

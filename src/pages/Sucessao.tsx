@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { rhDb } from "@/integrations/supabase/client";
+import { rhDb, supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,8 +12,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Combobox } from "@/components/ui/combobox";
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { PlanoPublicadoView, type PlanoPublicado } from "@/components/sucessao/PlanoPublicadoView";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -22,7 +24,7 @@ import {
 } from "recharts";
 import {
   Plus, ShieldAlert, ShieldCheck, TriangleAlert, CalendarClock, Users,
-  Target, Lock, ArrowRight,
+  Target, Lock, ArrowRight, Share2, Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -35,6 +37,7 @@ type Plano = {
   titulo: string; situacao: string;
   impacto_vacancia: string; risco_saida: string;
   data_aprovacao: string | null; observacoes: string | null;
+  publicado?: boolean; publicacao_campos?: Record<string, boolean>;
   created_at: string;
 };
 
@@ -50,6 +53,41 @@ export default function Sucessao() {
   const [nImpacto, setNImpacto] = useState("alto");
   const [nRisco, setNRisco] = useState("medio");
   const [nAprovacao, setNAprovacao] = useState("");
+
+  // ---- pré-visualização de plano publicado --------------------------------
+  const [previewPlano, setPreviewPlano] = useState<string | null>(null);
+  const [previewDe, setPreviewDe] = useState<string | null>(null);
+
+  const { data: destinatarios = [] } = useQuery({
+    queryKey: ["rh_sucessao_destinatarios_todos"],
+    queryFn: async () => {
+      const { data, error } = await rhDb
+        .from("rh_sucessao_publicacao_destinatarios").select("*");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const destDoPlano = (planoId: string) =>
+    (destinatarios as any[]).filter((d) => d.plano_id === planoId);
+
+  const abrirPreview = (planoId: string) => {
+    const ds = destDoPlano(planoId);
+    setPreviewPlano(planoId);
+    setPreviewDe(ds[0]?.funcionario_id ?? null);
+  };
+
+  const { data: previewDados, isFetching: previewCarregando, error: previewErro } = useQuery({
+    queryKey: ["rh_sucessao_preview_dash", previewPlano, previewDe],
+    enabled: !!previewPlano && !!previewDe,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_sucessao_plano_publicado" as any, {
+        p_plano_id: previewPlano, p_como_funcionario: previewDe,
+      });
+      if (error) throw error;
+      return data as PlanoPublicado;
+    },
+  });
   const [nObs, setNObs] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState("ativos");
 
@@ -505,9 +543,27 @@ export default function Sucessao() {
                         Titular: {r.titular}
                       </p>
                     </div>
-                    <Badge variant={r.plano.situacao === "ativo" ? "default" : "secondary"}>
-                      {SITUACOES_PLANO.find((s) => s.value === r.plano.situacao)?.label}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {r.plano.publicado && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); abrirPreview(r.plano.id); }}
+                              className="rounded p-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                              aria-label="Plano publicado — ver pré-visualização"
+                            >
+                              <Share2 className="h-4 w-4" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Publicado internamente — clique para pré-visualizar
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      <Badge variant={r.plano.situacao === "ativo" ? "default" : "secondary"}>
+                        {SITUACOES_PLANO.find((s) => s.value === r.plano.situacao)?.label}
+                      </Badge>
+                    </div>
                   </div>
 
                   <div>
@@ -635,6 +691,71 @@ export default function Sucessao() {
             <Button onClick={() => criar.mutate()} disabled={!nCargo || criar.isPending}>
               Criar
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pré-visualização de um plano publicado */}
+      <Dialog open={!!previewPlano} onOpenChange={(o) => { if (!o) { setPreviewPlano(null); setPreviewDe(null); } }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pré-visualização do plano publicado</DialogTitle>
+            <DialogDescription>
+              Exatamente o que cada destinatário vê. Impacto da vacância, risco de
+              saída e os demais candidatos não aparecem para eles.
+            </DialogDescription>
+          </DialogHeader>
+
+          {previewPlano && (
+            <div className="space-y-3">
+              {destDoPlano(previewPlano).length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Este plano está marcado como publicado, mas não tem destinatários.
+                  Ninguém o vê. Abra o plano e defina quem pode ver.
+                </p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap gap-1.5">
+                    {destDoPlano(previewPlano).map((d) => (
+                      <Button
+                        key={d.funcionario_id}
+                        size="sm"
+                        variant={previewDe === d.funcionario_id ? "default" : "outline"}
+                        onClick={() => setPreviewDe(d.funcionario_id)}
+                      >
+                        <Eye className="mr-1.5 h-3.5 w-3.5" />
+                        {funcNome(d.funcionario_id).split(" ")[0]}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="rounded border bg-muted/30 p-3">
+                    {previewCarregando ? (
+                      <p className="text-sm text-muted-foreground">Carregando…</p>
+                    ) : previewErro ? (
+                      <p className="text-sm text-destructive">
+                        Não foi possível pré-visualizar: {(previewErro as any).message}
+                      </p>
+                    ) : previewDados ? (
+                      <div className="scale-[0.92] origin-top">
+                        <PlanoPublicadoView dados={previewDados} />
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPreviewPlano(null); setPreviewDe(null); }}>
+              Fechar
+            </Button>
+            {previewPlano && (
+              <Button asChild>
+                <Link to={`/sucessao/${previewPlano}`}>Abrir o plano</Link>
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

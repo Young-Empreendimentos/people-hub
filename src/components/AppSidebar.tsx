@@ -3,7 +3,9 @@ import {
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -26,8 +28,9 @@ const mainItems = [
 
 const auditoriasItem = { title: "Auditorias", url: "/auditorias", icon: FileCheck2 };
 
-// Planos de sucessão são restritos a admin (diretoria e autorizados).
-// O item aparece para todos, mas fica desabilitado para quem não é admin.
+// Planos de sucessão são restritos a admin (diretoria e autorizados). O item
+// aparece para todos; fica desabilitado para quem não é admin, EXCETO quando a
+// pessoa tem algum plano disponibilizado para ela — aí abre em modo leitura.
 const sucessaoItem = { title: "Sucessão", url: "/sucessao", icon: Target };
 
 const configItem = { title: "Configurações", url: "/configuracoes", icon: Settings };
@@ -37,6 +40,20 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const { canConfig, signOut, user, userName, isAuditor, isAdmin } = useAuth();
+
+  // Só consultamos para quem não é admin — o admin já entra pelo caminho normal.
+  const { data: meusPublicados } = useQuery({
+    queryKey: ["rh_sucessao_meus_publicados_menu"],
+    enabled: !!user && !isAdmin,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_sucessao_meus_planos_publicados" as any);
+      if (error) return [];
+      return (data ?? []) as any[];
+    },
+  });
+  const temPlanoPublicado = (meusPublicados?.length ?? 0) > 0;
+  const podeVerSucessao = isAdmin || temPlanoPublicado;
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -77,7 +94,7 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               )}
               <SidebarMenuItem>
-                {isAdmin ? (
+                {podeVerSucessao ? (
                   <SidebarMenuButton asChild isActive={isActive(sucessaoItem.url)}>
                     <NavLink to={sucessaoItem.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                       <sucessaoItem.icon className="mr-2 h-4 w-4 shrink-0" />

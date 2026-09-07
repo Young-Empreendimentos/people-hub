@@ -3,7 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/hooks/useAuth";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { AppLayout } from "@/components/AppLayout";
 import Login from "./pages/Login";
 import Index from "./pages/Index";
@@ -45,8 +45,25 @@ import AuditoriasHub from "./pages/AuditoriasHub";
 import MapeamentoAlternativas from "./pages/MapeamentoAlternativas";
 import Sucessao from "./pages/Sucessao";
 import SucessaoPlano from "./pages/SucessaoPlano";
+import { SucessaoPublicadaLista, SucessaoPublicadoDetalhe } from "./pages/SucessaoPublicado";
 
 const queryClient = new QueryClient();
+
+// Sucessão tem duas faces na mesma rota: o admin gerencia os planos; o
+// destinatário de um plano publicado vê apenas o seu, em modo leitura. A escolha
+// fica aqui, e não dentro das páginas, para não alternar a ordem dos hooks de um
+// componente quando o papel do usuário termina de carregar.
+const SucessaoGate = () => {
+  const { isAdmin, loading } = useAuth();
+  if (loading) return null;
+  return isAdmin ? <Sucessao /> : <SucessaoPublicadaLista />;
+};
+
+const SucessaoPlanoGate = () => {
+  const { isAdmin, loading } = useAuth();
+  if (loading) return null;
+  return isAdmin ? <SucessaoPlano /> : <SucessaoPublicadoDetalhe />;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -93,8 +110,8 @@ const App = () => (
               <Route path="/gestao-pessoas/plano-saude" element={<PlanoSaude />} />
               <Route path="/gestao-pessoas/uniformes" element={<Uniformes />} />
               <Route path="/gestao-pessoas/mapeamento-alternativas" element={<MapeamentoAlternativas />} />
-              <Route path="/sucessao" element={<Sucessao />} />
-              <Route path="/sucessao/:id" element={<SucessaoPlano />} />
+              <Route path="/sucessao" element={<SucessaoGate />} />
+              <Route path="/sucessao/:id" element={<SucessaoPlanoGate />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

@@ -102,6 +102,16 @@ export default function SucessaoPlano() {
   });
   const toggleCampo = (k: keyof typeof pdfCampos) =>
     setPdfCampos((c) => ({ ...c, [k]: !c[k] }));
+
+  // Guardamos os grupos EXCLUÍDOS, não os incluídos: assim um grupo novo no
+  // plano entra no relatório por padrão, em vez de ficar de fora silenciosamente.
+  const [pdfGruposFora, setPdfGruposFora] = useState<Set<string>>(new Set());
+  const toggleGrupo = (nome: string) =>
+    setPdfGruposFora((s) => {
+      const n = new Set(s);
+      if (n.has(nome)) n.delete(nome); else n.add(nome);
+      return n;
+    });
   const [pTitular, setPTitular] = useState("");
   const [pObs, setPObs] = useState("");
 
@@ -492,6 +502,13 @@ export default function SucessaoPlano() {
   const exportarPdf = () => {
     if (itensAtivos.length === 0) { toast.error("Plano sem itens."); return; }
 
+    const itensRelatorio = itensAtivos.filter((i) => !pdfGruposFora.has(itemGrupo(i)));
+    if (itensRelatorio.length === 0) {
+      toast.error("Nenhum grupo selecionado — o relatório ficaria vazio.");
+      return;
+    }
+    const parcial = itensRelatorio.length < itensAtivos.length;
+
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
     const margem = 40;
     const larguraUtil = doc.internal.pageSize.getWidth() - margem * 2;
@@ -519,11 +536,27 @@ export default function SucessaoPlano() {
       `Emitido em ${new Date().toLocaleString("pt-BR")}`,
     );
 
+    // Num relatório parcial o escopo tem de estar escrito: sem isso, quem lê
+    // acha que está vendo o plano inteiro.
+    if (parcial) {
+      const incluidos = grupos
+        .filter(([nome]) => !pdfGruposFora.has(nome))
+        .map(([nome]) => nome);
+      linha(
+        `Recorte: ${itensRelatorio.length} de ${itensAtivos.length} itens · ` +
+        `grupos incluídos: ${incluidos.join("; ")}`,
+      );
+    }
+
     if (pdfCampos.resumo) {
       const resumo = candAtivos
         .map((c) => {
           const avs = (avaliacoes as any[]).filter((a) => a.candidato_id === c.id);
-          return `${funcNome(c.funcionario_id)}: ${prontidao(itensAtivos, avs)}% pronto (${horizonteLabel(c.horizonte)})`;
+          // A prontidão é calculada sobre os itens do relatório, para fechar com
+          // a tabela abaixo; num recorte, mostramos o total do plano em seguida.
+          const pct = prontidao(itensRelatorio, avs);
+          const sufixo = parcial ? ` (${prontidao(itensAtivos, avs)}% no plano completo)` : "";
+          return `${funcNome(c.funcionario_id)}: ${pct}% pronto${sufixo} (${horizonteLabel(c.horizonte)})`;
         })
         .join("  •  ");
       if (resumo) linha(resumo);
@@ -553,7 +586,7 @@ export default function SucessaoPlano() {
     if (pdfCampos.peso) push("Peso", 34);
     for (const c of candAtivos) push(funcNome(c.funcionario_id).split(" ")[0], 92);
 
-    const body = itensAtivos.map((i) => {
+    const body = itensRelatorio.map((i) => {
       const celulas: string[] = [];
       if (pdfCampos.grupo) celulas.push(itemGrupo(i) || "—");
       celulas.push(itemTitulo(i));
@@ -585,8 +618,10 @@ export default function SucessaoPlano() {
       margin: { left: margem, right: margem },
     });
 
+    // "-recorte" no nome para não confundir um relatório parcial com o completo.
     doc.save(
-      `sucessao-${cargoNome(plano.cargo_id).toLowerCase().replace(/\s+/g, "-")}-${new Date().toISOString().slice(0, 10)}.pdf`,
+      `sucessao-${cargoNome(plano.cargo_id).toLowerCase().replace(/\s+/g, "-")}` +
+      `${parcial ? "-recorte" : ""}-${new Date().toISOString().slice(0, 10)}.pdf`,
     );
     setPdfOpen(false);
   };
@@ -1251,6 +1286,61 @@ export default function SucessaoPlano() {
 
           <div className="space-y-4">
             <div>
+              <div className="flex items-baseline justify-between mb-2 gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Grupos no relatório
+                </p>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button
+                    className="text-muted-foreground hover:text-foreground hover:underline"
+                    onClick={() => setPdfGruposFora(new Set())}
+                  >
+                    marcar todos
+                  </button>
+                  <span className="text-muted-foreground">·</span>
+                  <button
+                    className="text-muted-foreground hover:text-foreground hover:underline"
+                    onClick={() => setPdfGruposFora(new Set(grupos.map(([n]) => n)))}
+                  >
+                    limpar
+                  </button>
+                </div>
+              </div>
+              <div className="max-h-40 overflow-y-auto rounded border p-2 space-y-1.5">
+                {grupos.map(([nome, linhas]) => (
+                  <label key={nome} className="flex items-start gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={!pdfGruposFora.has(nome)}
+                      onCheckedChange={() => toggleGrupo(nome)}
+                    />
+                    <span className="min-w-0">
+                      {nome}{" "}
+                      <span className="text-muted-foreground text-xs">
+                        ({linhas.length} {linhas.length === 1 ? "item" : "itens"})
+                      </span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {(() => {
+                const dentro = itensAtivos.filter((i) => !pdfGruposFora.has(itemGrupo(i))).length;
+                return (
+                  <p className={`text-[11px] mt-1 ${dentro === 0 ? "text-destructive" : "text-muted-foreground"}`}>
+                    {dentro === 0
+                      ? "Nenhum grupo marcado — o relatório ficaria vazio."
+                      : `${dentro} de ${itensAtivos.length} itens entram no relatório.` +
+                        (dentro < itensAtivos.length
+                          ? " O PDF registra o recorte no cabeçalho."
+                          : "")}
+                  </p>
+                );
+              })()}
+            </div>
+
+            <Separator />
+
+            <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
                 Colunas do item
               </p>
@@ -1322,7 +1412,10 @@ export default function SucessaoPlano() {
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setPdfOpen(false)}>Cancelar</Button>
-            <Button onClick={exportarPdf}>
+            <Button
+              onClick={exportarPdf}
+              disabled={itensAtivos.every((i) => pdfGruposFora.has(itemGrupo(i)))}
+            >
               <FileText className="mr-2 h-4 w-4" />Gerar PDF
             </Button>
           </DialogFooter>

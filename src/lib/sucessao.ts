@@ -70,25 +70,35 @@ export const NIVEIS_RISCO = [
 export const MESES_VALIDADE_APROVACAO = 6;
 
 /**
- * Data em que a aprovação vence. Null quando o plano nunca foi aprovado.
- *
- * Soma os meses a partir do dia 1º e só depois reposiciona o dia, limitado ao
- * último dia do mês de destino — senão 31/08 + 6 meses cairia em 03/03 (o
- * transbordo de fevereiro) em vez de 28/02.
+ * Concluir um plano significa "há candidato apto". Isso não é definitivo: vale 6
+ * meses, depois dos quais a aptidão precisa ser reconfirmada.
  */
-export function vencimentoAprovacao(dataAprovacao: string | null | undefined): Date | null {
-  if (!dataAprovacao) return null;
-  const base = new Date(dataAprovacao + "T12:00:00");
+export const MESES_VALIDADE_APTIDAO = 6;
+
+/**
+ * Soma meses a uma data ISO (yyyy-mm-dd). Null para data ausente ou inválida.
+ *
+ * Soma a partir do dia 1º e só depois reposiciona o dia, limitado ao último dia
+ * do mês de destino — senão 31/08 + 6 meses cairia em 03/03 (o transbordo de
+ * fevereiro) em vez de 28/02.
+ */
+export function somaMeses(dataIso: string | null | undefined, meses: number): Date | null {
+  if (!dataIso) return null;
+  const base = new Date(dataIso + "T12:00:00");
   if (Number.isNaN(base.getTime())) return null;
 
   const dia = base.getDate();
   const alvo = new Date(base);
   alvo.setDate(1);
-  alvo.setMonth(alvo.getMonth() + MESES_VALIDADE_APROVACAO);
+  alvo.setMonth(alvo.getMonth() + meses);
   const ultimoDiaDoMes = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
   alvo.setDate(Math.min(dia, ultimoDiaDoMes));
   return alvo;
 }
+
+/** Data em que a aprovação vence. Null quando o plano nunca foi aprovado. */
+export const vencimentoAprovacao = (dataAprovacao: string | null | undefined) =>
+  somaMeses(dataAprovacao, MESES_VALIDADE_APROVACAO);
 
 /** A aprovação já passou da validade? Plano nunca aprovado não conta como vencido. */
 export function aprovacaoVencida(
@@ -97,6 +107,43 @@ export function aprovacaoVencida(
 ): boolean {
   const venc = vencimentoAprovacao(dataAprovacao);
   return venc ? venc < hoje : false;
+}
+
+/** Data em que a aptidão do candidato vence. */
+export const vencimentoAptidao = (dataConclusao: string | null | undefined) =>
+  somaMeses(dataConclusao, MESES_VALIDADE_APTIDAO);
+
+/** A aptidão passou dos 6 meses? Sem data de conclusão, não há aptidão a vencer. */
+export function aptidaoVencida(
+  dataConclusao: string | null | undefined,
+  hoje: Date = new Date(),
+): boolean {
+  const venc = vencimentoAptidao(dataConclusao);
+  return venc ? venc < hoje : false;
+}
+
+// ---------------------------------------------------------------------------
+// Cobertura do cargo
+// ---------------------------------------------------------------------------
+
+/**
+ * Situações em que o plano ainda cobre o cargo e portanto entra nas contas do
+ * dashboard. "concluido" está aqui porque concluir não encerra o plano: significa
+ * que existe candidato apto, e o cargo segue coberto. Só arquivar (ou excluir)
+ * tira a cobertura — e aí o cargo volta a aparecer como em aberto.
+ */
+export const SITUACOES_COBERTURA = ["rascunho", "ativo", "concluido"] as const;
+
+export const cobreCargo = (situacao: string | null | undefined) =>
+  (SITUACOES_COBERTURA as readonly string[]).includes(situacao ?? "");
+
+/** Há candidato apto e dentro da validade? */
+export function temAptoValido(
+  situacao: string | null | undefined,
+  dataConclusao: string | null | undefined,
+  hoje: Date = new Date(),
+): boolean {
+  return situacao === "concluido" && !aptidaoVencida(dataConclusao, hoje);
 }
 
 export const riscoClasses = (v: string | null | undefined): string => {
@@ -138,7 +185,7 @@ export function lacunas<T extends ItemLite>(itens: T[], avaliacoes: AvaliacaoLit
 }
 
 export type Fragilidade = {
-  tipo: "sem_candidato" | "sem_emergencial" | "sem_itens" | "aprovacao_vencida" | "baixa_prontidao" | "sem_criterio" | "candidato_unico";
+  tipo: "sem_candidato" | "sem_emergencial" | "sem_itens" | "aprovacao_vencida" | "baixa_prontidao" | "sem_criterio" | "candidato_unico" | "aptidao_vencida";
   severidade: "critica" | "atencao";
   mensagem: string;
 };
@@ -154,12 +201,20 @@ export function fragilidades(args: {
   temEmergencial: boolean;
   melhorProntidao: number;
   dataAprovacao: string | null;
+  situacao?: string | null;
+  dataConclusao?: string | null;
 }): Fragilidade[] {
   const f: Fragilidade[] = [];
   const {
     itensAtivos, itensSemCriterio, candidatosAtivos,
     temEmergencial, melhorProntidao, dataAprovacao,
+    situacao, dataConclusao,
   } = args;
+
+  // Plano concluído = há candidato apto. Enquanto a aptidão está válida, cobrar
+  // "cobertura emergencial" ou "baixa prontidão" seria contraditório: alguém já
+  // foi declarado pronto. Vencida a aptidão, as cobranças voltam a valer.
+  const aptoValido = temAptoValido(situacao, dataConclusao);
 
   if (candidatosAtivos === 0) {
     f.push({ tipo: "sem_candidato", severidade: "critica", mensagem: "Nenhum candidato ativo" });
@@ -167,7 +222,7 @@ export function fragilidades(args: {
     f.push({ tipo: "candidato_unico", severidade: "atencao", mensagem: "Só 1 candidato — sem margem se essa pessoa sair" });
   }
 
-  if (candidatosAtivos > 0 && !temEmergencial) {
+  if (candidatosAtivos > 0 && !temEmergencial && !aptoValido) {
     f.push({ tipo: "sem_emergencial", severidade: "critica", mensagem: "Sem cobertura emergencial" });
   }
 
@@ -183,8 +238,16 @@ export function fragilidades(args: {
     });
   }
 
-  if (candidatosAtivos > 0 && itensAtivos > 0 && melhorProntidao < 50) {
+  if (candidatosAtivos > 0 && itensAtivos > 0 && melhorProntidao < 50 && !aptoValido) {
     f.push({ tipo: "baixa_prontidao", severidade: "atencao", mensagem: `Melhor candidato em ${melhorProntidao}%` });
+  }
+
+  if (situacao === "concluido" && aptidaoVencida(dataConclusao)) {
+    f.push({
+      tipo: "aptidao_vencida",
+      severidade: "atencao",
+      mensagem: `Aptidão vencida — reconfirmar (vale ${MESES_VALIDADE_APTIDAO} meses)`,
+    });
   }
 
   if (itensSemCriterio > 0) {

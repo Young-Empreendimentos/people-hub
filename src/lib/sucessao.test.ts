@@ -1,8 +1,13 @@
 import { describe, it, expect } from "vitest";
 import {
   MESES_VALIDADE_APROVACAO,
+  MESES_VALIDADE_APTIDAO,
   vencimentoAprovacao,
   aprovacaoVencida,
+  vencimentoAptidao,
+  aptidaoVencida,
+  cobreCargo,
+  temAptoValido,
   fragilidades,
   prontidao,
 } from "./sucessao";
@@ -73,6 +78,84 @@ describe("fragilidades", () => {
       .toBe("atencao");
     expect(fragilidades({ ...base, candidatosAtivos: 0, temEmergencial: false }).find((x) => x.tipo === "sem_candidato")?.severidade)
       .toBe("critica");
+  });
+});
+
+describe("cobertura do cargo", () => {
+  it("rascunho, ativo e concluído cobrem o cargo; arquivado não", () => {
+    expect(cobreCargo("rascunho")).toBe(true);
+    expect(cobreCargo("ativo")).toBe(true);
+    // concluído = há candidato apto: o cargo segue coberto
+    expect(cobreCargo("concluido")).toBe(true);
+    // arquivar tira a cobertura, e o cargo volta a aparecer como em aberto
+    expect(cobreCargo("arquivado")).toBe(false);
+    expect(cobreCargo(null)).toBe(false);
+  });
+});
+
+describe("aptidão do candidato", () => {
+  it("vale 6 meses a contar da conclusão", () => {
+    expect(MESES_VALIDADE_APTIDAO).toBe(6);
+    expect(iso(vencimentoAptidao("2026-09-07"))).toBe("2027-03-07");
+  });
+
+  it("não transborda mês curto, como a aprovação", () => {
+    expect(iso(vencimentoAptidao("2026-08-31"))).toBe("2027-02-28");
+  });
+
+  it("vence só depois dos 6 meses", () => {
+    const hoje = new Date("2026-09-07T12:00:00");
+    expect(aptidaoVencida("2026-06-01", hoje)).toBe(false);
+    expect(aptidaoVencida("2026-01-01", hoje)).toBe(true);
+    expect(aptidaoVencida(null, hoje)).toBe(false);
+  });
+
+  it("só é apto válido quando concluído e dentro do prazo", () => {
+    const hoje = new Date("2026-09-07T12:00:00");
+    expect(temAptoValido("concluido", "2026-08-01", hoje)).toBe(true);
+    expect(temAptoValido("concluido", "2026-01-01", hoje)).toBe(false); // vencida
+    expect(temAptoValido("ativo", "2026-08-01", hoje)).toBe(false); // não concluído
+    expect(temAptoValido("arquivado", "2026-08-01", hoje)).toBe(false);
+  });
+});
+
+describe("fragilidades de plano concluído", () => {
+  const recente = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 10);
+  };
+  const base = {
+    itensAtivos: 10,
+    itensSemCriterio: 0,
+    candidatosAtivos: 1,
+    temEmergencial: false,
+    melhorProntidao: 20,
+    dataAprovacao: null as string | null,
+  };
+
+  it("com apto válido, não cobra cobertura emergencial nem baixa prontidão", () => {
+    const f = fragilidades({ ...base, situacao: "concluido", dataConclusao: recente() });
+    const tipos = f.map((x) => x.tipo);
+    expect(tipos).not.toContain("sem_emergencial");
+    expect(tipos).not.toContain("baixa_prontidao");
+    expect(tipos).not.toContain("aptidao_vencida");
+  });
+
+  it("com aptidão vencida, acusa e volta a cobrar o resto", () => {
+    const f = fragilidades({ ...base, situacao: "concluido", dataConclusao: "2020-01-01" });
+    const tipos = f.map((x) => x.tipo);
+    expect(tipos).toContain("aptidao_vencida");
+    expect(tipos).toContain("sem_emergencial");
+    expect(tipos).toContain("baixa_prontidao");
+  });
+
+  it("plano ativo segue cobrando normalmente", () => {
+    const f = fragilidades({ ...base, situacao: "ativo", dataConclusao: null });
+    const tipos = f.map((x) => x.tipo);
+    expect(tipos).toContain("sem_emergencial");
+    expect(tipos).toContain("baixa_prontidao");
+    expect(tipos).not.toContain("aptidao_vencida");
   });
 });
 

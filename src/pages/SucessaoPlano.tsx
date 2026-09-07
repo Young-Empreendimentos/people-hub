@@ -46,6 +46,7 @@ import {
   nivelLabel, nivelClasses, horizonteLabel, categoriaLabel, riscoClasses,
   prontidao, fragilidades,
   MESES_VALIDADE_APROVACAO, vencimentoAprovacao, aprovacaoVencida,
+  MESES_VALIDADE_APTIDAO, vencimentoAptidao, temAptoValido,
 } from "@/lib/sucessao";
 
 const CORES_LINHA = [
@@ -82,6 +83,7 @@ export default function SucessaoPlano() {
 
   const [planoOpen, setPlanoOpen] = useState(false);
   const [pSituacao, setPSituacao] = useState("rascunho");
+  const [pConclusao, setPConclusao] = useState("");
   const [pImpacto, setPImpacto] = useState("alto");
   const [pRisco, setPRisco] = useState("medio");
   const [pAprovacao, setPAprovacao] = useState("");
@@ -375,6 +377,8 @@ export default function SucessaoPlano() {
       temEmergencial: candAtivos.some((c) => c.situacao === "ativo" && c.horizonte === "emergencial"),
       melhorProntidao: melhor,
       dataAprovacao: plano.data_aprovacao,
+      situacao: plano.situacao,
+      dataConclusao: plano.data_conclusao,
     });
   }, [plano, itensAtivos, itensSemCriterio, candAtivos, prontidaoPor]);
 
@@ -511,6 +515,8 @@ export default function SucessaoPlano() {
     mutationFn: async () => {
       const { error } = await rhDb.from("rh_sucessao_planos").update({
         situacao: pSituacao,
+        // Só enviamos quando concluído; nos demais casos o trigger limpa.
+        ...(pSituacao === "concluido" && pConclusao ? { data_conclusao: pConclusao } : {}),
         impacto_vacancia: pImpacto,
         risco_saida: pRisco,
         data_aprovacao: pAprovacao || null,
@@ -576,6 +582,7 @@ export default function SucessaoPlano() {
   const abrirEditPlano = () => {
     if (!plano) return;
     setPSituacao(plano.situacao);
+    setPConclusao(plano.data_conclusao ?? "");
     setPImpacto(plano.impacto_vacancia);
     setPRisco(plano.risco_saida);
     setPAprovacao(plano.data_aprovacao ?? "");
@@ -893,6 +900,20 @@ export default function SucessaoPlano() {
         <Badge variant="outline" className={riscoClasses(plano.risco_saida)}>
           risco de saída: {plano.risco_saida}
         </Badge>
+        {plano.situacao === "concluido" && (
+          temAptoValido(plano.situacao, plano.data_conclusao) ? (
+            <Badge variant="outline" className="border-emerald-400 text-emerald-700 dark:text-emerald-300">
+              candidato apto
+              {vencimentoAptidao(plano.data_conclusao) && (
+                <> · válido até {vencimentoAptidao(plano.data_conclusao)!.toLocaleDateString("pt-BR")}</>
+              )}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300">
+              aptidão vencida — reconfirmar
+            </Badge>
+          )
+        )}
         {plano.publicado && (
           <Badge variant="outline" className="border-emerald-400 text-emerald-700 dark:text-emerald-300">
             <Share2 className="mr-1 h-3 w-3" />
@@ -1438,6 +1459,29 @@ export default function SucessaoPlano() {
                 </Select>
               </div>
             </div>
+
+            {pSituacao === "concluido" ? (
+              <div>
+                <label className="text-sm">Data da aptidão</label>
+                <Input type="date" value={pConclusao} onChange={(e) => setPConclusao(e.target.value)} />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Concluir significa que <strong>há candidato apto</strong> — o cargo
+                  continua coberto e o plano segue no painel. A aptidão vale{" "}
+                  {MESES_VALIDADE_APTIDAO} meses
+                  {vencimentoAptidao(pConclusao)
+                    ? `, até ${vencimentoAptidao(pConclusao)!.toLocaleDateString("pt-BR")}`
+                    : ""}
+                  ; depois disso precisa ser reconfirmada. Em branco, usa hoje.
+                </p>
+              </div>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">
+                <strong>Concluído</strong> = há candidato apto (o cargo segue coberto,
+                por 6 meses). <strong>Arquivado</strong> = o cargo perde a cobertura e
+                volta a aparecer como em aberto no painel.
+              </p>
+            )}
+
             <div>
               <label className="text-sm">Data da aprovação</label>
               <Input type="date" value={pAprovacao} onChange={(e) => setPAprovacao(e.target.value)} />

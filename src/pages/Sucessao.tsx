@@ -24,12 +24,13 @@ import {
 } from "recharts";
 import {
   Plus, ShieldAlert, ShieldCheck, TriangleAlert, CalendarClock, Users,
-  Target, Lock, ArrowRight, Share2, Eye,
+  Target, Lock, ArrowRight, Share2, Eye, BadgeCheck, ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
   SITUACOES_PLANO, NIVEIS_RISCO, riscoClasses,
   prontidao, fragilidades, prioridade, type Fragilidade,
+  cobreCargo, temAptoValido, vencimentoAptidao, MESES_VALIDADE_APTIDAO,
 } from "@/lib/sucessao";
 
 type Plano = {
@@ -37,6 +38,7 @@ type Plano = {
   titulo: string; situacao: string;
   impacto_vacancia: string; risco_saida: string;
   data_aprovacao: string | null; observacoes: string | null;
+  data_conclusao?: string | null;
   publicado?: boolean; publicacao_campos?: Record<string, boolean>;
   created_at: string;
 };
@@ -90,6 +92,7 @@ export default function Sucessao() {
   });
   const [nObs, setNObs] = useState("");
   const [filtroSituacao, setFiltroSituacao] = useState("ativos");
+  const [semPlanoAberto, setSemPlanoAberto] = useState(false);
 
   const { data: planos = [], isLoading } = useQuery({
     queryKey: ["rh_sucessao_planos"],
@@ -207,6 +210,8 @@ export default function Sucessao() {
         temEmergencial: emergenciais.length > 0,
         melhorProntidao,
         dataAprovacao: p.data_aprovacao,
+        situacao: p.situacao,
+        dataConclusao: p.data_conclusao,
       });
 
       return {
@@ -220,13 +225,14 @@ export default function Sucessao() {
         frags,
         criticas: frags.filter((f) => f.severidade === "critica").length,
         prio: prioridade(p.impacto_vacancia, p.risco_saida),
+        apto: temAptoValido(p.situacao, p.data_conclusao),
       };
     });
   }, [planos, itens, candidatos, avaliacoes, criterios, cargos, funcionarios]);
 
   const visiveis = useMemo(() => {
     const base = filtroSituacao === "ativos"
-      ? resumos.filter((r) => ["rascunho", "ativo"].includes(r.plano.situacao))
+      ? resumos.filter((r) => cobreCargo(r.plano.situacao))
       : filtroSituacao === "todos"
         ? resumos
         : resumos.filter((r) => r.plano.situacao === filtroSituacao);
@@ -237,7 +243,7 @@ export default function Sucessao() {
 
   // ---- KPIs -----------------------------------------------------------------
   const kpis = useMemo(() => {
-    const ativos = resumos.filter((r) => ["rascunho", "ativo"].includes(r.plano.situacao));
+    const ativos = resumos.filter((r) => cobreCargo(r.plano.situacao));
     const cargosComPlano = new Set(ativos.map((r) => r.plano.cargo_id)).size;
     const comEmergencial = ativos.filter(
       (r) => !r.frags.some((f) => f.tipo === "sem_emergencial") && r.candidatosAtivos > 0,
@@ -249,13 +255,20 @@ export default function Sucessao() {
     const prontosMedia = ativos.length
       ? Math.round(ativos.reduce((s, r) => s + r.melhorProntidao, 0) / ativos.length)
       : 0;
-    return { total: ativos.length, cargosComPlano, comEmergencial, criticos, aprovacaoVencida, prontosMedia };
+    const comApto = ativos.filter((r) => r.apto).length;
+    const aptidaoVencidaN = ativos.filter(
+      (r) => r.frags.some((f) => f.tipo === "aptidao_vencida"),
+    ).length;
+    return {
+      total: ativos.length, cargosComPlano, comEmergencial, criticos,
+      aprovacaoVencida, prontosMedia, comApto, aptidaoVencidaN,
+    };
   }, [resumos]);
 
   const dadosGrafico = useMemo(
     () =>
       [...resumos]
-        .filter((r) => ["rascunho", "ativo"].includes(r.plano.situacao))
+        .filter((r) => cobreCargo(r.plano.situacao))
         .sort((a, b) => a.melhorProntidao - b.melhorProntidao)
         .map((r) => ({
           nome: r.cargo.length > 24 ? r.cargo.slice(0, 23) + "…" : r.cargo,
@@ -277,7 +290,7 @@ export default function Sucessao() {
         risco: ris,
         planos: resumos.filter(
           (r) =>
-            ["rascunho", "ativo"].includes(r.plano.situacao) &&
+            cobreCargo(r.plano.situacao) &&
             r.plano.impacto_vacancia === imp &&
             r.plano.risco_saida === ris,
         ),
@@ -288,7 +301,7 @@ export default function Sucessao() {
   const cargosSemPlano = useMemo(() => {
     const comPlano = new Set(
       resumos
-        .filter((r) => ["rascunho", "ativo"].includes(r.plano.situacao))
+        .filter((r) => cobreCargo(r.plano.situacao))
         .map((r) => r.plano.cargo_id),
     );
     // Só cargos que têm alguém ativo ocupando — cargo vazio no catálogo não é risco
@@ -363,9 +376,12 @@ export default function Sucessao() {
       </div>
 
       {/* ---------------- KPIs ---------------- */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <KpiCard icon={Target} label="Planos ativos" valor={String(kpis.total)}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+        <KpiCard icon={Target} label="Planos em vigor" valor={String(kpis.total)}
           hint={`${kpis.cargosComPlano} cargo(s) coberto(s)`} />
+        <KpiCard icon={BadgeCheck} label="Com candidato apto" valor={String(kpis.comApto)}
+          hint={kpis.aptidaoVencidaN > 0 ? `${kpis.aptidaoVencidaN} com aptidão vencida` : "aptidão dentro da validade"}
+          tone={kpis.aptidaoVencidaN > 0 ? "warn" : kpis.comApto > 0 ? "ok" : "neutral"} />
         <KpiCard icon={ShieldCheck} label="Com cobertura emergencial"
           valor={`${kpis.comEmergencial}/${kpis.total}`}
           hint="alguém assume amanhã"
@@ -474,28 +490,44 @@ export default function Sucessao() {
       {/* ---------------- Cargos-chave sem plano ---------------- */}
       {cargosSemPlano.length > 0 && (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <TriangleAlert className="h-4 w-4 text-amber-500" />
-              Cargos ocupados sem plano ({cargosSemPlano.length})
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">
-              Nem todo cargo precisa de plano — mas decida quais precisam de propósito, não por esquecimento.
-            </p>
-          </CardHeader>
-          <CardContent className="flex flex-wrap gap-1.5">
-            {cargosSemPlano.map((c: any) => (
-              <Badge
-                key={c.id}
-                variant="outline"
-                className="cursor-pointer hover:border-primary"
-                onClick={() => { setNCargo(c.id); setNTitulo(`Sucessão — ${c.nome}`); setNovoOpen(true); }}
-              >
-                {c.nome}
-                <Plus className="ml-1 h-3 w-3" />
-              </Badge>
-            ))}
-          </CardContent>
+          {/* Colapsado por padrão: é uma lista longa e de consulta eventual, que
+              empurrava os planos para baixo da dobra. */}
+          <button
+            className="w-full text-left"
+            onClick={() => setSemPlanoAberto((v) => !v)}
+            aria-expanded={semPlanoAberto}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ChevronRight
+                  className={`h-4 w-4 shrink-0 transition-transform ${semPlanoAberto ? "rotate-90" : ""}`}
+                />
+                <TriangleAlert className="h-4 w-4 text-amber-500 shrink-0" />
+                Cargos ocupados sem plano ({cargosSemPlano.length})
+              </CardTitle>
+              {semPlanoAberto && (
+                <p className="text-xs text-muted-foreground">
+                  Nem todo cargo precisa de plano — mas decida quais precisam de propósito, não por esquecimento.
+                  Clique num cargo para abrir um plano para ele.
+                </p>
+              )}
+            </CardHeader>
+          </button>
+          {semPlanoAberto && (
+            <CardContent className="flex flex-wrap gap-1.5">
+              {cargosSemPlano.map((c: any) => (
+                <Badge
+                  key={c.id}
+                  variant="outline"
+                  className="cursor-pointer hover:border-primary"
+                  onClick={() => { setNCargo(c.id); setNTitulo(`Sucessão — ${c.nome}`); setNovoOpen(true); }}
+                >
+                  {c.nome}
+                  <Plus className="ml-1 h-3 w-3" />
+                </Badge>
+              ))}
+            </CardContent>
+          )}
         </Card>
       )}
 
@@ -505,7 +537,7 @@ export default function Sucessao() {
         <Select value={filtroSituacao} onValueChange={setFiltroSituacao}>
           <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="ativos">Rascunho + Ativo</SelectItem>
+            <SelectItem value="ativos">Em vigor (cobrem o cargo)</SelectItem>
             <SelectItem value="todos">Todos</SelectItem>
             {SITUACOES_PLANO.map((s) => (
               <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
@@ -544,6 +576,21 @@ export default function Sucessao() {
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
+                      {r.apto && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Badge variant="outline" className="border-emerald-400 text-emerald-700 dark:text-emerald-300 gap-1">
+                              <BadgeCheck className="h-3 w-3" />apto
+                            </Badge>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            Candidato apto
+                            {vencimentoAptidao(r.plano.data_conclusao) && (
+                              <> — válido até {vencimentoAptidao(r.plano.data_conclusao)!.toLocaleDateString("pt-BR")}</>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                       {r.plano.publicado && (
                         <Tooltip>
                           <TooltipTrigger asChild>

@@ -217,6 +217,8 @@ export default function FolhaMensal() {
 
 
   const VR_CLT_VALOR = 300;
+  // Ao DESCONSIDERAR o VR: CLT mantém um piso de R$ 25,00; os demais contratos ficam zerados.
+  const VR_CLT_DESCONSIDERADO = 25;
 
   const { data: folhas = [], isLoading } = useQuery({
     queryKey: ["rh_folha_mensal"],
@@ -335,7 +337,7 @@ export default function FolhaMensal() {
   }, [funcId, funcionariosAll]);
 
   const vrCalculado = useMemo(() => {
-    if (vrDesconsiderado) return 0;
+    if (vrDesconsiderado) return selectedFuncTipoContrato === "CLT" ? VR_CLT_DESCONSIDERADO : 0;
     const editado = parseFloat(valorVr);
     if (!isNaN(editado)) return editado;
     return selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
@@ -349,12 +351,13 @@ export default function FolhaMensal() {
     }
   }, [funcId, selectedFuncTipoContrato, editingId]);
 
-  // Quando marca/desmarca desconsiderar VR, ajusta valor
+  // Quando marca/desmarca desconsiderar VR, ajusta valor.
+  // Desconsiderado: CLT vai a R$ 25,00 (piso), demais a 0 — vale inclusive na edição.
+  // Não desconsiderado: só repõe o padrão em nova folha (na edição, mantém o valor salvo).
   useEffect(() => {
-    if (editingId) return;
     if (vrDesconsiderado) {
-      setValorVr("0");
-    } else {
+      setValorVr(String(selectedFuncTipoContrato === "CLT" ? VR_CLT_DESCONSIDERADO : 0));
+    } else if (!editingId) {
       const padrao = selectedFuncTipoContrato === "CLT" ? VR_CLT_VALOR : 0;
       setValorVr(String(padrao));
     }
@@ -596,7 +599,9 @@ export default function FolhaMensal() {
         valor_comissoes: parseFloat(comissoes) || 0,
         valor_plr: parseFloat(plr) || 0,
         observacoes: obs || null,
-        valor_vr: parseFloat(valorVr) || 0,
+        valor_vr: vrDesconsiderado
+          ? (selectedFuncTipoContrato === "CLT" ? VR_CLT_DESCONSIDERADO : 0)
+          : (parseFloat(valorVr) || 0),
         vr_desconsiderado: vrDesconsiderado,
         vr_justificativa: vrDesconsiderado ? (vrJustificativa || null) : null,
       };

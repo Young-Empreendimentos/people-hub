@@ -74,7 +74,7 @@ export default function Funcionarios() {
   });
   const { data: cargos = [] } = useQuery({
     queryKey: ["rh_cargos"],
-    queryFn: async () => { const { data } = await rhDb.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome"); return data || []; },
+    queryFn: async () => { const { data } = await rhDb.from("rh_cargos").select("*, rh_trilhas_cargo(nome)").order("nome").order("nivel").order("remuneracao"); return data || []; },
   });
 
   const { data: ultimoAditivoPorFunc = {} } = useQuery({
@@ -469,7 +469,7 @@ export default function Funcionarios() {
               <Combobox
                 options={cargos.map((c: any) => ({
                   value: c.id,
-                  label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome} (Nível ${c.nivel})`,
+                  label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome}${c.nivel != null ? ` (Nível ${c.nivel})` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
                 }))}
                 value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo"
                 disabled={!canEditCargoSalario}

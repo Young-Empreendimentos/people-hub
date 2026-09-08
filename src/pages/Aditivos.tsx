@@ -48,7 +48,7 @@ export default function Aditivos() {
     queryFn: async () => {
       const { data, error } = await rhDb
         .from("rh_aditivos")
-        .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id), rh_aditivo_tipo_aditivo(tipo_aditivo_id, rh_tipos_aditivo(id, nome)), rh_empresas(nome), rh_cargos(nome), rh_equipes(nome)")
+        .select("*, rh_funcionarios(nome_completo, empresa_id, equipe_id), rh_aditivo_tipo_aditivo(tipo_aditivo_id, rh_tipos_aditivo(id, nome)), rh_empresas(nome), rh_cargos(nome, nivel), rh_equipes(nome)")
         .order("data", { ascending: false });
       if (error) throw error;
       return data;
@@ -216,7 +216,7 @@ export default function Aditivos() {
                   </div>
                 </TableCell>
                 <TableCell>{a.rh_empresas?.nome || "—"}</TableCell>
-                <TableCell>{a.rh_cargos?.nome || "—"}</TableCell>
+                <TableCell>{a.rh_cargos ? `${a.rh_cargos.nome}${a.rh_cargos.nivel != null ? ` — Nível ${a.rh_cargos.nivel}` : ""}` : "—"}</TableCell>
                 <TableCell>{a.rh_equipes?.nome || "—"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">

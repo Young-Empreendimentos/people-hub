@@ -1,3 +1,5 @@
+import CelebracaoVenda from "@/components/CelebracaoVenda";
+import { supabase } from "@/integrations/supabase/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -70,6 +72,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <CelebracaoVenda supabase={supabase} sistema="Pilares" somUrl="/sons/venda-celebracao.mp3" />
       <AuthProvider>
         <BrowserRouter>
           <Routes>

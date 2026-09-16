@@ -469,7 +469,7 @@ export default function Funcionarios() {
               <Combobox
                 options={cargos.map((c: any) => ({
                   value: c.id,
-                  label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome}${c.nivel != null ? ` (Nível ${c.nivel})` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`,
+                  label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome}${c.nivel != null ? ` (Nível ${c.nivel})` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${c.adicionais ? ` · ${c.adicionais}` : ""}`,
                 }))}
                 value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo"
                 disabled={!canEditCargoSalario}

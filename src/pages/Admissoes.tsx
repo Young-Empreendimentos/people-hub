@@ -326,7 +326,7 @@ export default function Admissoes() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Cargo</label>
-                    <Combobox options={cargos.map((c: any) => ({ value: c.id, label: `${c.nome}${c.nivel != null ? ` — Nível ${c.nivel}` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` }))} value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo" />
+                    <Combobox options={cargos.map((c: any) => ({ value: c.id, label: `${c.nome}${c.nivel != null ? ` — Nível ${c.nivel}` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${c.adicionais ? ` · ${c.adicionais}` : ""}` }))} value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo" />
                   </div>
                 </div>
                 <div className="space-y-2">

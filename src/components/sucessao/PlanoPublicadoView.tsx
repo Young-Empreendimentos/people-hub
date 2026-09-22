@@ -76,8 +76,22 @@ export function PlanoPublicadoView({ dados }: { dados: PlanoPublicado }) {
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">{plano.cargo ?? plano.titulo}</h1>
         <p className="text-sm text-muted-foreground">
-          Plano de desenvolvimento de {eu.nome ?? "—"}
-          {plano.titular && <> · titular atual: {plano.titular}</>}
+          {/* Para o titular não é "plano de desenvolvimento dele": é o plano de
+              sucessão do cargo que ele ocupa. Repetir o nome nos dois papéis
+              ficava redundante e dizia a coisa errada. */}
+          {eu.e_candidato ? (
+            <>
+              Plano de desenvolvimento de {eu.nome ?? "—"}
+              {plano.titular && <> · titular atual: {plano.titular}</>}
+            </>
+          ) : eu.e_titular ? (
+            <>Plano de sucessão do cargo · você é o titular atual</>
+          ) : (
+            <>
+              Plano de sucessão do cargo
+              {plano.titular && <> · titular atual: {plano.titular}</>}
+            </>
+          )}
           {plano.publicado_em && (
             <> · disponibilizado em {new Date(plano.publicado_em).toLocaleDateString("pt-BR")}</>
           )}

@@ -31,9 +31,10 @@ export function SucessaoPublicadaLista() {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Meu plano de desenvolvimento</h1>
+        {/* Neutro: a lista serve tanto a candidatos quanto a titulares. */}
+        <h1 className="text-2xl font-bold tracking-tight">Meus planos</h1>
         <p className="text-sm text-muted-foreground">
-          O que foi mapeado para você evoluir no cargo, com o critério de cada item.
+          Planos de sucessão disponibilizados para você, com o critério de cada item.
         </p>
       </div>
 

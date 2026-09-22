@@ -1782,6 +1782,35 @@ export default function SucessaoPlano() {
                 nem pela API: a função que serve o plano ao destinatário não devolve
                 esses campos.
               </p>
+
+              {plano.titular_funcionario_id && (
+                <div className="mt-3 rounded border p-2.5">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={!!pubCampos.titular_ve_candidatos}
+                      disabled={!pubCampos.nivel}
+                      onCheckedChange={() =>
+                        setPubCampos((c) => ({
+                          ...c,
+                          titular_ve_candidatos: !c.titular_ve_candidatos,
+                        }))
+                      }
+                    />
+                    <span className="min-w-0">
+                      O titular vê o progresso dos candidatos
+                      <span className="block text-[11px] text-muted-foreground font-normal">
+                        Exceção só para {funcNome(plano.titular_funcionario_id)}, o titular:
+                        vê o nível de cada candidato e a prontidão deles. Os candidatos
+                        continuam vendo apenas a si.
+                        {!pubCampos.nivel && (
+                          <strong> Requer o campo “Nível” ligado acima.</strong>
+                        )}
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              )}
             </div>
 
             <Separator />

@@ -26,6 +26,8 @@ export type PlanoPublicado = {
   eu: { funcionario_id: string; nome: string | null; e_candidato: boolean; e_titular: boolean };
   prontidao: number | null;
   preview: boolean;
+  /** Só chega quando o destinatário é o titular e o admin liberou. */
+  candidatos?: { id: string; nome: string; horizonte: string; prontidao: number }[] | null;
   itens: {
     id: string;
     categoria: string;
@@ -37,6 +39,8 @@ export type PlanoPublicado = {
     nivel?: number | null;
     data_alvo?: string | null;
     evidencia?: string | null;
+    /** nível por candidato, quando o titular pode ver o progresso deles */
+    niveis?: Record<string, number | null>;
   }[];
 };
 
@@ -46,15 +50,26 @@ export function PlanoPublicadoView({ dados }: { dados: PlanoPublicado }) {
   const { plano, campos, eu, itens } = dados;
 
   // Agrupa como na matriz: grupo da atividade, ou a categoria para texto livre.
+  // A ordem é a de aparição — os itens já vêm na ordem do plano. Ordenar por
+  // nome colocaria "IX" antes de "V", porque algarismo romano não ordena como
+  // texto.
   const grupos = new Map<string, PlanoPublicado["itens"]>();
   for (const i of itens) {
     const g = i.grupo || categoriaLabel(i.categoria);
     if (!grupos.has(g)) grupos.set(g, []);
     grupos.get(g)!.push(i);
   }
-  const ordenados = [...grupos.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  const ordenados = [...grupos.entries()];
 
-  const mostraNivel = itens.some((i) => i.nivel !== undefined);
+  const candidatos = dados.candidatos ?? [];
+  const veCandidatos = candidatos.length > 0;
+  // Selo do próprio nível só faz sentido para quem é candidato: para o titular
+  // sem essa opção, todo item viria "Não avaliado" e a tela mentiria.
+  const mostraNivelProprio = eu.e_candidato && itens.some((i) => i.nivel !== undefined);
+
+  const treinamentoPublicado = !!campos.treinamento;
+  const semNenhumTreinamento =
+    treinamentoPublicado && itens.length > 0 && itens.every((i) => !i.plano_treinamento);
 
   return (
     <div className="space-y-4">
@@ -68,6 +83,40 @@ export function PlanoPublicadoView({ dados }: { dados: PlanoPublicado }) {
           )}
         </p>
       </div>
+
+      {veCandidatos && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Candidatos à sua sucessão</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {candidatos.map((c) => (
+              <div key={c.id} className="space-y-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-sm font-medium min-w-0">{c.nome}</span>
+                  <span className="text-sm font-bold tabular-nums shrink-0">{c.prontidao}%</span>
+                </div>
+                <Progress value={c.prontidao} />
+              </div>
+            ))}
+            <p className="text-xs text-muted-foreground">
+              Percentual dos itens em que a pessoa já está no nível “Atende” ou acima.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {semNenhumTreinamento && (
+        <Card className="border-dashed">
+          <CardContent className="p-3">
+            <p className="text-xs text-muted-foreground flex gap-1.5">
+              <GraduationCap className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              O plano de treinamento ainda não foi preenchido em nenhum item — por
+              isso não aparece abaixo.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {dados.prontidao !== null && dados.prontidao !== undefined && (
         <Card>
@@ -107,11 +156,23 @@ export function PlanoPublicadoView({ dados }: { dados: PlanoPublicado }) {
                       {i.peso !== undefined && Number(i.peso) !== 1 && (
                         <Badge variant="outline" className="text-[10px]">peso {Number(i.peso)}</Badge>
                       )}
-                      {i.nivel !== undefined && (
+                      {mostraNivelProprio && i.nivel !== undefined && (
                         <Badge variant="outline" className={`text-[11px] ${nivelClasses(i.nivel)}`}>
                           {nivelLabel(i.nivel)}
                         </Badge>
                       )}
+                      {veCandidatos && candidatos.map((c) => (
+                        <Badge
+                          key={c.id}
+                          variant="outline"
+                          className={`text-[11px] ${nivelClasses(i.niveis?.[c.id] ?? 0)}`}
+                        >
+                          {candidatos.length > 1 && (
+                            <span className="opacity-80 mr-1">{c.nome.split(" ")[0]}:</span>
+                          )}
+                          {nivelLabel(i.niveis?.[c.id] ?? 0)}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
 
@@ -146,10 +207,11 @@ export function PlanoPublicadoView({ dados }: { dados: PlanoPublicado }) {
         ))
       )}
 
-      {!eu.e_candidato && mostraNivel && (
+      {eu.e_titular && !eu.e_candidato && (
         <p className="text-xs text-muted-foreground">
-          Você recebeu este plano como titular do cargo. Os níveis mostrados são
-          por candidato, e você não é candidato neste plano — por isso aparecem vazios.
+          {veCandidatos
+            ? "Você recebeu este plano como titular do cargo: são as pessoas mapeadas para sucedê-lo e o quanto já dominam de cada item."
+            : "Você recebeu este plano como titular do cargo — são os requisitos mapeados para ele. A avaliação dos candidatos não faz parte desta visualização."}
         </p>
       )}
     </div>

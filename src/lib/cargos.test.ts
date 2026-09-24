@@ -20,8 +20,28 @@ describe("sugerirNomeCargo", () => {
     { nome: "Comercial VII", nivel: 7 },
   ];
 
-  it("segue o romano quando a função já usa (Comercial)", () => {
+  it("segue o romano quando os cargos da função já usam", () => {
     expect(sugerirNomeCargo("Comercial", comercial, 8)).toBe("Comercial VIII");
+  });
+
+  it("lê a convenção dos cargos, não do nome da função", () => {
+    // Caso real: a função se chama "Consultor Comercial", mas os cargos são
+    // "Comercial I…VII". O nível novo tem de seguir os cargos.
+    expect(sugerirNomeCargo("Consultor Comercial", comercial, 8)).toBe("Comercial VIII");
+  });
+
+  it("prefixos diferentes desligam o romano", () => {
+    const mistos = [
+      { nome: "Comercial I", nivel: 1 },
+      { nome: "Vendas II", nivel: 2 },
+    ];
+    expect(sugerirNomeCargo("Consultor Comercial", mistos, 3)).toBe("Consultor Comercial");
+  });
+
+  it("romano que não bate com o nível desliga o romano", () => {
+    // "Comercial II" gravado no nível 3 não é a convenção.
+    const errado = [{ nome: "Comercial II", nivel: 3 }];
+    expect(sugerirNomeCargo("Consultor Comercial", errado, 4)).toBe("Consultor Comercial");
   });
 
   it("não inventa sufixo quando a função usa o nome puro", () => {
@@ -34,7 +54,7 @@ describe("sugerirNomeCargo", () => {
 
   it("um único cargo fora do padrão desliga o romano", () => {
     const misto = [...comercial, { nome: "Comercial Sênior", nivel: 3 }];
-    expect(sugerirNomeCargo("Comercial", misto, 8)).toBe("Comercial");
+    expect(sugerirNomeCargo("Consultor Comercial", misto, 8)).toBe("Consultor Comercial");
   });
 
   it("função sem cargos sugere o nome da própria função", () => {

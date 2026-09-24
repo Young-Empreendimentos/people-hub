@@ -34,8 +34,8 @@ import {
 } from "@/lib/sucessao";
 
 type Plano = {
-  // O plano é por FUNÇÃO. cargo_id é legado (anulável) e sai numa migration seguinte.
-  id: string; funcao_id: string; cargo_id?: string | null; titular_funcionario_id: string | null;
+  // O plano é por FUNÇÃO (rh_funcoes), não por cargo + nível.
+  id: string; funcao_id: string; titular_funcionario_id: string | null;
   titulo: string; situacao: string;
   impacto_vacancia: string; risco_saida: string;
   data_aprovacao: string | null; observacoes: string | null;

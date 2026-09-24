@@ -234,7 +234,9 @@ export default function AtividadesAuditoria() {
         responsavel_funcionario_id: aResp || null,
         normas: aNormas || null, manuais: aManuais || null,
         indicadores: aIndicadores || null,
-        criterio_proficiencia: aCriterio || null,
+        // Só admin recebe o critério do banco; para os demais o campo vem vazio.
+        // Mandá-lo sempre faria um salvamento de não-admin APAGAR o critério.
+        ...(isAdmin ? { criterio_proficiencia: aCriterio || null } : {}),
         metodo_auditoria: aMetodo || null,
         ordem: Number(aOrdem),
       };
@@ -644,9 +646,12 @@ export default function AtividadesAuditoria() {
         <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
           <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} />
         </TableCell>
-        <TableCell className="max-w-[280px] text-xs whitespace-pre-wrap align-top">
-          <InlineText multiline value={a.criterio_proficiencia} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { criterio_proficiencia: v || null } })} />
-        </TableCell>
+        {/* Critério é só do admin — o banco também o devolve como NULL aos demais. */}
+        {isAdmin && (
+          <TableCell className="max-w-[280px] text-xs whitespace-pre-wrap align-top">
+            <InlineText multiline value={a.criterio_proficiencia} placeholder="clique para adicionar" onSave={(v) => patchAtv.mutate({ id: a.id, patch: { criterio_proficiencia: v || null } })} />
+          </TableCell>
+        )}
         {isAdmin && (
           <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
             <InlineText multiline value={a.metodo_auditoria} placeholder="clique para adicionar" onSave={(v) => patchAtv.mutate({ id: a.id, patch: { metodo_auditoria: v || null } })} />
@@ -675,7 +680,7 @@ export default function AtividadesAuditoria() {
           <TableHead>Normas</TableHead>
           <TableHead>Manuais</TableHead>
           <TableHead>Indicadores</TableHead>
-          <TableHead>Critério</TableHead>
+          {isAdmin && <TableHead>Critério</TableHead>}
           {isAdmin && <TableHead>Método</TableHead>}
         </TableRow>
       </TableHeader>
@@ -750,7 +755,9 @@ export default function AtividadesAuditoria() {
           <div>Normas: <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} /></div>
           <div>Manuais: <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} /></div>
           <div>Indicadores: <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} /></div>
-          <div>Critério: <InlineText multiline value={a.criterio_proficiencia} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { criterio_proficiencia: v || null } })} /></div>
+          {isAdmin && (
+            <div>Critério: <InlineText multiline value={a.criterio_proficiencia} placeholder="clique para adicionar" onSave={(v) => patchAtv.mutate({ id: a.id, patch: { criterio_proficiencia: v || null } })} /></div>
+          )}
           {isAdmin ? (
             <div className="text-foreground/80">
               <strong>Método:</strong>{" "}
@@ -1003,7 +1010,7 @@ export default function AtividadesAuditoria() {
       "Normas": a.normas || "",
       "Manuais": a.manuais || "",
       "Indicadores": a.indicadores || "",
-      "Critério": a.criterio_proficiencia || "",
+      ...(isAdmin ? { "Critério": a.criterio_proficiencia || "" } : {}),
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [
@@ -1582,8 +1589,8 @@ export default function AtividadesAuditoria() {
             <div><label className="text-sm">Normas</label><Textarea rows={2} value={aNormas} onChange={(e) => setANormas(e.target.value)} /></div>
             <div><label className="text-sm">Manuais</label><Textarea rows={2} value={aManuais} onChange={(e) => setAManuais(e.target.value)} /></div>
             <div><label className="text-sm">Indicadores</label><Textarea rows={2} value={aIndicadores} onChange={(e) => setAIndicadores(e.target.value)} /></div>
-            <div>
-              <label className="text-sm">Critério de aptidão</label>
+            {isAdmin && <div>
+              <label className="text-sm flex items-center gap-1"><Lock className="h-3 w-3" />Critério de aptidão (restrito)</label>
               <Textarea
                 rows={3}
                 value={aCriterio}
@@ -1591,10 +1598,11 @@ export default function AtividadesAuditoria() {
                 placeholder="Está pronto quando…"
               />
               <p className="text-[11px] text-muted-foreground mt-1">
-                Régua para considerar alguém plenamente capacitado. Visível ao colaborador
-                (ao contrário do método de auditoria) e reaproveitada nos planos de sucessão.
+                Régua para considerar alguém plenamente capacitado. Visível só para admin.
+                É reaproveitada nos planos de sucessão e só chega a um colaborador se você
+                a marcar ao disponibilizar um plano.
               </p>
-            </div>
+            </div>}
             <div>
               <label className="text-sm flex items-center gap-1"><Lock className="h-3 w-3" />Método de auditoria (restrito)</label>
               <Textarea rows={3} value={aMetodo} onChange={(e) => setAMetodo(e.target.value)} />

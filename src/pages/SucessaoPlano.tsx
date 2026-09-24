@@ -47,7 +47,9 @@ import {
   prontidao, fragilidades,
   MESES_VALIDADE_APROVACAO, vencimentoAprovacao, aprovacaoVencida,
   MESES_VALIDADE_APTIDAO, vencimentoAptidao, temAptoValido,
+  externoAprovadoValido, cobertura, COBERTURAS,
 } from "@/lib/sucessao";
+import { AlternativasExternas, type Externo } from "@/components/sucessao/AlternativasExternas";
 
 const CORES_LINHA = [
   "hsl(221 83% 53%)", "hsl(142 71% 45%)", "hsl(38 92% 50%)",
@@ -295,6 +297,17 @@ export default function SucessaoPlano() {
     },
   });
 
+  const { data: externos = [] } = useQuery({
+    queryKey: ["rh_sucessao_externos", id],
+    enabled: isAdmin && !!id,
+    queryFn: async () => {
+      const { data, error } = await rhDb
+        .from("rh_sucessao_externos").select("*").eq("plano_id", id).order("created_at");
+      if (error) throw error;
+      return (data ?? []) as unknown as Externo[];
+    },
+  });
+
   const { data: historico = [] } = useQuery({
     queryKey: ["rh_sucessao_hist", id],
     enabled: isAdmin && !!id,
@@ -367,6 +380,16 @@ export default function SucessaoPlano() {
     [itensAtivos, catalogo],
   );
 
+  const temEmergencial = candAtivos.some((c) => c.situacao === "ativo" && c.horizonte === "emergencial");
+  const externoAprovado = externos.some((e) => externoAprovadoValido(e.aprovado_em));
+  const cob = plano
+    ? cobertura({
+        aptoInterno: temAptoValido(plano.situacao, plano.data_conclusao),
+        emergencialInterno: temEmergencial,
+        externoAprovado,
+      })
+    : "descoberta";
+
   const frags = useMemo(() => {
     if (!plano) return [];
     const melhor = candAtivos.length
@@ -376,13 +399,14 @@ export default function SucessaoPlano() {
       itensAtivos: itensAtivos.length,
       itensSemCriterio,
       candidatosAtivos: candAtivos.filter((c) => c.situacao === "ativo").length,
-      temEmergencial: candAtivos.some((c) => c.situacao === "ativo" && c.horizonte === "emergencial"),
+      temEmergencial,
       melhorProntidao: melhor,
       dataAprovacao: plano.data_aprovacao,
       situacao: plano.situacao,
       dataConclusao: plano.data_conclusao,
+      externoAprovado,
     });
-  }, [plano, itensAtivos, itensSemCriterio, candAtivos, prontidaoPor]);
+  }, [plano, itensAtivos, itensSemCriterio, candAtivos, prontidaoPor, temEmergencial, externoAprovado]);
 
   /**
    * Curva de prontidão: replay do histórico, um ponto por dia em que houve
@@ -896,6 +920,10 @@ export default function SucessaoPlano() {
         <Badge variant={plano.situacao === "ativo" ? "default" : "secondary"}>
           {SITUACOES_PLANO.find((s) => s.value === plano.situacao)?.label}
         </Badge>
+        <Badge variant="outline" className={COBERTURAS[cob].classes}>
+          {COBERTURAS[cob].label}
+          {cob === "parcial" && " · só alternativa externa"}
+        </Badge>
         <Badge variant="outline" className={riscoClasses(plano.impacto_vacancia)}>
           impacto da vacância: {plano.impacto_vacancia}
         </Badge>
@@ -1035,9 +1063,12 @@ export default function SucessaoPlano() {
 
       {/* ---------------- Matriz / Evolução ---------------- */}
       <Tabs defaultValue="matriz">
-        <TabsList>
+        <TabsList className="h-auto flex-wrap justify-start">
           <TabsTrigger value="matriz">Matriz de prontidão</TabsTrigger>
           <TabsTrigger value="evolucao">Evolução</TabsTrigger>
+          <TabsTrigger value="externos">
+            Alternativas externas{externos.length > 0 && ` (${externos.length})`}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="matriz" className="space-y-3">
@@ -1231,6 +1262,15 @@ export default function SucessaoPlano() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="externos">
+          <AlternativasExternas
+            planoId={plano.id}
+            funcaoId={plano.funcao_id}
+            funcaoNome={cargoNome(plano.funcao_id)}
+            externos={externos}
+          />
         </TabsContent>
       </Tabs>
 

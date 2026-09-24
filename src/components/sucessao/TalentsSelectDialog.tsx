@@ -14,11 +14,12 @@ import { Search, Users, AlertTriangle } from "lucide-react";
 interface TalentsSelectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  mapeamentoCargoId: string | null;
+  /** Plano de sucessão que recebe os externos. */
+  planoId: string | null;
   cargoNome?: string;
-  /** Função deste mapeamento, para destacar quem o Talents já mapeou para ela. */
+  /** Função do plano, para destacar quem o Talents já mapeou para ela. */
   funcaoAlvoId?: string | null;
-  /** ids de candidatos do Talents já vinculados a este cargo (para evitar duplicar) */
+  /** ids de candidatos do Talents já vinculados a este plano (para evitar duplicar) */
   jaVinculados?: string[];
   onAdded?: () => void;
 }
@@ -35,7 +36,7 @@ interface TalentsRow {
 }
 
 export function TalentsSelectDialog({
-  open, onOpenChange, mapeamentoCargoId, cargoNome, funcaoAlvoId, jaVinculados = [], onAdded,
+  open, onOpenChange, planoId, cargoNome, funcaoAlvoId, jaVinculados = [], onAdded,
 }: TalentsSelectDialogProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -105,10 +106,10 @@ export function TalentsSelectDialog({
 
   const confirmar = useMutation({
     mutationFn: async () => {
-      if (!mapeamentoCargoId) throw new Error("Cargo não definido");
+      if (!planoId) throw new Error("Plano não definido");
       const escolhidos = rows.filter((r) => selected.has(r.id));
       const payload = escolhidos.map((r) => ({
-        mapeamento_cargo_id: mapeamentoCargoId,
+        plano_id: planoId,
         origem: "talents" as const,
         talents_candidate_id: r.candidate_id,
         talents_mapping_id: r.id,
@@ -119,16 +120,17 @@ export function TalentsSelectDialog({
         cargo_atual: null,
         observacoes: r.notes,
       }));
-      const { error } = await rhDb.from("rh_mapeamento_alternativas").insert(payload);
+      const { error } = await rhDb.from("rh_sucessao_externos").insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rh_mapeamento_alternativas"] });
+      queryClient.invalidateQueries({ queryKey: ["rh_sucessao_externos"] });
       toast.success("Candidatos adicionados do Talents.");
       handleClose(false);
       onAdded?.();
     },
-    onError: () => toast.error("Erro ao adicionar candidatos."),
+    onError: (e: any) =>
+      toast.error(e?.code === "23505" ? "Algum desses candidatos já está no plano." : "Erro ao adicionar candidatos."),
   });
 
   const handleClose = (o: boolean) => {
@@ -191,7 +193,7 @@ export function TalentsSelectDialog({
                     <p className="text-sm font-medium flex items-center gap-1.5 flex-wrap">
                       <span className="truncate">{r.full_name}</span>
                       {r.mapeadoParaEste && (
-                        <Badge variant="secondary" className="text-[10px]">mapeado para este cargo</Badge>
+                        <Badge variant="secondary" className="text-[10px]">mapeado para esta função</Badge>
                       )}
                       {jaAdd && <span className="text-xs text-muted-foreground">(já adicionado)</span>}
                     </p>

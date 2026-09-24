@@ -1,7 +1,7 @@
 import CelebracaoVenda from "@/components/CelebracaoVenda";
 import { supabase } from "@/integrations/supabase/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -44,7 +44,6 @@ import AtividadesAuditoria from "./pages/AtividadesAuditoria";
 import Auditorias from "./pages/Auditorias";
 import AuditoriaExecutar from "./pages/AuditoriaExecutar";
 import AuditoriasHub from "./pages/AuditoriasHub";
-import MapeamentoAlternativas from "./pages/MapeamentoAlternativas";
 import Sucessao from "./pages/Sucessao";
 import SucessaoPlano from "./pages/SucessaoPlano";
 import { SucessaoPublicadaLista, SucessaoPublicadoDetalhe } from "./pages/SucessaoPublicado";
@@ -112,7 +111,8 @@ const App = () => (
               <Route path="/gestao-pessoas/absenteismo" element={<Absenteismo />} />
               <Route path="/gestao-pessoas/plano-saude" element={<PlanoSaude />} />
               <Route path="/gestao-pessoas/uniformes" element={<Uniformes />} />
-              <Route path="/gestao-pessoas/mapeamento-alternativas" element={<MapeamentoAlternativas />} />
+              {/* O mapeamento de alternativas virou a aba "Alternativas externas" do plano de sucessão. */}
+              <Route path="/gestao-pessoas/mapeamento-alternativas" element={<Navigate to="/sucessao" replace />} />
               <Route path="/sucessao" element={<SucessaoGate />} />
               <Route path="/sucessao/:id" element={<SucessaoPlanoGate />} />
               <Route path="/configuracoes" element={<Configuracoes />} />

@@ -31,6 +31,7 @@ import {
   SITUACOES_PLANO, NIVEIS_RISCO, riscoClasses,
   prontidao, fragilidades, prioridade, type Fragilidade,
   cobreCargo, temAptoValido, vencimentoAptidao, MESES_VALIDADE_APTIDAO,
+  externoAprovadoValido, cobertura, COBERTURAS,
 } from "@/lib/sucessao";
 
 type Plano = {
@@ -159,6 +160,19 @@ export default function Sucessao() {
     },
   });
 
+  // Só o necessário para a cobertura: quem é externo e se a aprovação vale.
+  const { data: externos = [] } = useQuery({
+    queryKey: ["rh_sucessao_externos", "todos"],
+    enabled: isAdmin,
+    queryFn: async () => {
+      const { data, error } = await rhDb
+        .from("rh_sucessao_externos")
+        .select("id, plano_id, aprovado_em");
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
   // Critério do catálogo — para apontar itens de atividade sem régua definida
   const { data: criterios = [] } = useQuery({
     queryKey: ["rh_atividades_criterios"],
@@ -213,6 +227,10 @@ export default function Sucessao() {
         return true; // item de texto livre sem override = sem régua
       }).length;
 
+      const meusExternos = (externos as any[]).filter((e) => e.plano_id === p.id);
+      const externoAprovado = meusExternos.some((e) => externoAprovadoValido(e.aprovado_em));
+      const apto = temAptoValido(p.situacao, p.data_conclusao);
+
       const frags = fragilidades({
         itensAtivos: itensAtivos.length,
         itensSemCriterio,
@@ -222,6 +240,7 @@ export default function Sucessao() {
         dataAprovacao: p.data_aprovacao,
         situacao: p.situacao,
         dataConclusao: p.data_conclusao,
+        externoAprovado,
       });
 
       return {
@@ -235,10 +254,16 @@ export default function Sucessao() {
         frags,
         criticas: frags.filter((f) => f.severidade === "critica").length,
         prio: prioridade(p.impacto_vacancia, p.risco_saida),
-        apto: temAptoValido(p.situacao, p.data_conclusao),
+        apto,
+        externos: meusExternos.length,
+        cobertura: cobertura({
+          aptoInterno: apto,
+          emergencialInterno: emergenciais.length > 0,
+          externoAprovado,
+        }),
       };
     });
-  }, [planos, itens, candidatos, avaliacoes, criterios, funcoes, funcionarios]);
+  }, [planos, itens, candidatos, avaliacoes, criterios, externos, funcoes, funcionarios]);
 
   const visiveis = useMemo(() => {
     const base = filtroSituacao === "ativos"
@@ -255,9 +280,9 @@ export default function Sucessao() {
   const kpis = useMemo(() => {
     const ativos = resumos.filter((r) => cobreCargo(r.plano.situacao));
     const cargosComPlano = new Set(ativos.map((r) => r.plano.funcao_id)).size;
-    const comEmergencial = ativos.filter(
-      (r) => !r.frags.some((f) => f.tipo === "sem_emergencial") && r.candidatosAtivos > 0,
-    ).length;
+    const plena = ativos.filter((r) => r.cobertura === "plena").length;
+    const parcial = ativos.filter((r) => r.cobertura === "parcial").length;
+    const descoberta = ativos.filter((r) => r.cobertura === "descoberta").length;
     const criticos = ativos.filter((r) => r.criticas > 0).length;
     const aprovacaoVencida = ativos.filter(
       (r) => r.frags.some((f) => f.tipo === "aprovacao_vencida"),
@@ -270,7 +295,7 @@ export default function Sucessao() {
       (r) => r.frags.some((f) => f.tipo === "aptidao_vencida"),
     ).length;
     return {
-      total: ativos.length, cargosComPlano, comEmergencial, criticos,
+      total: ativos.length, cargosComPlano, plena, parcial, descoberta, criticos,
       aprovacaoVencida, prontosMedia, comApto, aptidaoVencidaN,
     };
   }, [resumos]);
@@ -405,10 +430,20 @@ export default function Sucessao() {
         <KpiCard icon={BadgeCheck} label="Com candidato apto" valor={String(kpis.comApto)}
           hint={kpis.aptidaoVencidaN > 0 ? `${kpis.aptidaoVencidaN} com aptidão vencida` : "aptidão dentro da validade"}
           tone={kpis.aptidaoVencidaN > 0 ? "warn" : kpis.comApto > 0 ? "ok" : "neutral"} />
-        <KpiCard icon={ShieldCheck} label="Com cobertura emergencial"
-          valor={`${kpis.comEmergencial}/${kpis.total}`}
-          hint="alguém assume amanhã"
-          tone={kpis.total > 0 && kpis.comEmergencial < kpis.total ? "warn" : "ok"} />
+        {/* Plena = candidato interno apto ou emergencial (alguém assume amanhã).
+            Parcial = só alternativa externa aprovada: há a quem recorrer, mas é
+            contratação, não substituição imediata. */}
+        <KpiCard icon={ShieldCheck} label="Cobertura plena"
+          valor={`${kpis.plena}/${kpis.total}`}
+          hint={
+            kpis.parcial + kpis.descoberta === 0
+              ? "interno apto ou emergencial"
+              : [
+                  kpis.parcial > 0 && `${kpis.parcial} parcial (só externo)`,
+                  kpis.descoberta > 0 && `${kpis.descoberta} descoberto(s)`,
+                ].filter(Boolean).join(" · ")
+          }
+          tone={kpis.descoberta > 0 ? "bad" : kpis.parcial > 0 ? "warn" : "ok"} />
         <KpiCard icon={ShieldAlert} label="Com fragilidade crítica" valor={String(kpis.criticos)}
           hint="exigem ação" tone={kpis.criticos > 0 ? "bad" : "ok"} />
         <KpiCard icon={CalendarClock} label="Aprovação vencida" valor={String(kpis.aprovacaoVencida)}
@@ -657,7 +692,11 @@ export default function Sucessao() {
                       risco {r.plano.risco_saida}
                     </Badge>
                     <Badge variant="secondary">{r.candidatosAtivos} cand.</Badge>
+                    {r.externos > 0 && <Badge variant="secondary">{r.externos} ext.</Badge>}
                     <Badge variant="secondary">{r.itensAtivos} itens</Badge>
+                    <Badge variant="outline" className={COBERTURAS[r.cobertura].classes}>
+                      {COBERTURAS[r.cobertura].label}
+                    </Badge>
                   </div>
 
                   {r.frags.length > 0 && (

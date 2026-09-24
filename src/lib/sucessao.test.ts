@@ -10,6 +10,10 @@ import {
   temAptoValido,
   fragilidades,
   prontidao,
+  MESES_VALIDADE_EXTERNO,
+  vencimentoExterno,
+  externoAprovadoValido,
+  cobertura,
 } from "./sucessao";
 
 const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
@@ -156,6 +160,45 @@ describe("fragilidades de plano concluído", () => {
     expect(tipos).toContain("sem_emergencial");
     expect(tipos).toContain("baixa_prontidao");
     expect(tipos).not.toContain("aptidao_vencida");
+  });
+});
+
+describe("alternativas externas", () => {
+  it("aprovação do externo vale 6 meses", () => {
+    expect(MESES_VALIDADE_EXTERNO).toBe(6);
+    expect(iso(vencimentoExterno("2026-08-31T15:00:00Z"))).toBe("2027-02-28");
+    const hoje = new Date("2026-09-24T12:00:00");
+    expect(externoAprovadoValido("2026-06-01T10:00:00Z", hoje)).toBe(true);
+    expect(externoAprovadoValido("2026-01-01T10:00:00Z", hoje)).toBe(false);
+    expect(externoAprovadoValido(null, hoje)).toBe(false);
+  });
+
+  it("cobertura: interno apto ou emergencial é plena; só externo é parcial", () => {
+    const nada = { aptoInterno: false, emergencialInterno: false, externoAprovado: false };
+    expect(cobertura(nada)).toBe("descoberta");
+    expect(cobertura({ ...nada, externoAprovado: true })).toBe("parcial");
+    expect(cobertura({ ...nada, emergencialInterno: true })).toBe("plena");
+    expect(cobertura({ ...nada, aptoInterno: true, externoAprovado: true })).toBe("plena");
+  });
+
+  const base = {
+    itensAtivos: 10,
+    itensSemCriterio: 0,
+    melhorProntidao: 80,
+    dataAprovacao: null as string | null,
+  };
+  const sev = (f: ReturnType<typeof fragilidades>, tipo: string) => f.find((x) => x.tipo === tipo)?.severidade;
+
+  it("externo aprovado rebaixa 'sem candidato' para atenção, sem apagar", () => {
+    const args = { ...base, candidatosAtivos: 0, temEmergencial: false };
+    expect(sev(fragilidades(args), "sem_candidato")).toBe("critica");
+    expect(sev(fragilidades({ ...args, externoAprovado: true }), "sem_candidato")).toBe("atencao");
+  });
+
+  it("externo aprovado rebaixa 'sem emergencial' para atenção, sem apagar", () => {
+    const args = { ...base, candidatosAtivos: 2, temEmergencial: false };
+    expect(sev(fragilidades(args), "sem_emergencial")).toBe("critica");
+    expect(sev(fragilidades({ ...args, externoAprovado: true }), "sem_emergencial")).toBe("atencao");
   });
 });
 

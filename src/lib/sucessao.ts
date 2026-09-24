@@ -146,6 +146,69 @@ export function temAptoValido(
   return situacao === "concluido" && !aptidaoVencida(dataConclusao, hoje);
 }
 
+// ---------------------------------------------------------------------------
+// Alternativas externas
+// ---------------------------------------------------------------------------
+
+/**
+ * A aprovação de um candidato externo vale 6 meses. É o mesmo relógio da
+ * aprovação do plano e da aptidão — uma regra só (somaMeses), em vez da conta
+ * própria que o antigo Mapeamento de Alternativas fazia.
+ */
+export const MESES_VALIDADE_EXTERNO = 6;
+
+/** Data em que a aprovação do externo vence. aprovado_em é timestamp; vale a data. */
+export const vencimentoExterno = (aprovadoEm: string | null | undefined) =>
+  aprovadoEm ? somaMeses(aprovadoEm.slice(0, 10), MESES_VALIDADE_EXTERNO) : null;
+
+/** O externo está aprovado e dentro da validade? */
+export function externoAprovadoValido(
+  aprovadoEm: string | null | undefined,
+  hoje: Date = new Date(),
+): boolean {
+  const venc = vencimentoExterno(aprovadoEm);
+  return venc ? venc >= hoje : false;
+}
+
+// ---------------------------------------------------------------------------
+// Cobertura da função
+// ---------------------------------------------------------------------------
+
+export type Cobertura = "plena" | "parcial" | "descoberta";
+
+/**
+ * Quanto a função está protegida se o titular sair.
+ *   plena      — há interno apto (plano concluído, na validade) ou de horizonte
+ *                emergencial: alguém de dentro assume.
+ *   parcial    — nenhum interno pronto, mas há externo aprovado: há a quem
+ *                recorrer, mas é contratação, não substituição imediata.
+ *   descoberta — nem um, nem outro.
+ */
+export function cobertura(args: {
+  aptoInterno: boolean;
+  emergencialInterno: boolean;
+  externoAprovado: boolean;
+}): Cobertura {
+  if (args.aptoInterno || args.emergencialInterno) return "plena";
+  if (args.externoAprovado) return "parcial";
+  return "descoberta";
+}
+
+export const COBERTURAS: Record<Cobertura, { label: string; classes: string }> = {
+  plena: {
+    label: "Cobertura plena",
+    classes: "border-emerald-400 text-emerald-700 dark:text-emerald-300",
+  },
+  parcial: {
+    label: "Cobertura parcial",
+    classes: "border-amber-400 text-amber-700 dark:text-amber-300",
+  },
+  descoberta: {
+    label: "Descoberta",
+    classes: "border-red-400 text-red-700 dark:text-red-300",
+  },
+};
+
 export const riscoClasses = (v: string | null | undefined): string => {
   switch (v) {
     case "alto": return "bg-red-100 text-red-900 border-red-300 dark:bg-red-950 dark:text-red-200 dark:border-red-800";
@@ -203,12 +266,14 @@ export function fragilidades(args: {
   dataAprovacao: string | null;
   situacao?: string | null;
   dataConclusao?: string | null;
+  /** Há alternativa externa com aprovação válida? */
+  externoAprovado?: boolean;
 }): Fragilidade[] {
   const f: Fragilidade[] = [];
   const {
     itensAtivos, itensSemCriterio, candidatosAtivos,
     temEmergencial, melhorProntidao, dataAprovacao,
-    situacao, dataConclusao,
+    situacao, dataConclusao, externoAprovado = false,
   } = args;
 
   // Plano concluído = há candidato apto. Enquanto a aptidão está válida, cobrar
@@ -216,14 +281,21 @@ export function fragilidades(args: {
   // foi declarado pronto. Vencida a aptidão, as cobranças voltam a valer.
   const aptoValido = temAptoValido(situacao, dataConclusao);
 
+  // Externo aprovado cobre PARCIALMENTE: rebaixa os alertas críticos de
+  // cobertura para atenção, sem apagá-los. A função tem a quem recorrer, mas é
+  // contratação, não substituição imediata — continua merecendo olhar.
   if (candidatosAtivos === 0) {
-    f.push({ tipo: "sem_candidato", severidade: "critica", mensagem: "Nenhum candidato ativo" });
+    f.push(externoAprovado
+      ? { tipo: "sem_candidato", severidade: "atencao", mensagem: "Sem candidato interno — coberta só por alternativa externa" }
+      : { tipo: "sem_candidato", severidade: "critica", mensagem: "Nenhum candidato ativo" });
   } else if (candidatosAtivos === 1) {
     f.push({ tipo: "candidato_unico", severidade: "atencao", mensagem: "Só 1 candidato — sem margem se essa pessoa sair" });
   }
 
   if (candidatosAtivos > 0 && !temEmergencial && !aptoValido) {
-    f.push({ tipo: "sem_emergencial", severidade: "critica", mensagem: "Sem cobertura emergencial" });
+    f.push(externoAprovado
+      ? { tipo: "sem_emergencial", severidade: "atencao", mensagem: "Sem cobertura emergencial interna — só alternativa externa" }
+      : { tipo: "sem_emergencial", severidade: "critica", mensagem: "Sem cobertura emergencial" });
   }
 
   if (itensAtivos === 0) {

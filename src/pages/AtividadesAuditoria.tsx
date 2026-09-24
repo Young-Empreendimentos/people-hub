@@ -30,6 +30,7 @@ type Atividade = {
   id: string; grupo_id: string; nome: string; peso: number;
   responsavel_funcionario_id: string | null;
   normas: string | null; manuais: string | null; indicadores: string | null;
+  criterio_proficiencia: string | null;
   metodo_auditoria: string | null;
   ordem: number; ativo: boolean;
   equipe_id: string | null; grupo_nome: string; grupo_peso: number; grupo_ordem: number;
@@ -71,7 +72,7 @@ export default function AtividadesAuditoria() {
     queryFn: async () => {
       const { data, error } = await rhDb
         .from("rh_atividades_auditoria")
-        .select("id, grupo_id, nome, peso, responsavel_funcionario_id, normas, updated_at, ativo, rh_grupos_atividades_auditoria!inner(id, nome, ativo, equipe_id, rh_equipes(nome))")
+        .select("id, grupo_id, nome, peso, responsavel_funcionario_id, normas, criterio_proficiencia, updated_at, ativo, rh_grupos_atividades_auditoria!inner(id, nome, ativo, equipe_id, rh_equipes(nome))")
         .eq("ativo", false)
         .order("updated_at", { ascending: false });
       if (error) throw error;
@@ -207,12 +208,13 @@ export default function AtividadesAuditoria() {
   const [aNormas, setANormas] = useState("");
   const [aManuais, setAManuais] = useState("");
   const [aIndicadores, setAIndicadores] = useState("");
+  const [aCriterio, setACriterio] = useState("");
   const [aMetodo, setAMetodo] = useState("");
   const [aOrdem, setAOrdem] = useState("0");
 
   const openNewAtv = (grupoId?: string) => {
     setEditingAtv(null); setAGrupo(grupoId ?? ""); setANome(""); setAPeso("1");
-    setAResp(""); setANormas(""); setAManuais(""); setAIndicadores(""); setAMetodo(""); setAOrdem("0");
+    setAResp(""); setANormas(""); setAManuais(""); setAIndicadores(""); setACriterio(""); setAMetodo(""); setAOrdem("0");
     setAtvOpen(true);
   };
   const openEditAtv = (a: Atividade) => {
@@ -220,6 +222,7 @@ export default function AtividadesAuditoria() {
     setAGrupo(a.grupo_id); setANome(a.nome); setAPeso(String(a.peso));
     setAResp(a.responsavel_funcionario_id ?? ""); setANormas(a.normas ?? "");
     setAManuais(a.manuais ?? ""); setAIndicadores(a.indicadores ?? "");
+    setACriterio(a.criterio_proficiencia ?? "");
     setAMetodo(a.metodo_auditoria ?? ""); setAOrdem(String(a.ordem));
     setAtvOpen(true);
   };
@@ -230,7 +233,9 @@ export default function AtividadesAuditoria() {
         grupo_id: aGrupo, nome: aNome, peso: Number(aPeso),
         responsavel_funcionario_id: aResp || null,
         normas: aNormas || null, manuais: aManuais || null,
-        indicadores: aIndicadores || null, metodo_auditoria: aMetodo || null,
+        indicadores: aIndicadores || null,
+        criterio_proficiencia: aCriterio || null,
+        metodo_auditoria: aMetodo || null,
         ordem: Number(aOrdem),
       };
       if (editingAtv) {
@@ -639,6 +644,9 @@ export default function AtividadesAuditoria() {
         <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
           <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} />
         </TableCell>
+        <TableCell className="max-w-[280px] text-xs whitespace-pre-wrap align-top">
+          <InlineText multiline value={a.criterio_proficiencia} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { criterio_proficiencia: v || null } })} />
+        </TableCell>
         {isAdmin && (
           <TableCell className="max-w-[240px] text-xs text-muted-foreground whitespace-pre-wrap align-top">
             <InlineText multiline value={a.metodo_auditoria} placeholder="clique para adicionar" onSave={(v) => patchAtv.mutate({ id: a.id, patch: { metodo_auditoria: v || null } })} />
@@ -667,6 +675,7 @@ export default function AtividadesAuditoria() {
           <TableHead>Normas</TableHead>
           <TableHead>Manuais</TableHead>
           <TableHead>Indicadores</TableHead>
+          <TableHead>Critério</TableHead>
           {isAdmin && <TableHead>Método</TableHead>}
         </TableRow>
       </TableHeader>
@@ -741,6 +750,7 @@ export default function AtividadesAuditoria() {
           <div>Normas: <InlineText multiline value={a.normas} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { normas: v || null } })} /></div>
           <div>Manuais: <InlineText multiline value={a.manuais} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { manuais: v || null } })} /></div>
           <div>Indicadores: <InlineText multiline value={a.indicadores} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { indicadores: v || null } })} /></div>
+          <div>Critério: <InlineText multiline value={a.criterio_proficiencia} placeholder={isAdmin ? "clique para adicionar" : "—"} onSave={(v) => patchAtv.mutate({ id: a.id, patch: { criterio_proficiencia: v || null } })} /></div>
           {isAdmin ? (
             <div className="text-foreground/80">
               <strong>Método:</strong>{" "}
@@ -993,11 +1003,12 @@ export default function AtividadesAuditoria() {
       "Normas": a.normas || "",
       "Manuais": a.manuais || "",
       "Indicadores": a.indicadores || "",
+      "Critério": a.criterio_proficiencia || "",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [
       { wch: 18 }, { wch: 24 }, { wch: 12 }, { wch: 44 }, { wch: 8 },
-      { wch: 26 }, { wch: 40 }, { wch: 40 }, { wch: 40 },
+      { wch: 26 }, { wch: 40 }, { wch: 40 }, { wch: 40 }, { wch: 50 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Atividades");
@@ -1571,6 +1582,19 @@ export default function AtividadesAuditoria() {
             <div><label className="text-sm">Normas</label><Textarea rows={2} value={aNormas} onChange={(e) => setANormas(e.target.value)} /></div>
             <div><label className="text-sm">Manuais</label><Textarea rows={2} value={aManuais} onChange={(e) => setAManuais(e.target.value)} /></div>
             <div><label className="text-sm">Indicadores</label><Textarea rows={2} value={aIndicadores} onChange={(e) => setAIndicadores(e.target.value)} /></div>
+            <div>
+              <label className="text-sm">Critério de aptidão</label>
+              <Textarea
+                rows={3}
+                value={aCriterio}
+                onChange={(e) => setACriterio(e.target.value)}
+                placeholder="Está pronto quando…"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">
+                Régua para considerar alguém plenamente capacitado. Visível ao colaborador
+                (ao contrário do método de auditoria) e reaproveitada nos planos de sucessão.
+              </p>
+            </div>
             <div>
               <label className="text-sm flex items-center gap-1"><Lock className="h-3 w-3" />Método de auditoria (restrito)</label>
               <Textarea rows={3} value={aMetodo} onChange={(e) => setAMetodo(e.target.value)} />

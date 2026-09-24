@@ -35,6 +35,17 @@ const ADERENCIA: Record<Aderencia, { label: string; emoji: string; badge: string
   possibilidade: { label: "Possibilidade", emoji: "🔵", badge: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900" },
 };
 
+/** Uma aprovação de candidato vale 6 meses; depois precisa ser revalidada. */
+const MESES_VALIDADE = 6;
+
+/**
+ * A aprovação existe e ainda está na validade? É a mesma regra da célula de
+ * aprovação e dos indicadores — mantê-la num lugar só evita que um diga
+ * "vencida" enquanto o outro ainda conta o candidato.
+ */
+const aprovacaoValida = (a: { aprovado_em: string | null }) =>
+  !!a.aprovado_em && differenceInMonths(new Date(), new Date(a.aprovado_em)) < MESES_VALIDADE;
+
 interface MappedCargo {
   id: string;
   cargo_id: string;
@@ -72,7 +83,9 @@ export default function MapeamentoAlternativas() {
   const [mAderencia, setMAderencia] = useState<Aderencia>("possibilidade");
 
   const [talentsOpen, setTalentsOpen] = useState(false);
-  const [talentsCargo, setTalentsCargo] = useState<{ id: string; nome: string } | null>(null);
+  const [talentsCargo, setTalentsCargo] = useState<
+    { id: string; nome: string; cargoNome: string; nivel: number } | null
+  >(null);
 
   // --- Queries ---
   const { data: mappedCargos = [], isLoading: loadingCargos } = useQuery({
@@ -139,13 +152,22 @@ export default function MapeamentoAlternativas() {
   }, [mappedCargos]);
 
   const total = mappedCargos.length;
-  const pct = (aderencia: Aderencia) => {
-    if (total === 0) return 0;
-    const n = mappedCargos.filter((c) =>
-      (altByCargo.get(c.id) ?? []).some((a) => a.aderencia === aderencia)
-    ).length;
-    return Math.round((n / total) * 100);
+  // Um cargo só conta como coberto se tiver candidato daquela aderência COM
+  // aprovação válida. Antes contava qualquer um — um candidato nunca aprovado,
+  // ou com aprovação vencida, já deixava o cargo como coberto, o que esvaziava
+  // o propósito da aprovação. Os que ficaram de fora aparecem no rodapé do card.
+  const cobertura = (aderencia: Aderencia) => {
+    let validos = 0;
+    let semAprovacao = 0;
+    for (const c of mappedCargos) {
+      const cands = (altByCargo.get(c.id) ?? []).filter((a) => a.aderencia === aderencia);
+      if (cands.some(aprovacaoValida)) validos++;
+      else if (cands.length > 0) semAprovacao++;
+    }
+    return { pct: total ? Math.round((validos / total) * 100) : 0, semAprovacao };
   };
+  const pleno = cobertura("pleno");
+  const parcial = cobertura("parcial");
 
   // rh_cargos tem registros repetidos (mesmo cargo/nível com salários diferentes por
   // empresa). Para o mapeamento o salário não importa, então agrupamos o filtro por
@@ -256,7 +278,12 @@ export default function MapeamentoAlternativas() {
   };
 
   const openTalents = (cargo: MappedCargo) => {
-    setTalentsCargo({ id: cargo.id, nome: `${cargo.cargoNome} (nível ${cargo.nivel})` });
+    setTalentsCargo({
+      id: cargo.id,
+      nome: `${cargo.cargoNome} (nível ${cargo.nivel})`,
+      cargoNome: cargo.cargoNome,
+      nivel: cargo.nivel,
+    });
     setTalentsOpen(true);
   };
 
@@ -280,20 +307,23 @@ export default function MapeamentoAlternativas() {
 
       {/* Indicadores */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Cargos com candidato 🟢 Pleno</p>
-            <p className="text-3xl font-bold">{pct("pleno")}%</p>
-            <p className="text-xs text-muted-foreground">de {total} cargo(s) mapeado(s)</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground">Cargos com candidato 🟡 Parcial</p>
-            <p className="text-3xl font-bold">{pct("parcial")}%</p>
-            <p className="text-xs text-muted-foreground">de {total} cargo(s) mapeado(s)</p>
-          </CardContent>
-        </Card>
+        {([
+          ["🟢 Pleno", pleno],
+          ["🟡 Parcial", parcial],
+        ] as const).map(([rotulo, c]) => (
+          <Card key={rotulo}>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Cargos com candidato {rotulo} aprovado</p>
+              <p className="text-3xl font-bold">{c.pct}%</p>
+              <p className="text-xs text-muted-foreground">de {total} cargo(s) mapeado(s)</p>
+              {c.semAprovacao > 0 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  + {c.semAprovacao} cargo(s) só com candidato pendente ou com aprovação vencida
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Lista */}
@@ -504,6 +534,7 @@ export default function MapeamentoAlternativas() {
         onOpenChange={setTalentsOpen}
         mapeamentoCargoId={talentsCargo?.id ?? null}
         cargoNome={talentsCargo?.nome}
+        cargoAlvo={talentsCargo ? { nome: talentsCargo.cargoNome, nivel: talentsCargo.nivel } : null}
         jaVinculados={
           talentsCargo
             ? (altByCargo.get(talentsCargo.id) ?? [])
@@ -538,7 +569,7 @@ function ApprovalCell({
     );
   }
 
-  const vencida = differenceInMonths(new Date(), new Date(a.aprovado_em)) >= 6;
+  const vencida = !aprovacaoValida(a);
   return (
     <div className="space-y-1">
       <div className="flex items-center gap-2">

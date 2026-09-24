@@ -1,20 +1,23 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase, rhDb } from "@/integrations/supabase/client";
+import { rhDb } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Search, Users } from "lucide-react";
+import { Search, Users, AlertTriangle } from "lucide-react";
 
 interface TalentsSelectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mapeamentoCargoId: string | null;
   cargoNome?: string;
+  /** Cargo do mapeamento, para destacar quem o Talents já mapeou para ele. */
+  cargoAlvo?: { nome: string; nivel: number } | null;
   /** ids de candidatos do Talents já vinculados a este cargo (para evitar duplicar) */
   jaVinculados?: string[];
   onAdded?: () => void;
@@ -23,45 +26,71 @@ interface TalentsSelectDialogProps {
 interface TalentsRow {
   id: string; // id do talents_mappings
   candidate_id: string;
-  position_name: string | null;
+  /** Cargo do Pilares para o qual a pessoa foi mapeada no Talents — o cargo-ALVO. */
+  mapeadoPara: string | null;
+  mapeadoParaEste: boolean;
   notes: string | null;
   full_name: string;
   city: string | null;
-  experience: string | null;
 }
 
 export function TalentsSelectDialog({
-  open, onOpenChange, mapeamentoCargoId, cargoNome, jaVinculados = [], onAdded,
+  open, onOpenChange, mapeamentoCargoId, cargoNome, cargoAlvo, jaVinculados = [], onAdded,
 }: TalentsSelectDialogProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["talents_mappings_para_selecao"],
+  // As tabelas do Talents vivem no schema `rh`. Consultar pelo cliente padrão
+  // (schema `public`) funcionou até 03/08/2026, quando saiu a view de
+  // compatibilidade de `public`; desde então a API respondia PGRST205 e a tela
+  // mostrava isso como se fosse falta de acesso.
+  const { data: rows = [], isLoading, error: erroCarga } = useQuery({
+    queryKey: ["talents_mappings_para_selecao", cargoAlvo?.nome, cargoAlvo?.nivel],
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await rhDb
         .from("talents_mappings")
-        .select("id, candidate_id, position_name, notes, talents_candidates(full_name, city, experience)");
+        .select("id, candidate_id, position_id, position_name, notes, talents_candidates(full_name, city)");
       if (error) throw error;
-      return (data ?? []).map((m: any): TalentsRow => ({
-        id: m.id,
-        candidate_id: m.candidate_id,
-        position_name: m.position_name,
-        notes: m.notes,
-        full_name: m.talents_candidates?.full_name ?? "(sem nome)",
-        city: m.talents_candidates?.city ?? null,
-        experience: m.talents_candidates?.experience ?? null,
-      }));
+      const lista = (data ?? []) as any[];
+
+      // position_id é um cargo do Pilares (o Talents lista rh_cargos no
+      // formulário de mapeamento). Buscamos nome e nível para comparar com o
+      // cargo deste mapeamento — por nome+nível, porque o catálogo tem o mesmo
+      // cargo repetido por empresa, e o Talents pode ter escolhido outra cópia.
+      const ids = [...new Set(lista.map((m) => m.position_id).filter(Boolean))];
+      const cargos = new Map<string, { nome: string; nivel: number }>();
+      if (ids.length > 0) {
+        const { data: cs } = await rhDb.from("rh_cargos").select("id, nome, nivel").in("id", ids);
+        for (const c of (cs ?? []) as any[]) cargos.set(c.id, { nome: c.nome, nivel: c.nivel });
+      }
+
+      return lista.map((m): TalentsRow => {
+        const alvo = m.position_id ? cargos.get(m.position_id) : undefined;
+        return {
+          id: m.id,
+          candidate_id: m.candidate_id,
+          mapeadoPara: alvo ? `${alvo.nome} (nível ${alvo.nivel})` : m.position_name ?? null,
+          mapeadoParaEste:
+            !!alvo && !!cargoAlvo && alvo.nome === cargoAlvo.nome && alvo.nivel === cargoAlvo.nivel,
+          notes: m.notes,
+          full_name: m.talents_candidates?.full_name ?? "(sem nome)",
+          city: m.talents_candidates?.city ?? null,
+        };
+      });
     },
   });
 
   const jaSet = useMemo(() => new Set(jaVinculados), [jaVinculados]);
 
+  // Quem o Talents já mapeou para este cargo aparece primeiro.
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return rows.filter((r) => !q || r.full_name.toLowerCase().includes(q));
+    return rows
+      .filter((r) => !q || r.full_name.toLowerCase().includes(q))
+      .sort((a, b) => Number(b.mapeadoParaEste) - Number(a.mapeadoParaEste)
+        || a.full_name.localeCompare(b.full_name, "pt-BR"));
   }, [rows, search]);
 
   const toggle = (id: string) => {
@@ -83,7 +112,10 @@ export function TalentsSelectDialog({
         talents_candidate_id: r.candidate_id,
         talents_mapping_id: r.id,
         nome: r.full_name,
-        cargo_atual: r.position_name,
+        // Antes ia aqui o position_name do Talents — mas ele é o cargo para o
+        // qual a pessoa foi MAPEADA, não o emprego atual dela. O Talents não
+        // guarda cargo atual estruturado, então fica em branco.
+        cargo_atual: null,
         observacoes: r.notes,
       }));
       const { error } = await rhDb.from("rh_mapeamento_alternativas").insert(payload);
@@ -126,11 +158,18 @@ export function TalentsSelectDialog({
         <div className="max-h-72 overflow-y-auto rounded-md border divide-y">
           {isLoading ? (
             <p className="p-4 text-sm text-muted-foreground">Carregando...</p>
+          ) : erroCarga ? (
+            // Erro é erro: não confundir com "sem acesso" nem com lista vazia,
+            // que foi o que escondeu a quebra por semanas.
+            <div className="p-6 text-center text-sm text-destructive">
+              <AlertTriangle className="mx-auto mb-2 h-6 w-6" />
+              Não foi possível carregar o Talents: {(erroCarga as any).message ?? "erro desconhecido"}
+            </div>
           ) : filtered.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               <Users className="mx-auto mb-2 h-6 w-6 opacity-40" />
               {rows.length === 0
-                ? "Nenhum candidato mapeado disponível no Talents (ou seu usuário não tem acesso ao Talents)."
+                ? "Nenhum candidato mapeado no Talents — ou seu usuário não tem acesso ao Talents."
                 : "Nenhum candidato encontrado para essa busca."}
             </div>
           ) : (
@@ -148,12 +187,18 @@ export function TalentsSelectDialog({
                     onCheckedChange={() => toggle(r.id)}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">
-                      {r.full_name}
-                      {jaAdd && <span className="ml-2 text-xs text-muted-foreground">(já adicionado)</span>}
+                    <p className="text-sm font-medium flex items-center gap-1.5 flex-wrap">
+                      <span className="truncate">{r.full_name}</span>
+                      {r.mapeadoParaEste && (
+                        <Badge variant="secondary" className="text-[10px]">mapeado para este cargo</Badge>
+                      )}
+                      {jaAdd && <span className="text-xs text-muted-foreground">(já adicionado)</span>}
                     </p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {[r.position_name, r.city].filter(Boolean).join(" · ") || "—"}
+                      {[
+                        r.mapeadoPara && !r.mapeadoParaEste ? `mapeado para: ${r.mapeadoPara}` : null,
+                        r.city?.trim() || null,
+                      ].filter(Boolean).join(" · ") || "—"}
                     </p>
                   </div>
                 </label>

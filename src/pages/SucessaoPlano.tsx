@@ -240,11 +240,12 @@ export default function SucessaoPlano() {
     },
   });
 
-  const { data: cargos = [] } = useQuery({
-    queryKey: ["rh_cargos_lite"],
+  // O plano é por FUNÇÃO; o nome exibido é o dela.
+  const { data: funcoes = [] } = useQuery({
+    queryKey: ["rh_funcoes_com_trilha"],
     enabled: isAdmin,
     queryFn: async () =>
-      (await rhDb.from("rh_cargos").select("id, nome, nivel").order("nome")).data ?? [],
+      (await rhDb.from("rh_funcoes").select("id, nome, rh_trilhas_cargo(nome)").order("nome")).data ?? [],
   });
 
   const { data: catalogo = [] } = useQuery({
@@ -309,7 +310,8 @@ export default function SucessaoPlano() {
   // ---- derivados -----------------------------------------------------------
   const funcNome = (fid: string | null) =>
     fid ? (funcionarios as any[]).find((f) => f.id === fid)?.nome_completo ?? "—" : "—";
-  const cargoNome = (cid: string) => (cargos as any[]).find((c) => c.id === cid)?.nome ?? "—";
+  const cargoNome = (funcaoId: string | null | undefined) =>
+    (funcoes as any[]).find((f) => f.id === funcaoId)?.nome ?? "—";
   const atvById = (aid: string | null) =>
     aid ? (catalogo as any[]).find((a) => a.id === aid) : null;
 
@@ -605,7 +607,7 @@ export default function SucessaoPlano() {
   const exportParcial =
     itensExport.length < itensAtivos.length || candsExport.length < candAtivos.length;
   const nomeArquivo = (ext: string) =>
-    `sucessao-${cargoNome(plano?.cargo_id).toLowerCase().replace(/\s+/g, "-")}` +
+    `sucessao-${cargoNome(plano?.funcao_id).toLowerCase().replace(/\s+/g, "-")}` +
     `${exportParcial ? "-recorte" : ""}-${new Date().toISOString().slice(0, 10)}.${ext}`;
 
   const exportarExcel = () => {
@@ -639,7 +641,7 @@ export default function SucessaoPlano() {
     // As opções de cabeçalho não cabem numa grade; viram uma aba "Resumo".
     if (pdfCampos.resumo || pdfCampos.fragilidades || pdfCampos.observacoes || exportParcial) {
       const info: Record<string, any>[] = [
-        { Campo: "Cargo", Valor: cargoNome(plano.cargo_id) },
+        { Campo: "Cargo", Valor: cargoNome(plano.funcao_id) },
         { Campo: "Titular", Valor: funcNome(plano.titular_funcionario_id) },
         {
           Campo: "Aprovação",
@@ -698,7 +700,7 @@ export default function SucessaoPlano() {
     const larguraUtil = doc.internal.pageSize.getWidth() - margem * 2;
 
     doc.setFontSize(14);
-    doc.text(`Plano de sucessão — ${cargoNome(plano.cargo_id)}`, margem, 40);
+    doc.text(`Plano de sucessão — ${cargoNome(plano.funcao_id)}`, margem, 40);
 
     doc.setFontSize(9);
     let y = 56;
@@ -852,7 +854,7 @@ export default function SucessaoPlano() {
           <Button variant="ghost" size="sm" className="-ml-2 h-7" asChild>
             <Link to="/sucessao"><ArrowLeft className="mr-1.5 h-3.5 w-3.5" />Planos de sucessão</Link>
           </Button>
-          <h1 className="text-2xl font-bold tracking-tight">{cargoNome(plano.cargo_id)}</h1>
+          <h1 className="text-2xl font-bold tracking-tight">{cargoNome(plano.funcao_id)}</h1>
           <p className="text-sm text-muted-foreground">
             Titular: {funcNome(plano.titular_funcionario_id)}
             {plano.data_aprovacao ? (
@@ -1499,7 +1501,7 @@ export default function SucessaoPlano() {
             <Button
               variant="ghost" size="sm"
               className="text-destructive hover:text-destructive"
-              onClick={() => { setPlanoOpen(false); setConfirmDel({ tipo: "plano", id: plano.id, nome: cargoNome(plano.cargo_id) }); }}
+              onClick={() => { setPlanoOpen(false); setConfirmDel({ tipo: "plano", id: plano.id, nome: cargoNome(plano.funcao_id) }); }}
             >
               <Trash2 className="mr-2 h-4 w-4" />Excluir plano
             </Button>

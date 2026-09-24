@@ -16,8 +16,8 @@ interface TalentsSelectDialogProps {
   onOpenChange: (open: boolean) => void;
   mapeamentoCargoId: string | null;
   cargoNome?: string;
-  /** Cargo do mapeamento, para destacar quem o Talents já mapeou para ele. */
-  cargoAlvo?: { nome: string; nivel: number } | null;
+  /** Função deste mapeamento, para destacar quem o Talents já mapeou para ela. */
+  funcaoAlvoId?: string | null;
   /** ids de candidatos do Talents já vinculados a este cargo (para evitar duplicar) */
   jaVinculados?: string[];
   onAdded?: () => void;
@@ -35,7 +35,7 @@ interface TalentsRow {
 }
 
 export function TalentsSelectDialog({
-  open, onOpenChange, mapeamentoCargoId, cargoNome, cargoAlvo, jaVinculados = [], onAdded,
+  open, onOpenChange, mapeamentoCargoId, cargoNome, funcaoAlvoId, jaVinculados = [], onAdded,
 }: TalentsSelectDialogProps) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
@@ -46,7 +46,7 @@ export function TalentsSelectDialog({
   // compatibilidade de `public`; desde então a API respondia PGRST205 e a tela
   // mostrava isso como se fosse falta de acesso.
   const { data: rows = [], isLoading, error: erroCarga } = useQuery({
-    queryKey: ["talents_mappings_para_selecao", cargoAlvo?.nome, cargoAlvo?.nivel],
+    queryKey: ["talents_mappings_para_selecao", funcaoAlvoId],
     enabled: open,
     queryFn: async () => {
       const { data, error } = await rhDb
@@ -55,15 +55,17 @@ export function TalentsSelectDialog({
       if (error) throw error;
       const lista = (data ?? []) as any[];
 
-      // position_id é um cargo do Pilares (o Talents lista rh_cargos no
-      // formulário de mapeamento). Buscamos nome e nível para comparar com o
-      // cargo deste mapeamento — por nome+nível, porque o catálogo tem o mesmo
-      // cargo repetido por empresa, e o Talents pode ter escolhido outra cópia.
+      // position_id é um registro de rh_cargos (o Talents lista rh_cargos no
+      // formulário de mapeamento), ou seja, cargo + nível + pacote. Comparamos
+      // pela FUNÇÃO desse registro: o Talents pode ter escolhido qualquer nível
+      // ou pacote, e para o mapeamento todos são o mesmo papel.
       const ids = [...new Set(lista.map((m) => m.position_id).filter(Boolean))];
-      const cargos = new Map<string, { nome: string; nivel: number }>();
+      const cargos = new Map<string, { nome: string; nivel: number; funcao_id: string }>();
       if (ids.length > 0) {
-        const { data: cs } = await rhDb.from("rh_cargos").select("id, nome, nivel").in("id", ids);
-        for (const c of (cs ?? []) as any[]) cargos.set(c.id, { nome: c.nome, nivel: c.nivel });
+        const { data: cs } = await rhDb.from("rh_cargos").select("id, nome, nivel, funcao_id").in("id", ids);
+        for (const c of (cs ?? []) as any[]) {
+          cargos.set(c.id, { nome: c.nome, nivel: c.nivel, funcao_id: c.funcao_id });
+        }
       }
 
       return lista.map((m): TalentsRow => {
@@ -72,8 +74,7 @@ export function TalentsSelectDialog({
           id: m.id,
           candidate_id: m.candidate_id,
           mapeadoPara: alvo ? `${alvo.nome} (nível ${alvo.nivel})` : m.position_name ?? null,
-          mapeadoParaEste:
-            !!alvo && !!cargoAlvo && alvo.nome === cargoAlvo.nome && alvo.nivel === cargoAlvo.nivel,
+          mapeadoParaEste: !!alvo && !!funcaoAlvoId && alvo.funcao_id === funcaoAlvoId,
           notes: m.notes,
           full_name: m.talents_candidates?.full_name ?? "(sem nome)",
           city: m.talents_candidates?.city ?? null,

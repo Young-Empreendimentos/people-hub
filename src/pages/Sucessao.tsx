@@ -34,7 +34,8 @@ import {
 } from "@/lib/sucessao";
 
 type Plano = {
-  id: string; cargo_id: string; titular_funcionario_id: string | null;
+  // O plano é por FUNÇÃO. cargo_id é legado (anulável) e sai numa migration seguinte.
+  id: string; funcao_id: string; cargo_id?: string | null; titular_funcionario_id: string | null;
   titulo: string; situacao: string;
   impacto_vacancia: string; risco_saida: string;
   data_aprovacao: string | null; observacoes: string | null;
@@ -107,11 +108,19 @@ export default function Sucessao() {
     },
   });
 
+  // Cargo (com nível) só serve aqui para saber a função de quem ocupa cada cargo.
   const { data: cargos = [] } = useQuery({
-    queryKey: ["rh_cargos_lite"],
+    queryKey: ["rh_cargos_funcao_lite"],
     enabled: isAdmin,
     queryFn: async () =>
-      (await rhDb.from("rh_cargos").select("id, nome, nivel").order("nome")).data ?? [],
+      (await rhDb.from("rh_cargos").select("id, funcao_id, nivel")).data ?? [],
+  });
+
+  const { data: funcoes = [] } = useQuery({
+    queryKey: ["rh_funcoes_com_trilha"],
+    enabled: isAdmin,
+    queryFn: async () =>
+      (await rhDb.from("rh_funcoes").select("id, nome, rh_trilhas_cargo(nome)").order("nome")).data ?? [],
   });
 
   const { data: itens = [] } = useQuery({
@@ -163,7 +172,8 @@ export default function Sucessao() {
     },
   });
 
-  const cargoNome = (id: string) => (cargos as any[]).find((c) => c.id === id)?.nome ?? "—";
+  const cargoNome = (funcaoId: string | null | undefined) =>
+    (funcoes as any[]).find((f) => f.id === funcaoId)?.nome ?? "—";
   const funcNome = (id: string | null) =>
     id ? (funcionarios as any[]).find((f) => f.id === id)?.nome_completo ?? "—" : "—";
 
@@ -216,7 +226,7 @@ export default function Sucessao() {
 
       return {
         plano: p,
-        cargo: cargoNome(p.cargo_id),
+        cargo: cargoNome(p.funcao_id),
         titular: funcNome(p.titular_funcionario_id),
         itensAtivos: itensAtivos.length,
         candidatos: porCandidato,
@@ -228,7 +238,7 @@ export default function Sucessao() {
         apto: temAptoValido(p.situacao, p.data_conclusao),
       };
     });
-  }, [planos, itens, candidatos, avaliacoes, criterios, cargos, funcionarios]);
+  }, [planos, itens, candidatos, avaliacoes, criterios, funcoes, funcionarios]);
 
   const visiveis = useMemo(() => {
     const base = filtroSituacao === "ativos"
@@ -244,7 +254,7 @@ export default function Sucessao() {
   // ---- KPIs -----------------------------------------------------------------
   const kpis = useMemo(() => {
     const ativos = resumos.filter((r) => cobreCargo(r.plano.situacao));
-    const cargosComPlano = new Set(ativos.map((r) => r.plano.cargo_id)).size;
+    const cargosComPlano = new Set(ativos.map((r) => r.plano.funcao_id)).size;
     const comEmergencial = ativos.filter(
       (r) => !r.frags.some((f) => f.tipo === "sem_emergencial") && r.candidatosAtivos > 0,
     ).length;
@@ -298,20 +308,30 @@ export default function Sucessao() {
     }));
   }, [resumos]);
 
+  // Por FUNÇÃO: antes comparava o cargo com nível de quem ocupa contra o cargo do
+  // plano, então um plano para "Coordenador Administrativo nível 5" deixava os
+  // coordenadores de outros níveis como "sem plano".
   const cargosSemPlano = useMemo(() => {
     const comPlano = new Set(
       resumos
         .filter((r) => cobreCargo(r.plano.situacao))
-        .map((r) => r.plano.cargo_id),
+        .map((r) => r.plano.funcao_id),
     );
-    // Só cargos que têm alguém ativo ocupando — cargo vazio no catálogo não é risco
-    const ocupados = new Set(
-      (funcionarios as any[]).filter((f) => f.cargo_id && isActive(f.id)).map((f) => f.cargo_id),
-    );
-    return (cargos as any[])
-      .filter((c) => ocupados.has(c.id) && !comPlano.has(c.id))
-      .sort((a, b) => (b.nivel ?? 0) - (a.nivel ?? 0));
-  }, [cargos, resumos, funcionarios, isActive]);
+    const cargoPorId = new Map((cargos as any[]).map((c) => [c.id, c]));
+    // Função ocupada = alguém ativo num cargo dela. Guardamos o maior nível
+    // ocupado para listar primeiro as funções mais sêniores.
+    const ocupadas = new Map<string, number>();
+    for (const f of funcionarios as any[]) {
+      if (!f.cargo_id || !isActive(f.id)) continue;
+      const c = cargoPorId.get(f.cargo_id);
+      if (!c?.funcao_id) continue;
+      ocupadas.set(c.funcao_id, Math.max(ocupadas.get(c.funcao_id) ?? 0, c.nivel ?? 0));
+    }
+    return (funcoes as any[])
+      .filter((fn) => ocupadas.has(fn.id) && !comPlano.has(fn.id))
+      .sort((a, b) => (ocupadas.get(b.id) ?? 0) - (ocupadas.get(a.id) ?? 0)
+        || a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [cargos, funcoes, resumos, funcionarios, isActive]);
 
   // ---- Criar plano ----------------------------------------------------------
   const criar = useMutation({
@@ -319,7 +339,7 @@ export default function Sucessao() {
       const { data, error } = await rhDb
         .from("rh_sucessao_planos")
         .insert({
-          cargo_id: nCargo,
+          funcao_id: nCargo,
           titular_funcionario_id: nTitular || null,
           titulo: nTitulo || `Sucessão — ${cargoNome(nCargo)}`,
           impacto_vacancia: nImpacto,
@@ -356,7 +376,10 @@ export default function Sucessao() {
     );
   }
 
-  const cargoOptions = (cargos as any[]).map((c) => ({ value: c.id, label: c.nome }));
+  // Uma opção por função, com a trilha para desambiguar.
+  const cargoOptions = (funcoes as any[])
+    .map((f) => ({ value: f.id, label: `${f.rh_trilhas_cargo?.nome ?? "Sem trilha"} — ${f.nome}` }))
+    .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   const funcOptions = (funcionarios as any[])
     .filter((f) => isActive(f.id))
     .map((f) => ({ value: f.id, label: f.nome_completo }));

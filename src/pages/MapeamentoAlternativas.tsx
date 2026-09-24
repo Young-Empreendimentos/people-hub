@@ -46,11 +46,13 @@ const MESES_VALIDADE = 6;
 const aprovacaoValida = (a: { aprovado_em: string | null }) =>
   !!a.aprovado_em && differenceInMonths(new Date(), new Date(a.aprovado_em)) < MESES_VALIDADE;
 
+// O mapeamento é por FUNÇÃO (ex.: Coordenador Administrativo), não por cargo +
+// nível: para buscar candidato externo o nível não importa, e antes cada função
+// aparecia repetida em até sete níveis.
 interface MappedCargo {
   id: string;
-  cargo_id: string;
+  funcao_id: string;
   cargoNome: string;
-  nivel: number;
   trilhaNome: string;
 }
 
@@ -84,7 +86,7 @@ export default function MapeamentoAlternativas() {
 
   const [talentsOpen, setTalentsOpen] = useState(false);
   const [talentsCargo, setTalentsCargo] = useState<
-    { id: string; nome: string; cargoNome: string; nivel: number } | null
+    { id: string; nome: string; funcaoId: string } | null
   >(null);
 
   // --- Queries ---
@@ -93,14 +95,13 @@ export default function MapeamentoAlternativas() {
     queryFn: async () => {
       const { data, error } = await rhDb
         .from("rh_mapeamento_cargos")
-        .select("id, cargo_id, rh_cargos(id, nome, nivel, trilha_id, rh_trilhas_cargo(nome))");
+        .select("id, funcao_id, rh_funcoes(id, nome, trilha_id, rh_trilhas_cargo(nome))");
       if (error) throw error;
       return (data ?? []).map((m: any): MappedCargo => ({
         id: m.id,
-        cargo_id: m.cargo_id,
-        cargoNome: m.rh_cargos?.nome ?? "(cargo removido)",
-        nivel: m.rh_cargos?.nivel ?? 0,
-        trilhaNome: m.rh_cargos?.rh_trilhas_cargo?.nome ?? "Sem trilha",
+        funcao_id: m.funcao_id,
+        cargoNome: m.rh_funcoes?.nome ?? "(função removida)",
+        trilhaNome: m.rh_funcoes?.rh_trilhas_cargo?.nome ?? "Sem trilha",
       }));
     },
   });
@@ -117,13 +118,13 @@ export default function MapeamentoAlternativas() {
     },
   });
 
-  const { data: allCargos = [] } = useQuery({
-    queryKey: ["rh_cargos_com_trilha"],
+  const { data: allFuncoes = [] } = useQuery({
+    queryKey: ["rh_funcoes_com_trilha"],
     enabled: addCargoOpen,
     queryFn: async () => {
       const { data, error } = await rhDb
-        .from("rh_cargos")
-        .select("id, nome, nivel, rh_trilhas_cargo(nome)")
+        .from("rh_funcoes")
+        .select("id, nome, rh_trilhas_cargo(nome)")
         .order("nome");
       if (error) throw error;
       return data ?? [];
@@ -169,31 +170,23 @@ export default function MapeamentoAlternativas() {
   const pleno = cobertura("pleno");
   const parcial = cobertura("parcial");
 
-  // rh_cargos tem registros repetidos (mesmo cargo/nível com salários diferentes por
-  // empresa). Para o mapeamento o salário não importa, então agrupamos o filtro por
-  // trilha + cargo + nível, mostrando uma única opção por cargo e escondendo os que já
-  // foram mapeados.
-  const mappedKeys = useMemo(
-    () => new Set(mappedCargos.map((c) => `${c.trilhaNome}|${c.cargoNome}|${c.nivel}`)),
-    [mappedCargos]
+  // Uma opção por função, escondendo as já mapeadas. Não há mais deduplicação a
+  // fazer aqui: a função já é única por trilha no banco, e o índice único do
+  // mapeamento impede mapear a mesma função duas vezes.
+  const mappedFuncoes = useMemo(() => new Set(mappedCargos.map((c) => c.funcao_id)), [mappedCargos]);
+  const cargoOptions = useMemo(
+    () =>
+      (allFuncoes as any[])
+        .filter((f) => !mappedFuncoes.has(f.id))
+        .map((f) => ({ value: f.id, label: `${f.rh_trilhas_cargo?.nome ?? "Sem trilha"} — ${f.nome}` }))
+        .sort((a, b) => a.label.localeCompare(b.label, "pt-BR")),
+    [allFuncoes, mappedFuncoes],
   );
-  const cargoOptions = useMemo(() => {
-    const seen = new Set<string>();
-    const opts: { value: string; label: string }[] = [];
-    for (const c of allCargos as any[]) {
-      const trilha = c.rh_trilhas_cargo?.nome ?? "Sem trilha";
-      const key = `${trilha}|${c.nome}|${c.nivel}`;
-      if (seen.has(key) || mappedKeys.has(key)) continue;
-      seen.add(key);
-      opts.push({ value: c.id, label: `${trilha} — ${c.nome} (nível ${c.nivel})` });
-    }
-    return opts.sort((a, b) => a.label.localeCompare(b.label));
-  }, [allCargos, mappedKeys]);
 
   // --- Mutations ---
   const addCargo = useMutation({
     mutationFn: async () => {
-      const { error } = await rhDb.from("rh_mapeamento_cargos").insert({ cargo_id: selectedCargoId });
+      const { error } = await rhDb.from("rh_mapeamento_cargos").insert({ funcao_id: selectedCargoId });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -202,7 +195,10 @@ export default function MapeamentoAlternativas() {
       setAddCargoOpen(false);
       setSelectedCargoId("");
     },
-    onError: () => toast.error("Erro ao adicionar cargo."),
+    onError: (e: any) =>
+      toast.error(
+        e?.code === "23505" ? "Esse cargo já está no mapeamento." : "Erro ao adicionar cargo.",
+      ),
   });
 
   const removeCargo = useMutation({
@@ -278,12 +274,7 @@ export default function MapeamentoAlternativas() {
   };
 
   const openTalents = (cargo: MappedCargo) => {
-    setTalentsCargo({
-      id: cargo.id,
-      nome: `${cargo.cargoNome} (nível ${cargo.nivel})`,
-      cargoNome: cargo.cargoNome,
-      nivel: cargo.nivel,
-    });
+    setTalentsCargo({ id: cargo.id, nome: cargo.cargoNome, funcaoId: cargo.funcao_id });
     setTalentsOpen(true);
   };
 
@@ -354,7 +345,7 @@ export default function MapeamentoAlternativas() {
                       <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-muted/40 px-4 py-2">
                         <div>
                           <span className="font-medium">{cargo.cargoNome}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">nível {cargo.nivel} · {cands.length} candidato(s)</span>
+                          <span className="ml-2 text-xs text-muted-foreground">{cands.length} candidato(s)</span>
                         </div>
                         {canManage && (
                           <div className="flex flex-wrap gap-2">
@@ -534,7 +525,7 @@ export default function MapeamentoAlternativas() {
         onOpenChange={setTalentsOpen}
         mapeamentoCargoId={talentsCargo?.id ?? null}
         cargoNome={talentsCargo?.nome}
-        cargoAlvo={talentsCargo ? { nome: talentsCargo.cargoNome, nivel: talentsCargo.nivel } : null}
+        funcaoAlvoId={talentsCargo?.funcaoId ?? null}
         jaVinculados={
           talentsCargo
             ? (altByCargo.get(talentsCargo.id) ?? [])

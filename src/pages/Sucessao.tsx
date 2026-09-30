@@ -31,8 +31,9 @@ import {
   SITUACOES_PLANO, NIVEIS_RISCO, riscoClasses,
   prontidao, fragilidades, prioridade, type Fragilidade,
   cobreCargo, temAptoValido, vencimentoAptidao, MESES_VALIDADE_APTIDAO,
-  externoAprovadoValido, cobertura, COBERTURAS,
+  cobertura, COBERTURAS,
 } from "@/lib/sucessao";
+import { externoCobre } from "@/components/sucessao/AlternativasExternas";
 
 type Plano = {
   // O plano é por FUNÇÃO (rh_funcoes), não por cargo + nível.
@@ -160,14 +161,15 @@ export default function Sucessao() {
     },
   });
 
-  // Só o necessário para a cobertura: quem é externo e se a aprovação vale.
+  // Só o necessário para a cobertura: a função do mapeamento, o status dele no
+  // Talents e se a aprovação vale. O externo é da função, não do plano.
   const { data: externos = [] } = useQuery({
     queryKey: ["rh_sucessao_externos", "todos"],
     enabled: isAdmin,
     queryFn: async () => {
       const { data, error } = await rhDb
         .from("rh_sucessao_externos")
-        .select("id, plano_id, aprovado_em");
+        .select("id, aprovado_em, talents_mappings!inner(funcao_id, status)");
       if (error) throw error;
       return (data ?? []) as any[];
     },
@@ -227,8 +229,8 @@ export default function Sucessao() {
         return true; // item de texto livre sem override = sem régua
       }).length;
 
-      const meusExternos = (externos as any[]).filter((e) => e.plano_id === p.id);
-      const externoAprovado = meusExternos.some((e) => externoAprovadoValido(e.aprovado_em));
+      const meusExternos = (externos as any[]).filter((e) => e.talents_mappings?.funcao_id === p.funcao_id);
+      const externoAprovado = meusExternos.some(externoCobre);
       const apto = temAptoValido(p.situacao, p.data_conclusao);
 
       const frags = fragilidades({

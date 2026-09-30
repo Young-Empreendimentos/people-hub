@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { rhDb } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,126 +12,157 @@ import {
 import { toast } from "sonner";
 import { Search, Users, AlertTriangle } from "lucide-react";
 
+/**
+ * Indica candidatos do Talents como alternativa externa para a função do plano.
+ *
+ * Todo externo existe no Talents (decisão de 30/09/2026): a alternativa é um
+ * marcador sobre um MAPEAMENTO da função. Por isso, ao escolher alguém:
+ *   - já mapeado para esta função → só marca;
+ *   - mapeado sem função → o mapeamento recebe esta função e é marcado;
+ *   - mapeado para outra função, ou ainda não mapeado → cria um mapeamento
+ *     para esta função e marca.
+ */
 interface TalentsSelectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Plano de sucessão que recebe os externos. */
-  planoId: string | null;
-  cargoNome?: string;
-  /** Função do plano, para destacar quem o Talents já mapeou para ela. */
-  funcaoAlvoId?: string | null;
-  /** ids de candidatos do Talents já vinculados a este plano (para evitar duplicar) */
-  jaVinculados?: string[];
-  onAdded?: () => void;
+  funcaoId: string | null;
+  funcaoNome?: string;
+  /** Mapeamentos já marcados como alternativa (para não duplicar). */
+  mapeamentosMarcados?: string[];
 }
 
-interface TalentsRow {
-  id: string; // id do talents_mappings
-  candidate_id: string;
-  /** Cargo do Pilares para o qual a pessoa foi mapeada no Talents — o cargo-ALVO. */
-  mapeadoPara: string | null;
-  mapeadoParaEste: boolean;
-  notes: string | null;
-  full_name: string;
-  city: string | null;
+interface Opcao {
+  key: string; // mapping id, ou "cand:<id>" para quem ainda não tem mapeamento
+  candidateId: string;
+  mappingId: string | null;
+  mappingFuncaoId: string | null;
+  nome: string;
+  cidade: string | null;
+  detalhe: string | null;
+  grupo: "esta" | "sem_funcao" | "outra" | "busca";
 }
 
 export function TalentsSelectDialog({
-  open, onOpenChange, planoId, cargoNome, funcaoAlvoId, jaVinculados = [], onAdded,
+  open, onOpenChange, funcaoId, funcaoNome, mapeamentosMarcados = [],
 }: TalentsSelectDialogProps) {
   const queryClient = useQueryClient();
+  const { user, userName } = useAuth();
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // As tabelas do Talents vivem no schema `rh`. Consultar pelo cliente padrão
-  // (schema `public`) funcionou até 03/08/2026, quando saiu a view de
-  // compatibilidade de `public`; desde então a API respondia PGRST205 e a tela
-  // mostrava isso como se fosse falta de acesso.
-  const { data: rows = [], isLoading, error: erroCarga } = useQuery({
-    queryKey: ["talents_mappings_para_selecao", funcaoAlvoId],
-    enabled: open,
+  const { data: base, isLoading, error: erroCarga } = useQuery({
+    queryKey: ["talents_mappings_para_alternativa", funcaoId],
+    enabled: open && !!funcaoId,
     queryFn: async () => {
-      const { data, error } = await rhDb
-        .from("talents_mappings")
-        .select("id, candidate_id, position_id, position_name, notes, talents_candidates(full_name, city)");
-      if (error) throw error;
-      const lista = (data ?? []) as any[];
-
-      // position_id é um registro de rh_cargos (o Talents lista rh_cargos no
-      // formulário de mapeamento), ou seja, cargo + nível + pacote. Comparamos
-      // pela FUNÇÃO desse registro: o Talents pode ter escolhido qualquer nível
-      // ou pacote, e para o mapeamento todos são o mesmo papel.
-      const ids = [...new Set(lista.map((m) => m.position_id).filter(Boolean))];
-      const cargos = new Map<string, { nome: string; nivel: number; funcao_id: string }>();
-      if (ids.length > 0) {
-        const { data: cs } = await rhDb.from("rh_cargos").select("id, nome, nivel, funcao_id").in("id", ids);
-        for (const c of (cs ?? []) as any[]) {
-          cargos.set(c.id, { nome: c.nome, nivel: c.nivel, funcao_id: c.funcao_id });
-        }
-      }
-
-      return lista.map((m): TalentsRow => {
-        const alvo = m.position_id ? cargos.get(m.position_id) : undefined;
-        return {
-          id: m.id,
-          candidate_id: m.candidate_id,
-          mapeadoPara: alvo ? `${alvo.nome} (nível ${alvo.nivel})` : m.position_name ?? null,
-          mapeadoParaEste: !!alvo && !!funcaoAlvoId && alvo.funcao_id === funcaoAlvoId,
-          notes: m.notes,
-          full_name: m.talents_candidates?.full_name ?? "(sem nome)",
-          city: m.talents_candidates?.city ?? null,
-        };
-      });
+      const [maps, funcoes] = await Promise.all([
+        rhDb.from("talents_mappings")
+          .select("id, candidate_id, funcao_id, status, especificacao, position_name, notes, talents_candidates(full_name, city, deleted_at)")
+          .eq("status", "Ativo"),
+        rhDb.from("rh_funcoes").select("id, nome"),
+      ]);
+      if (maps.error) throw maps.error;
+      const nomeFuncao = new Map(((funcoes.data ?? []) as any[]).map((f) => [f.id, f.nome]));
+      return ((maps.data ?? []) as any[])
+        .filter((m) => !m.talents_candidates?.deleted_at)
+        .map((m): Opcao => ({
+          key: m.id,
+          candidateId: m.candidate_id,
+          mappingId: m.id,
+          mappingFuncaoId: m.funcao_id,
+          nome: m.talents_candidates?.full_name ?? "(sem nome)",
+          cidade: m.talents_candidates?.city ?? null,
+          detalhe: m.funcao_id
+            ? [nomeFuncao.get(m.funcao_id), m.especificacao].filter(Boolean).join(" — ")
+            : m.especificacao || m.position_name || "sem função definida",
+          grupo: m.funcao_id === funcaoId ? "esta" : m.funcao_id ? "outra" : "sem_funcao",
+        }));
     },
   });
 
-  const jaSet = useMemo(() => new Set(jaVinculados), [jaVinculados]);
+  // Busca em todo o Talents, para quem ainda não foi mapeado.
+  const termo = search.trim();
+  const { data: achados = [] } = useQuery({
+    queryKey: ["talents_candidates_busca", termo],
+    enabled: open && termo.length >= 2,
+    queryFn: async () => {
+      const { data, error } = await rhDb.from("talents_candidates")
+        .select("id, full_name, city")
+        .is("deleted_at", null)
+        .ilike("full_name", `%${termo}%`)
+        .order("full_name")
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
 
-  // Quem o Talents já mapeou para este cargo aparece primeiro.
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return rows
-      .filter((r) => !q || r.full_name.toLowerCase().includes(q))
-      .sort((a, b) => Number(b.mapeadoParaEste) - Number(a.mapeadoParaEste)
-        || a.full_name.localeCompare(b.full_name, "pt-BR"));
-  }, [rows, search]);
+  const marcados = useMemo(() => new Set(mapeamentosMarcados), [mapeamentosMarcados]);
 
-  const toggle = (id: string) => {
+  const opcoes = useMemo(() => {
+    const q = termo.toLowerCase();
+    const lista = (base ?? []).filter((o) => !q || o.nome.toLowerCase().includes(q));
+    // Quem já tem mapeamento para esta função não precisa aparecer de novo pela busca.
+    const comMapeamentoAqui = new Set((base ?? []).filter((o) => o.grupo === "esta").map((o) => o.candidateId));
+    const jaListados = new Set(lista.map((o) => o.candidateId));
+    const extras = achados
+      .filter((c) => !jaListados.has(c.id) && !comMapeamentoAqui.has(c.id))
+      .map((c): Opcao => ({
+        key: `cand:${c.id}`, candidateId: c.id, mappingId: null, mappingFuncaoId: null,
+        nome: c.full_name ?? "(sem nome)", cidade: c.city ?? null, detalhe: "ainda não mapeado", grupo: "busca",
+      }));
+    const ordem = { esta: 0, sem_funcao: 1, outra: 2, busca: 3 } as const;
+    return [...lista, ...extras].sort((a, b) =>
+      ordem[a.grupo] - ordem[b.grupo] || a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [base, achados, termo]);
+
+  const toggle = (key: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
   };
 
   const confirmar = useMutation({
     mutationFn: async () => {
-      if (!planoId) throw new Error("Plano não definido");
-      const escolhidos = rows.filter((r) => selected.has(r.id));
-      const payload = escolhidos.map((r) => ({
-        plano_id: planoId,
-        origem: "talents" as const,
-        talents_candidate_id: r.candidate_id,
-        talents_mapping_id: r.id,
-        nome: r.full_name,
-        // Antes ia aqui o position_name do Talents — mas ele é o cargo para o
-        // qual a pessoa foi MAPEADA, não o emprego atual dela. O Talents não
-        // guarda cargo atual estruturado, então fica em branco.
-        cargo_atual: null,
-        observacoes: r.notes,
-      }));
-      const { error } = await rhDb.from("rh_sucessao_externos").insert(payload);
-      if (error) throw error;
+      if (!funcaoId) throw new Error("Função não definida");
+      const escolhidos = opcoes.filter((o) => selected.has(o.key));
+      for (const o of escolhidos) {
+        let mappingId = o.mappingId;
+        if (o.grupo === "sem_funcao" && mappingId) {
+          const { error } = await rhDb.from("talents_mappings")
+            .update({ funcao_id: funcaoId, updated_at: new Date().toISOString() }).eq("id", mappingId);
+          if (error) throw error;
+        } else if (o.grupo === "outra" || o.grupo === "busca") {
+          const { data, error } = await rhDb.from("talents_mappings").insert({
+            candidate_id: o.candidateId,
+            funcao_id: funcaoId,
+            position_name: funcaoNome ?? null,
+            city: o.cidade,
+            nivel: "forte",
+            status: "Ativo",
+            notes: "Indicado como alternativa externa no plano de sucessão.",
+            mapped_by: user?.email ?? null,
+            mapped_by_name: userName ?? user?.email ?? null,
+          }).select("id").single();
+          if (error) throw error;
+          mappingId = (data as any).id;
+        }
+        const { error } = await rhDb.from("rh_sucessao_externos").insert({ talents_mapping_id: mappingId });
+        if (error && (error as any).code !== "23505") throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rh_sucessao_externos"] });
-      toast.success("Candidatos adicionados do Talents.");
+      queryClient.invalidateQueries({ queryKey: ["talents_mappings_para_alternativa"] });
+      toast.success("Alternativas externas adicionadas.");
       handleClose(false);
-      onAdded?.();
     },
-    onError: (e: any) =>
-      toast.error(e?.code === "23505" ? "Algum desses candidatos já está no plano." : "Erro ao adicionar candidatos."),
+    onError: (e: any) => {
+      queryClient.invalidateQueries({ queryKey: ["rh_sucessao_externos"] });
+      toast.error(e?.message ? `Erro ao adicionar: ${e.message}` : "Erro ao adicionar candidatos.");
+    },
   });
 
   const handleClose = (o: boolean) => {
@@ -138,13 +170,21 @@ export function TalentsSelectDialog({
     onOpenChange(o);
   };
 
+  const rotuloGrupo: Record<Opcao["grupo"], string> = {
+    esta: "Mapeados para esta função",
+    sem_funcao: "Mapeados sem função definida — recebem esta função",
+    outra: "Mapeados para outras funções — ganham um mapeamento para esta",
+    busca: "Outros candidatos do Talents — serão mapeados para esta função",
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Adicionar do Talents</DialogTitle>
+          <DialogTitle>Alternativa externa do Talents</DialogTitle>
           <DialogDescription>
-            {cargoNome ? `Candidatos mapeados no Talents para vincular a "${cargoNome}".` : "Selecione os candidatos mapeados no Talents."}
+            {funcaoNome ? `Candidatos do Talents para "${funcaoNome}".` : "Selecione candidatos do Talents."}{" "}
+            No Talents, eles aparecem como "Forte"; o nível "Alternativa externa" só admin do Pilares vê.
           </DialogDescription>
         </DialogHeader>
 
@@ -152,59 +192,56 @@ export function TalentsSelectDialog({
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             className="pl-8"
-            placeholder="Buscar por nome..."
+            placeholder="Buscar por nome (inclui quem ainda não foi mapeado)..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
 
-        <div className="max-h-72 overflow-y-auto rounded-md border divide-y">
+        <div className="max-h-80 overflow-y-auto rounded-md border">
           {isLoading ? (
             <p className="p-4 text-sm text-muted-foreground">Carregando...</p>
           ) : erroCarga ? (
-            // Erro é erro: não confundir com "sem acesso" nem com lista vazia,
-            // que foi o que escondeu a quebra por semanas.
             <div className="p-6 text-center text-sm text-destructive">
               <AlertTriangle className="mx-auto mb-2 h-6 w-6" />
               Não foi possível carregar o Talents: {(erroCarga as any).message ?? "erro desconhecido"}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : opcoes.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">
               <Users className="mx-auto mb-2 h-6 w-6 opacity-40" />
-              {rows.length === 0
-                ? "Nenhum candidato mapeado no Talents — ou seu usuário não tem acesso ao Talents."
-                : "Nenhum candidato encontrado para essa busca."}
+              {termo.length >= 2
+                ? "Ninguém com esse nome no Talents."
+                : "Nenhum mapeamento ativo no Talents. Busque pelo nome para indicar qualquer candidato."}
             </div>
           ) : (
-            filtered.map((r) => {
-              const jaAdd = jaSet.has(r.candidate_id);
+            opcoes.map((o, i) => {
+              const ja = !!o.mappingId && o.grupo === "esta" && marcados.has(o.mappingId);
+              const novoGrupo = i === 0 || opcoes[i - 1].grupo !== o.grupo;
               return (
-                <label
-                  key={r.id}
-                  className={`flex items-start gap-3 p-3 ${jaAdd ? "opacity-50" : "cursor-pointer hover:bg-muted/50"}`}
-                >
-                  <Checkbox
-                    className="mt-0.5"
-                    checked={selected.has(r.id)}
-                    disabled={jaAdd}
-                    onCheckedChange={() => toggle(r.id)}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium flex items-center gap-1.5 flex-wrap">
-                      <span className="truncate">{r.full_name}</span>
-                      {r.mapeadoParaEste && (
-                        <Badge variant="secondary" className="text-[10px]">mapeado para esta função</Badge>
-                      )}
-                      {jaAdd && <span className="text-xs text-muted-foreground">(já adicionado)</span>}
+                <div key={o.key}>
+                  {novoGrupo && (
+                    <p className="sticky top-0 bg-muted px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      {rotuloGrupo[o.grupo]}
                     </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {[
-                        r.mapeadoPara && !r.mapeadoParaEste ? `mapeado para: ${r.mapeadoPara}` : null,
-                        r.city?.trim() || null,
-                      ].filter(Boolean).join(" · ") || "—"}
-                    </p>
-                  </div>
-                </label>
+                  )}
+                  <label className={`flex items-start gap-3 border-t p-3 ${ja ? "opacity-50" : "cursor-pointer hover:bg-muted/50"}`}>
+                    <Checkbox
+                      className="mt-0.5"
+                      checked={selected.has(o.key)}
+                      disabled={ja}
+                      onCheckedChange={() => toggle(o.key)}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium flex items-center gap-1.5 flex-wrap">
+                        <span className="truncate">{o.nome}</span>
+                        {ja && <Badge variant="secondary" className="text-[10px]">já no plano</Badge>}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {[o.detalhe, o.cidade?.trim() || null].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                    </div>
+                  </label>
+                </div>
               );
             })
           )}
@@ -212,10 +249,7 @@ export function TalentsSelectDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>Cancelar</Button>
-          <Button
-            onClick={() => confirmar.mutate()}
-            disabled={selected.size === 0 || confirmar.isPending}
-          >
+          <Button onClick={() => confirmar.mutate()} disabled={selected.size === 0 || confirmar.isPending}>
             {confirmar.isPending ? "Adicionando..." : `Adicionar ${selected.size || ""}`.trim()}
           </Button>
         </DialogFooter>

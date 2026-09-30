@@ -2,12 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { rhDb, supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -19,46 +14,61 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { CheckCircle2, Lock, Pencil, RefreshCw, Trash2, TriangleAlert, UserPlus, Users } from "lucide-react";
+import { CheckCircle2, ExternalLink, Lock, RefreshCw, Trash2, TriangleAlert, Users } from "lucide-react";
 import { TalentsSelectDialog } from "@/components/sucessao/TalentsSelectDialog";
 import { MESES_VALIDADE_EXTERNO, externoAprovadoValido, vencimentoExterno } from "@/lib/sucessao";
 
 export type Aderencia = "pleno" | "parcial" | "possibilidade";
 
-export const ADERENCIA: Record<Aderencia, { label: string; emoji: string; badge: string }> = {
-  pleno: { label: "Pleno", emoji: "🟢", badge: "bg-green-100 text-green-800 border-green-200 dark:bg-green-950/40 dark:text-green-300 dark:border-green-900" },
-  parcial: { label: "Parcial", emoji: "🟡", badge: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900" },
-  possibilidade: { label: "Possibilidade", emoji: "🔵", badge: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900" },
+export const ADERENCIA: Record<Aderencia, { label: string; emoji: string }> = {
+  pleno: { label: "Pleno", emoji: "🟢" },
+  parcial: { label: "Parcial", emoji: "🟡" },
+  possibilidade: { label: "Possibilidade", emoji: "🔵" },
 };
 
+const TALENTS_URL = "https://talents.youngempreendimentos.com.br";
+
+/**
+ * Marcador de alternativa externa + o mapeamento do Talents a que ele se refere
+ * (lido ao vivo: nome, cidade e status vêm do Talents, não de uma cópia).
+ */
 export interface Externo {
   id: string;
-  plano_id: string;
-  origem: "manual" | "talents";
-  nome: string;
-  cargo_atual: string | null;
-  observacoes: string | null;
+  talents_mapping_id: string;
   aderencia: Aderencia;
   aprovado_em: string | null;
   aprovado_por_nome: string | null;
-  talents_candidate_id: string | null;
+  talents_mappings: {
+    id: string;
+    candidate_id: string;
+    funcao_id: string | null;
+    status: string | null;
+    especificacao: string | null;
+    city: string | null;
+    notes: string | null;
+    talents_candidates: { full_name: string | null; city: string | null } | null;
+  } | null;
 }
+
+/** Select para trazer o marcador já com o mapeamento e o candidato. */
+export const EXTERNO_SELECT =
+  "id, talents_mapping_id, aderencia, aprovado_em, aprovado_por_nome, " +
+  "talents_mappings!inner(id, candidate_id, funcao_id, status, especificacao, city, notes, talents_candidates(full_name, city))";
+
+/** Conta como cobertura: aprovação válida E mapeamento ativo no Talents. */
+export const externoCobre = (e: Pick<Externo, "aprovado_em"> & { talents_mappings: { status: string | null } | null }) =>
+  externoAprovadoValido(e.aprovado_em) && (e.talents_mappings?.status ?? "Ativo") === "Ativo";
 
 const fmt = (d: Date | string) => new Date(d).toLocaleDateString("pt-BR");
 
 /**
- * Candidatos de fora da empresa para a função do plano. Só admin — a tabela é
- * restrita no banco e nunca entra no plano publicado, porque o titular e os
- * candidatos internos não devem saber quem está mapeado lá fora.
- *
- * Diferente do interno, o externo não passa pela matriz item × nível (não dá
- * para observá-lo fazendo cada atividade): recebe um juízo geral de aderência.
- * Com aprovação válida, cobre a função parcialmente.
+ * Candidatos de fora da empresa para a função do plano. Só admin — o marcador
+ * é restrito no banco e nunca entra no plano publicado. Todo externo existe no
+ * Talents; aqui fica o juízo da sucessão (aderência e aprovação).
  */
 export function AlternativasExternas({
-  planoId, funcaoId, funcaoNome, externos,
+  funcaoId, funcaoNome, externos,
 }: {
-  planoId: string;
   funcaoId: string | null;
   funcaoNome: string;
   externos: Externo[];
@@ -66,33 +76,8 @@ export function AlternativasExternas({
   const qc = useQueryClient();
   const invalidar = () => qc.invalidateQueries({ queryKey: ["rh_sucessao_externos"] });
 
-  const [form, setForm] = useState<{
-    id: string | null; nome: string; cargoAtual: string; obs: string; aderencia: Aderencia;
-  } | null>(null);
   const [talentsOpen, setTalentsOpen] = useState(false);
   const [excluir, setExcluir] = useState<Externo | null>(null);
-
-  const salvar = useMutation({
-    mutationFn: async () => {
-      if (!form) return;
-      const campos = {
-        nome: form.nome.trim(),
-        cargo_atual: form.cargoAtual.trim() || null,
-        observacoes: form.obs.trim() || null,
-        aderencia: form.aderencia,
-      };
-      const { error } = form.id
-        ? await rhDb.from("rh_sucessao_externos").update(campos).eq("id", form.id)
-        : await rhDb.from("rh_sucessao_externos").insert({ ...campos, plano_id: planoId, origem: "manual" });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      invalidar();
-      toast.success(form?.id ? "Alternativa atualizada." : "Alternativa adicionada.");
-      setForm(null);
-    },
-    onError: () => toast.error("Erro ao salvar a alternativa."),
-  });
 
   const mudarAderencia = useMutation({
     mutationFn: async ({ id, aderencia }: { id: string; aderencia: Aderencia }) => {
@@ -117,7 +102,7 @@ export function AlternativasExternas({
       const { error } = await rhDb.from("rh_sucessao_externos").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { invalidar(); toast.success("Alternativa removida."); setExcluir(null); },
+    onSuccess: () => { invalidar(); toast.success("Alternativa removida do plano."); setExcluir(null); },
     onError: () => toast.error("Erro ao remover a alternativa."),
   });
 
@@ -127,57 +112,67 @@ export function AlternativasExternas({
         <p className="text-xs text-muted-foreground flex items-start gap-1.5 max-w-2xl">
           <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <span>
-            Candidatos de fora da empresa. Visíveis só para admin e nunca incluídos no plano
-            disponibilizado. Com aprovação válida ({MESES_VALIDADE_EXTERNO} meses), cobrem a
-            função <strong>parcialmente</strong>: a cobertura plena continua dependendo de um
-            candidato interno apto ou emergencial.
+            Candidatos do Talents indicados para esta função. Visíveis só para admin e nunca incluídos no
+            plano disponibilizado — no Talents, aparecem como "Forte". Com aprovação válida
+            ({MESES_VALIDADE_EXTERNO} meses) e mapeamento ativo, cobrem a função <strong>parcialmente</strong>.
           </span>
         </p>
-        <div className="flex gap-2">
-          <Button
-            size="sm" variant="outline"
-            onClick={() => setForm({ id: null, nome: "", cargoAtual: "", obs: "", aderencia: "possibilidade" })}
-          >
-            <UserPlus className="mr-2 h-4 w-4" />Manual
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => setTalentsOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />Do Talents
-          </Button>
-        </div>
+        <Button size="sm" variant="outline" onClick={() => setTalentsOpen(true)} disabled={!funcaoId}>
+          <Users className="mr-2 h-4 w-4" />Do Talents
+        </Button>
       </div>
 
       {externos.length === 0 ? (
         <p className="rounded-md border px-4 py-6 text-center text-sm text-muted-foreground">
-          Nenhuma alternativa externa mapeada para esta função.
+          Nenhuma alternativa externa para esta função. Use "Do Talents" para indicar candidatos.
         </p>
       ) : (
         <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="min-w-[200px]">Candidato</TableHead>
-                <TableHead className="min-w-[140px]">Cargo atual</TableHead>
+                <TableHead className="min-w-[220px]">Candidato</TableHead>
                 <TableHead className="w-[170px]">Aderência</TableHead>
-                <TableHead className="min-w-[200px]">Aprovação</TableHead>
-                <TableHead className="w-20" />
+                <TableHead className="min-w-[210px]">Aprovação</TableHead>
+                <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
               {externos.map((e) => {
+                const m = e.talents_mappings;
                 const venc = vencimentoExterno(e.aprovado_em);
                 const valida = externoAprovadoValido(e.aprovado_em);
+                const status = m?.status ?? "Ativo";
+                const cidade = m?.city || m?.talents_candidates?.city;
                 return (
-                  <TableRow key={e.id}>
+                  <TableRow key={e.id} className={status !== "Ativo" ? "opacity-70" : undefined}>
                     <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{e.nome}</span>
-                        {e.origem === "talents" && (
-                          <Badge variant="secondary" className="text-[10px]">Talents</Badge>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <a
+                          href={`${TALENTS_URL}/candidate/${m?.candidate_id}`}
+                          target="_blank" rel="noreferrer"
+                          className="font-medium hover:underline inline-flex items-center gap-1"
+                          title="Abrir no Talents"
+                        >
+                          {m?.talents_candidates?.full_name ?? "(candidato removido)"}
+                          <ExternalLink className="h-3 w-3 opacity-60" />
+                        </a>
+                        {status !== "Ativo" && (
+                          <Badge variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-300 text-[10px]">
+                            {status} no Talents — não conta
+                          </Badge>
                         )}
                       </div>
-                      {e.observacoes && <p className="text-xs text-muted-foreground">{e.observacoes}</p>}
+                      <p className="text-xs text-muted-foreground">
+                        {[m?.especificacao, cidade].filter(Boolean).join(" · ") || "—"}
+                      </p>
+                      {status === "Contratado" && (
+                        <p className="text-xs text-amber-700 dark:text-amber-300">
+                          Foi contratado: se for o caso, inclua-o como candidato interno.
+                        </p>
+                      )}
+                      {m?.notes && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{m.notes}</p>}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{e.cargo_atual || "—"}</TableCell>
                     <TableCell>
                       <Select
                         value={e.aderencia}
@@ -222,18 +217,9 @@ export function AlternativasExternas({
                         </div>
                       )}
                     </TableCell>
-                    <TableCell className="text-right whitespace-nowrap">
+                    <TableCell className="text-right">
                       <Button
-                        variant="ghost" size="icon" className="h-8 w-8" title="Editar"
-                        onClick={() => setForm({
-                          id: e.id, nome: e.nome, cargoAtual: e.cargo_atual ?? "",
-                          obs: e.observacoes ?? "", aderencia: e.aderencia,
-                        })}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Remover"
+                        variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" title="Remover do plano"
                         onClick={() => setExcluir(e)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -247,56 +233,12 @@ export function AlternativasExternas({
         </div>
       )}
 
-      {/* Cadastro / edição manual */}
-      <Dialog open={!!form} onOpenChange={(o) => !o && setForm(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{form?.id ? "Editar alternativa externa" : "Adicionar alternativa externa"}</DialogTitle>
-            <DialogDescription>{funcaoNome}</DialogDescription>
-          </DialogHeader>
-          {form && (
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Nome *</label>
-                <Input value={form.nome} onChange={(e) => setForm({ ...form, nome: e.target.value })} placeholder="Nome do candidato" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cargo atual</label>
-                <Input value={form.cargoAtual} onChange={(e) => setForm({ ...form, cargoAtual: e.target.value })} placeholder="Onde atua hoje" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Aderência</label>
-                <Select value={form.aderencia} onValueChange={(v) => setForm({ ...form, aderencia: v as Aderencia })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {(Object.keys(ADERENCIA) as Aderencia[]).map((k) => (
-                      <SelectItem key={k} value={k}>{ADERENCIA[k].emoji} {ADERENCIA[k].label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Observações</label>
-                <Textarea value={form.obs} onChange={(e) => setForm({ ...form, obs: e.target.value })} placeholder="Opcional" rows={3} />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setForm(null)}>Cancelar</Button>
-            <Button onClick={() => salvar.mutate()} disabled={!form?.nome.trim() || salvar.isPending}>
-              {salvar.isPending ? "Salvando..." : "Salvar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <TalentsSelectDialog
         open={talentsOpen}
         onOpenChange={setTalentsOpen}
-        planoId={planoId}
-        cargoNome={funcaoNome}
-        funcaoAlvoId={funcaoId}
-        jaVinculados={externos.map((e) => e.talents_candidate_id).filter((x): x is string => !!x)}
+        funcaoId={funcaoId}
+        funcaoNome={funcaoNome}
+        mapeamentosMarcados={externos.map((e) => e.talents_mapping_id)}
       />
 
       <AlertDialog open={!!excluir} onOpenChange={(o) => !o && setExcluir(null)}>
@@ -304,7 +246,8 @@ export function AlternativasExternas({
           <AlertDialogHeader>
             <AlertDialogTitle>Remover alternativa externa?</AlertDialogTitle>
             <AlertDialogDescription>
-              {excluir?.nome} sai do plano de {funcaoNome}. Se vier do Talents, o cadastro lá não é afetado.
+              {excluir?.talents_mappings?.talents_candidates?.full_name} sai do plano de {funcaoNome} e a
+              aprovação é descartada. No Talents, continua mapeado como "Forte".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

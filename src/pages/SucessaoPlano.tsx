@@ -47,9 +47,11 @@ import {
   prontidao, fragilidades,
   MESES_VALIDADE_APROVACAO, vencimentoAprovacao, aprovacaoVencida,
   MESES_VALIDADE_APTIDAO, vencimentoAptidao, temAptoValido,
-  externoAprovadoValido, cobertura, COBERTURAS,
+  cobertura, COBERTURAS,
 } from "@/lib/sucessao";
-import { AlternativasExternas, type Externo } from "@/components/sucessao/AlternativasExternas";
+import {
+  AlternativasExternas, EXTERNO_SELECT, externoCobre, type Externo,
+} from "@/components/sucessao/AlternativasExternas";
 
 const CORES_LINHA = [
   "hsl(221 83% 53%)", "hsl(142 71% 45%)", "hsl(38 92% 50%)",
@@ -297,12 +299,16 @@ export default function SucessaoPlano() {
     },
   });
 
+  // Externos são da FUNÇÃO (o marcador fica sobre o mapeamento do Talents), não
+  // do plano: arquivar um plano e abrir outro mantém as alternativas.
   const { data: externos = [] } = useQuery({
-    queryKey: ["rh_sucessao_externos", id],
-    enabled: isAdmin && !!id,
+    queryKey: ["rh_sucessao_externos", "funcao", plano?.funcao_id],
+    enabled: isAdmin && !!plano?.funcao_id,
     queryFn: async () => {
       const { data, error } = await rhDb
-        .from("rh_sucessao_externos").select("*").eq("plano_id", id).order("created_at");
+        .from("rh_sucessao_externos").select(EXTERNO_SELECT)
+        .eq("talents_mappings.funcao_id", plano.funcao_id)
+        .order("created_at");
       if (error) throw error;
       return (data ?? []) as unknown as Externo[];
     },
@@ -381,7 +387,7 @@ export default function SucessaoPlano() {
   );
 
   const temEmergencial = candAtivos.some((c) => c.situacao === "ativo" && c.horizonte === "emergencial");
-  const externoAprovado = externos.some((e) => externoAprovadoValido(e.aprovado_em));
+  const externoAprovado = externos.some(externoCobre);
   const cob = plano
     ? cobertura({
         aptoInterno: temAptoValido(plano.situacao, plano.data_conclusao),
@@ -1266,7 +1272,6 @@ export default function SucessaoPlano() {
 
         <TabsContent value="externos">
           <AlternativasExternas
-            planoId={plano.id}
             funcaoId={plano.funcao_id}
             funcaoNome={cargoNome(plano.funcao_id)}
             externos={externos}

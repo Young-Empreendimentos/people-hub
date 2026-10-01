@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2 } from "lucide-react";
+import { CidadeSelect, useMunicipio, rotuloCidade } from "@/components/CidadeSelect";
 
 export default function Empresas() {
   const queryClient = useQueryClient();
@@ -23,6 +24,8 @@ export default function Empresas() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nome, setNome] = useState("");
+  // Cidade da empresa: valor inicial da cidade de atuação de quem é contratado por ela.
+  const [cidadeIbge, setCidadeIbge] = useState<number | null>(null);
   const [detailEmpresaId, setDetailEmpresaId] = useState<string | null>(null);
 
   const { data: empresas = [], isLoading } = useQuery({
@@ -37,10 +40,10 @@ export default function Empresas() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (editingId) {
-        const { error } = await rhDb.from("rh_empresas").update({ nome }).eq("id", editingId);
+        const { error } = await rhDb.from("rh_empresas").update({ nome, cidade_ibge: cidadeIbge } as any).eq("id", editingId);
         if (error) throw error;
       } else {
-        const { error } = await rhDb.from("rh_empresas").insert({ nome });
+        const { error } = await rhDb.from("rh_empresas").insert({ nome, cidade_ibge: cidadeIbge } as any);
         if (error) throw error;
       }
     },
@@ -64,9 +67,9 @@ export default function Empresas() {
     onError: () => toast.error("Erro ao excluir empresa."),
   });
 
-  const openNew = () => { setEditingId(null); setNome(""); setDialogOpen(true); };
-  const openEdit = (e: { id: string; nome: string }) => { setEditingId(e.id); setNome(e.nome); setDialogOpen(true); };
-  const closeDialog = () => { setDialogOpen(false); setEditingId(null); setNome(""); };
+  const openNew = () => { setEditingId(null); setNome(""); setCidadeIbge(null); setDialogOpen(true); };
+  const openEdit = (e: any) => { setEditingId(e.id); setNome(e.nome); setCidadeIbge(e.cidade_ibge ?? null); setDialogOpen(true); };
+  const closeDialog = () => { setDialogOpen(false); setEditingId(null); setNome(""); setCidadeIbge(null); };
 
   const detailEmpresa = empresas.find((e) => e.id === detailEmpresaId);
   const detailEmployees = detailEmpresaId ? getActiveByField("empresa_id", detailEmpresaId) : [];
@@ -83,20 +86,22 @@ export default function Empresas() {
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
+                <TableHead>Cidade</TableHead>
                 <TableHead className="w-40">Funcionários Ativos</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
               ) : empresas.length === 0 ? (
-                <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">Nenhuma empresa cadastrada.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma empresa cadastrada.</TableCell></TableRow>
               ) : empresas.map((emp) => {
                 const count = getActiveByField("empresa_id", emp.id).length;
                 return (
                   <TableRow key={emp.id}>
                     <TableCell className="font-medium">{emp.nome}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground"><NomeCidade codigo={(emp as any).cidade_ibge} /></TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" className="h-7 px-2" onClick={() => setDetailEmpresaId(emp.id)}>
                         <Badge variant="secondary" className="cursor-pointer">{count}</Badge>
@@ -128,6 +133,11 @@ export default function Empresas() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Nome da Empresa</label>
               <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: Young Empreendimentos" />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cidade</label>
+              <CidadeSelect value={cidadeIbge} onChange={(c) => setCidadeIbge(c)} allowClear />
+              <p className="text-xs text-muted-foreground">Sugerida como cidade de atuação de quem for contratado por esta empresa.</p>
             </div>
           </div>
           <DialogFooter>
@@ -165,4 +175,9 @@ export default function Empresas() {
       </Dialog>
     </div>
   );
+}
+
+function NomeCidade({ codigo }: { codigo: number | null }) {
+  const { data } = useMunicipio(codigo);
+  return <>{codigo ? rotuloCidade(data) || "…" : "—"}</>;
 }

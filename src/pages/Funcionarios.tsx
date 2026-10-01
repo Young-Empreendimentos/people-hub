@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
+import { CidadeSelect } from "@/components/CidadeSelect";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -46,6 +47,9 @@ export default function Funcionarios() {
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
   const [editingCargoOriginal, setEditingCargoOriginal] = useState("");
+  // Cidade de atuação (onde trabalha) — compõe a posição do mapa de sucessão.
+  const [cidadeIbge, setCidadeIbge] = useState<number | null>(null);
+  const [editingCidadeOriginal, setEditingCidadeOriginal] = useState<number | null>(null);
   const [dataContratoVigente, setDataContratoVigente] = useState("");
   const [gestorId, setGestorId] = useState("");
   const [tipoContrato, setTipoContrato] = useState("");
@@ -153,6 +157,7 @@ export default function Funcionarios() {
     // Cargo é obrigatório no cadastro novo e não pode ser apagado (trigger
     // rh_funcionarios_exige_cargo). Cadastros antigos sem cargo seguem editáveis.
     if (!cargoId && (!editingId || editingCargoOriginal)) { toast.error("Informe o cargo do funcionário."); return false; }
+    if (!cidadeIbge && (!editingId || editingCidadeOriginal)) { toast.error("Informe a cidade de atuação do funcionário."); return false; }
     if (cpf && !isValidCPF(cpf)) { setCpfError("CPF inválido"); return false; }
     setCpfError("");
     return true;
@@ -170,6 +175,7 @@ export default function Funcionarios() {
         empresa_id: empresaId || null,
         equipe_id: equipeId || null,
         cargo_id: cargoId || null,
+        cidade_ibge: cidadeIbge,
         data_contrato_vigente: dataContratoVigente || null,
         gestor_id: gestorId || null,
         tipo_contrato: tipoContrato || null,
@@ -211,7 +217,8 @@ export default function Funcionarios() {
     setRg(f.rg || ""); setCpf(f.cpf || ""); setEndereco(f.endereco || ""); setTelefone(f.telefone || "");
     setAniversario(f.aniversario || "");
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
-    setCargoId(f.cargo_id || ""); setEditingCargoOriginal(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
+    setCargoId(f.cargo_id || ""); setEditingCargoOriginal(f.cargo_id || "");
+    setCidadeIbge(f.cidade_ibge ?? null); setEditingCidadeOriginal(f.cidade_ibge ?? null); setDataContratoVigente(f.data_contrato_vigente || "");
     setGestorId(f.gestor_id || "");
     setTipoContrato(f.tipo_contrato || "");
     setValorKm(f.valor_km != null ? String(f.valor_km) : "");
@@ -462,7 +469,22 @@ export default function Funcionarios() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Empresa Contratante</label>
-              <Combobox options={empresas.map((e) => ({ value: e.id, label: e.nome }))} value={empresaId} onValueChange={setEmpresaId} placeholder="Selecione a empresa" />
+              <Combobox
+                options={empresas.map((e) => ({ value: e.id, label: e.nome }))}
+                value={empresaId}
+                onValueChange={(id) => {
+                  setEmpresaId(id);
+                  // Sem cidade ainda: assume a da empresa (dá para trocar).
+                  const cidadeEmpresa = (empresas as any[]).find((e) => e.id === id)?.cidade_ibge;
+                  if (!cidadeIbge && cidadeEmpresa) setCidadeIbge(cidadeEmpresa);
+                }}
+                placeholder="Selecione a empresa"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cidade de atuação *</label>
+              <CidadeSelect value={cidadeIbge} onChange={(c) => setCidadeIbge(c)} />
+              <p className="text-xs text-muted-foreground">Onde trabalha (não onde mora). Define a posição no mapa de sucessão.</p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Equipe</label>

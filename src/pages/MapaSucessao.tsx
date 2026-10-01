@@ -19,13 +19,18 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import { toast } from "sonner";
-import { ExternalLink, Eye, Network, Target, Trash2, UserPlus, Users } from "lucide-react";
+import {
+  CheckCircle2, Clock, ExternalLink, Eye, HelpCircle, Network, RefreshCw, Settings2, Target, Trash2, UserPlus, Users,
+} from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   COBERTURA_POSICAO, indicadores, serieHistorica, type CoberturaPosicao,
 } from "@/lib/mapaSucessao";
-import { cobreCargo } from "@/lib/sucessao";
+import { cobreCargo, MESES_VALIDADE_APROVACAO, vencimentoAprovacao } from "@/lib/sucessao";
 
 const TALENTS_URL = "https://talents.youngempreendimentos.com.br";
+
+type Aprovacao = "pendente" | "aprovada" | "vencida";
 
 interface Sucessor {
   id: string;
@@ -34,6 +39,13 @@ interface Sucessor {
   cobertura: "total" | "parcial";
   observacoes: string | null;
   ativo: boolean;
+  aprovacao: Aprovacao;
+  aprovado_em: string | null;
+  aprovado_por_nome: string | null;
+  indicado_por_nome: string | null;
+  indicado_por: string | null;
+  /** Ativo e com aprovação válida: entra no indicador. */
+  conta: boolean;
 }
 
 interface ExternoMapa {
@@ -42,19 +54,27 @@ interface ExternoMapa {
   nome: string | null;
   nivel: "interessante" | "forte";
   generico: boolean;
+  qualquer_cidade: boolean;
   especificacao: string | null;
   conta: boolean;
   /** Só vem para admin. */
   alternativa?: boolean;
 }
 
-interface Posicao {
+export interface Posicao {
+  posicao: string;
   funcao_id: string;
   funcao: string;
   trilha: string | null;
   equipe_id: string;
   equipe: string;
-  ocupantes: { id: string; nome: string }[];
+  cidade_ibge: number | null;
+  cidade: string | null;
+  titular_id: string | null;
+  titular: string | null;
+  vaga: boolean;
+  exige: boolean;
+  ocupantes: { id: string; nome: string; individual: boolean }[];
   sucessores: Sucessor[];
   externos: ExternoMapa[];
   n_total: number;
@@ -63,26 +83,35 @@ interface Posicao {
   cobertura: CoberturaPosicao;
 }
 
-const chave = (p: { funcao_id: string; equipe_id: string }) => `${p.funcao_id}|${p.equipe_id}`;
 const fmtDia = (iso: string) => {
   const [, m, d] = iso.split("-");
   return `${d}/${m}`;
 };
-const primeiroNome = (nome: string) =>
+const fmtData = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
+export const primeiroNome = (nome: string) =>
   nome.toLowerCase().split(" ")[0].replace(/^\p{L}/u, (c) => c.toUpperCase());
+const cidadeCurta = (c: string | null) => (c ? c.replace(/\/RS$/, "") : "cidade não definida");
+
+const APROVACAO: Record<Aprovacao, { label: string; classes: string }> = {
+  aprovada: { label: "aprovada", classes: "border-emerald-400 text-emerald-700 dark:text-emerald-300" },
+  pendente: { label: "aguardando aprovação", classes: "border-amber-400 text-amber-700 dark:text-amber-300" },
+  vencida: { label: "aprovação vencida", classes: "border-red-400 text-red-700 dark:text-red-300" },
+};
 
 /**
- * Mapa de sucessão: todas as posições (função + equipe) do quadro atual e a
- * cobertura de cada uma pelo mapeamento simplificado (internos indicados aqui;
- * externos vindos do Talents). Admin e coordenador veem; só admin edita. Os
- * planos de sucessão completos aparecem só para admin e não mudam a cor.
+ * Mapa de sucessão: cada posição (função + equipe + cidade, ou individual) do
+ * quadro atual e a cobertura dela pelo mapeamento simplificado — internos
+ * indicados aqui (contam depois de aprovados por admin, por 6 meses) e externos
+ * do Talents. Admin e coordenador veem e indicam; só admin aprova e configura.
+ * Os planos de sucessão completos aparecem só para admin e não mudam a cor.
  */
 export default function MapaSucessao() {
   const { isAdmin } = useAuth();
-  const [filtro, setFiltro] = useState<"todas" | CoberturaPosicao>("todas");
+  const [filtro, setFiltro] = useState<"todas" | CoberturaPosicao | "pendentes">("todas");
+  const [cidadeFiltro, setCidadeFiltro] = useState<string>("todas");
   const [abertaKey, setAbertaKey] = useState<string | null>(null);
 
-  const { data: posicoes = [], isLoading, error } = useQuery({
+  const { data: todas = [], isLoading, error } = useQuery({
     queryKey: ["rh_mapa_cobertura"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("rh_mapa_cobertura" as any);
@@ -90,6 +119,8 @@ export default function MapaSucessao() {
       return (data ?? []) as unknown as Posicao[];
     },
   });
+  // Posições que o admin marcou como "não exige mapeamento" ficam fora.
+  const posicoes = useMemo(() => todas.filter((p) => p.exige), [todas]);
 
   const { data: fotos = [] } = useQuery({
     queryKey: ["rh_mapa_cobertura_historico"],
@@ -103,8 +134,7 @@ export default function MapaSucessao() {
     },
   });
 
-  // Planos completos: só admin. Entram na posição do titular (função do cargo
-  // dele + equipe), que pode diferir da função do plano.
+  // Planos completos: só admin. Entram na posição do titular.
   const { data: planos = [] } = useQuery({
     queryKey: ["rh_sucessao_planos_mapa"],
     enabled: isAdmin,
@@ -126,13 +156,17 @@ export default function MapaSucessao() {
     for (const pos of posicoes) {
       const ids = new Set(pos.ocupantes.map((o) => o.id));
       const ps = planos.filter((p: any) => p.titular_funcionario_id && ids.has(p.titular_funcionario_id));
-      if (ps.length) m.set(chave(pos), ps);
+      if (ps.length) m.set(pos.posicao, ps);
     }
     return m;
   }, [posicoes, planos]);
 
   const kpis = useMemo(
     () => indicadores(posicoes.map((p) => ({ cobertura: p.cobertura, headcount: p.ocupantes.length }))),
+    [posicoes],
+  );
+  const pendentes = useMemo(
+    () => posicoes.reduce((s, p) => s + p.sucessores.filter((x) => x.aprovacao !== "aprovada" && x.ativo).length, 0),
     [posicoes],
   );
 
@@ -144,6 +178,11 @@ export default function MapaSucessao() {
     return pontos;
   }, [fotos, kpis, posicoes.length]);
 
+  const cidades = useMemo(
+    () => [...new Set(posicoes.map((p) => p.cidade ?? ""))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [posicoes],
+  );
+
   const porEquipe = useMemo(() => {
     const m = new Map<string, Posicao[]>();
     for (const p of posicoes) {
@@ -153,7 +192,12 @@ export default function MapaSucessao() {
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
   }, [posicoes]);
 
-  const aberta = posicoes.find((p) => chave(p) === abertaKey) ?? null;
+  const passaFiltro = (p: Posicao) =>
+    (cidadeFiltro === "todas" || (p.cidade ?? "") === cidadeFiltro)
+    && (filtro === "todas"
+      || (filtro === "pendentes" ? p.sucessores.some((s) => s.aprovacao !== "aprovada" && s.ativo) : p.cobertura === filtro));
+
+  const aberta = posicoes.find((p) => p.posicao === abertaKey) ?? null;
 
   if (error) {
     return (
@@ -172,20 +216,34 @@ export default function MapaSucessao() {
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Network className="h-6 w-6 text-primary" /> Mapa de sucessão
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Cada posição (função + equipe) do quadro atual e quem poderia cobri-la.
-            {!isAdmin && " Somente leitura."}
+          <p className="text-sm text-muted-foreground flex items-center gap-1.5">
+            Cada posição do quadro atual e quem poderia cobri-la. <AjudaPosicao />
           </p>
         </div>
-        <Select value={filtro} onValueChange={(v) => setFiltro(v as any)}>
-          <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todas">Todas as posições</SelectItem>
-            <SelectItem value="descoberta">Só descobertas</SelectItem>
-            <SelectItem value="parcial">Só parciais</SelectItem>
-            <SelectItem value="total">Só com cobertura total</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={cidadeFiltro} onValueChange={setCidadeFiltro}>
+            <SelectTrigger className="w-[190px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as cidades</SelectItem>
+              {cidades.map((c) => <SelectItem key={c || "_"} value={c}>{cidadeCurta(c || null)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={filtro} onValueChange={(v) => setFiltro(v as any)}>
+            <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas as posições</SelectItem>
+              <SelectItem value="descoberta">Só descobertas</SelectItem>
+              <SelectItem value="parcial">Só parciais</SelectItem>
+              <SelectItem value="total">Só com cobertura total</SelectItem>
+              <SelectItem value="pendentes">Com indicação a aprovar</SelectItem>
+            </SelectContent>
+          </Select>
+          {isAdmin && (
+            <Button variant="outline" asChild>
+              <Link to="/mapa-sucessao/configuracao"><Settings2 className="mr-2 h-4 w-4" />Configurar</Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ---------------- Indicadores ---------------- */}
@@ -197,14 +255,25 @@ export default function MapaSucessao() {
         <Kpi label="Cobertura por pessoas" valor={`${kpis.porPessoas}%`} hint="ponderada pelo tamanho da posição" />
       </div>
 
+      {pendentes > 0 && (
+        <button
+          onClick={() => setFiltro("pendentes")}
+          className="w-full text-left rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-sm text-amber-800 dark:text-amber-200 flex items-center gap-2"
+        >
+          <Clock className="h-4 w-4 shrink-0" />
+          {pendentes} {pendentes === 1 ? "indicação aguarda" : "indicações aguardam"} aprovação ou revalidação
+          {isAdmin ? " — clique para ver." : " de um administrador."} Só contam no indicador depois de aprovadas.
+        </button>
+      )}
+
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base">Evolução</CardTitle>
           <p className="text-xs text-muted-foreground">
             Uma foto por dia, às 23h55.{" "}
             {serie.length <= 1
-              ? `A série começou em ${serie[0] ? new Date(serie[0].data + "T12:00").toLocaleDateString("pt-BR") : "—"}; o gráfico ganha forma conforme as fotos acumulam.`
-              : `Desde ${new Date(serie[0].data + "T12:00").toLocaleDateString("pt-BR")}.`}
+              ? `A série começou em ${serie[0] ? fmtData(serie[0].data + "T12:00") : "—"}; o gráfico ganha forma conforme as fotos acumulam.`
+              : `Desde ${fmtData(serie[0].data + "T12:00")}.`}
           </p>
         </CardHeader>
         <CardContent>
@@ -214,7 +283,7 @@ export default function MapaSucessao() {
               <XAxis dataKey="data" tickFormatter={fmtDia} className="text-xs" />
               <YAxis domain={[0, 100]} unit="%" className="text-xs" />
               <RTooltip
-                labelFormatter={(d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR")}
+                labelFormatter={(d: string) => fmtData(d + "T12:00")}
                 formatter={(v: number, nome: string) => [`${v}%`, nome]}
               />
               <Legend />
@@ -232,7 +301,7 @@ export default function MapaSucessao() {
             <span className={`h-2.5 w-2.5 rounded-full ${COBERTURA_POSICAO[c].dot}`} />{COBERTURA_POSICAO[c].label}
           </span>
         ))}
-        <span>· Externos "Interessante" aparecem, mas não contam.</span>
+        <span>· Externos "Interessante" e indicações não aprovadas aparecem, mas não contam.</span>
       </div>
 
       {isLoading ? (
@@ -240,7 +309,7 @@ export default function MapaSucessao() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {porEquipe.map(([equipe, lista]) => {
-            const visiveis = lista.filter((p) => filtro === "todas" || p.cobertura === filtro);
+            const visiveis = lista.filter(passaFiltro);
             if (!visiveis.length) return null;
             const ie = indicadores(lista.map((p) => ({ cobertura: p.cobertura, headcount: p.ocupantes.length })));
             const pessoas = lista.reduce((s, p) => s + p.ocupantes.length, 0);
@@ -253,41 +322,9 @@ export default function MapaSucessao() {
                   </span>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {visiveis.map((p) => {
-                    const externosConta = p.externos.filter((e) => e.conta).length;
-                    const interessantes = p.externos.length - externosConta;
-                    const temPlano = planosPorPosicao.has(chave(p));
-                    return (
-                      <button
-                        key={chave(p)}
-                        onClick={() => setAbertaKey(chave(p))}
-                        className={`w-full text-left rounded-md border border-l-4 p-2.5 transition-shadow hover:shadow-md ${COBERTURA_POSICAO[p.cobertura].card}`}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium leading-tight">{p.funcao}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {p.ocupantes.length} · {p.ocupantes.map((o) => primeiroNome(o.nome)).join(", ")}
-                            </p>
-                          </div>
-                          {temPlano && (
-                            <Badge variant="outline" className="shrink-0 text-[10px] gap-1" title="Tem plano de sucessão completo (só admin vê)">
-                              <Target className="h-3 w-3" />plano
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="mt-1.5 flex flex-wrap gap-1 text-[10px]">
-                          {p.n_total > 0 && <Chip cor="bg-emerald-500">{p.n_total} interno{p.n_total > 1 ? "s" : ""} total</Chip>}
-                          {p.n_parcial > 0 && <Chip cor="bg-amber-500">{p.n_parcial} interno{p.n_parcial > 1 ? "s" : ""} parcial</Chip>}
-                          {externosConta > 0 && <Chip cor="bg-violet-500">{externosConta} externo{externosConta > 1 ? "s" : ""}</Chip>}
-                          {interessantes > 0 && <Chip cor="bg-slate-400">{interessantes} interessante{interessantes > 1 ? "s" : ""}</Chip>}
-                          {p.cobertura === "descoberta" && interessantes === 0 && (
-                            <span className="text-red-700 dark:text-red-300">ninguém mapeado</span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
+                  {visiveis.map((p) => (
+                    <PosicaoCard key={p.posicao} p={p} temPlano={planosPorPosicao.has(p.posicao)} onClick={() => setAbertaKey(p.posicao)} />
+                  ))}
                 </CardContent>
               </Card>
             );
@@ -298,12 +335,91 @@ export default function MapaSucessao() {
       {aberta && (
         <PosicaoDialog
           posicao={aberta}
-          planos={planosPorPosicao.get(chave(aberta)) ?? []}
-          isAdmin={isAdmin}
+          planos={planosPorPosicao.get(aberta.posicao) ?? []}
           onClose={() => setAbertaKey(null)}
         />
       )}
     </div>
+  );
+}
+
+/**
+ * (?) com a definição de posição e de cobertura. Abre ao passar o mouse e
+ * também ao tocar (tooltip puro não abre no celular).
+ */
+export function AjudaPosicao() {
+  const [aberto, setAberto] = useState(false);
+  return (
+    <Tooltip open={aberto} onOpenChange={setAberto}>
+      <TooltipTrigger asChild>
+        <button type="button" onClick={() => setAberto((v) => !v)} aria-label="O que é uma posição?"
+          className="inline-flex text-muted-foreground hover:text-foreground align-middle">
+          <HelpCircle className="h-4 w-4" />
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" align="start" className="max-w-sm space-y-1.5 text-xs leading-relaxed">
+        <p><strong>Posição = função + equipe + cidade de atuação.</strong></p>
+        <p>
+          Ex.: os 2 Consultores Comerciais de Bagé são uma posição; os de Cruz Alta, outra. Quem está na mesma
+          posição compartilha o mapeamento (um sucessor cobre o grupo), a menos que o admin marque
+          "mapeamento próprio" para alguém.
+        </p>
+        <p>
+          <strong>Total:</strong> há sucessor interno aprovado que cobre total.{" "}
+          <strong>Parcial:</strong> interno aprovado que cobre parcial, ou externo do Talents (Forte ou
+          Alternativa externa). Indicações contam depois de aprovadas, por {MESES_VALIDADE_APROVACAO} meses.
+        </p>
+        <p>Índice: total vale 1, parcial vale ½, descoberta vale 0.</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function PosicaoCard({ p, temPlano, onClick }: { p: Posicao; temPlano: boolean; onClick: () => void }) {
+  const internosTotal = p.sucessores.filter((s) => s.conta && s.cobertura === "total").length;
+  const internosParcial = p.sucessores.filter((s) => s.conta && s.cobertura === "parcial").length;
+  const aAprovar = p.sucessores.filter((s) => s.ativo && s.aprovacao !== "aprovada").length;
+  const externosConta = p.externos.filter((e) => e.conta).length;
+  const interessantes = p.externos.length - externosConta;
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left rounded-md border border-l-4 p-2.5 transition-shadow hover:shadow-md ${COBERTURA_POSICAO[p.cobertura].card}`}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="text-sm font-medium leading-tight">
+            {p.funcao}
+            {p.titular && <span className="font-normal text-muted-foreground"> · {primeiroNome(p.titular)}</span>}
+          </p>
+          <p className="text-xs text-muted-foreground truncate">
+            {cidadeCurta(p.cidade)}
+            {p.vaga
+              ? " · sem ocupante"
+              : ` · ${p.ocupantes.length} · ${p.ocupantes.map((o) => primeiroNome(o.nome)).join(", ")}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {p.vaga && <Badge variant="outline" className="text-[10px]">vaga</Badge>}
+          {p.titular && <Badge variant="outline" className="text-[10px]" title="Exige mapeamento próprio">individual</Badge>}
+          {temPlano && (
+            <Badge variant="outline" className="text-[10px] gap-1" title="Tem plano de sucessão completo (só admin vê)">
+              <Target className="h-3 w-3" />plano
+            </Badge>
+          )}
+        </div>
+      </div>
+      <div className="mt-1.5 flex flex-wrap gap-1 text-[10px]">
+        {internosTotal > 0 && <Chip cor="bg-emerald-500">{internosTotal} interno{internosTotal > 1 ? "s" : ""} total</Chip>}
+        {internosParcial > 0 && <Chip cor="bg-amber-500">{internosParcial} interno{internosParcial > 1 ? "s" : ""} parcial</Chip>}
+        {externosConta > 0 && <Chip cor="bg-violet-500">{externosConta} externo{externosConta > 1 ? "s" : ""}</Chip>}
+        {aAprovar > 0 && <Chip cor="bg-amber-300">{aAprovar} a aprovar</Chip>}
+        {interessantes > 0 && <Chip cor="bg-slate-400">{interessantes} interessante{interessantes > 1 ? "s" : ""}</Chip>}
+        {p.cobertura === "descoberta" && interessantes === 0 && aAprovar === 0 && (
+          <span className="text-red-700 dark:text-red-300">ninguém mapeado</span>
+        )}
+      </div>
+    </button>
   );
 }
 
@@ -329,10 +445,10 @@ function Chip({ cor, children }: { cor: string; children: React.ReactNode }) {
   );
 }
 
-function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
-  posicao: Posicao; planos: any[]; isAdmin: boolean; onClose: () => void;
-}) {
+function PosicaoDialog({ posicao: p, planos, onClose }: { posicao: Posicao; planos: any[]; onClose: () => void }) {
   const qc = useQueryClient();
+  const { isAdmin, role, user } = useAuth();
+  const podeIndicar = isAdmin || role === "coordenador";
   const { funcionarios, isActive } = useActiveEmployees();
   const [novo, setNovo] = useState<{ funcionarioId: string; cobertura: "total" | "parcial"; obs: string }>({
     funcionarioId: "", cobertura: "parcial", obs: "",
@@ -351,12 +467,17 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
   const adicionar = useMutation({
     mutationFn: async () => {
       const { error } = await rhDb.from("rh_mapa_sucessores" as any).insert({
-        funcao_id: p.funcao_id, equipe_id: p.equipe_id, funcionario_id: novo.funcionarioId,
+        funcao_id: p.funcao_id, equipe_id: p.equipe_id, cidade_ibge: p.cidade_ibge,
+        titular_funcionario_id: p.titular_id, funcionario_id: novo.funcionarioId,
         cobertura: novo.cobertura, observacoes: novo.obs.trim() || null,
       });
       if (error) throw error;
     },
-    onSuccess: () => { invalidar(); setNovo({ funcionarioId: "", cobertura: "parcial", obs: "" }); toast.success("Sucessor indicado."); },
+    onSuccess: () => {
+      invalidar();
+      setNovo({ funcionarioId: "", cobertura: "parcial", obs: "" });
+      toast.success(isAdmin ? "Sucessor indicado e aprovado." : "Indicação enviada — conta no indicador depois que um administrador aprovar.");
+    },
     onError: () => toast.error("Erro ao indicar sucessor."),
   });
 
@@ -367,6 +488,15 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
     },
     onSuccess: invalidar,
     onError: () => toast.error("Erro ao atualizar."),
+  });
+
+  const aprovar = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("rh_mapa_aprovar_sucessor" as any, { p_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidar(); toast.success("Indicação aprovada."); },
+    onError: () => toast.error("Erro ao aprovar."),
   });
 
   const remover = useMutation({
@@ -381,14 +511,21 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
   const nivelExterno = (e: ExternoMapa) =>
     e.alternativa ? "Alternativa externa" : e.nivel === "forte" ? "Forte" : "Interessante — não conta";
 
+  // Mesma régua do banco (+6 meses, prendendo no fim do mês curto).
+  const vence = (iso: string) => vencimentoAprovacao(iso.slice(0, 10))?.toLocaleDateString("pt-BR") ?? "—";
+
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{p.funcao} · {p.equipe}</DialogTitle>
+          <DialogTitle>
+            {p.funcao} · {p.equipe}
+            {p.titular && <span className="font-normal"> · {p.titular}</span>}
+          </DialogTitle>
           <DialogDescription className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline" className={COBERTURA_POSICAO[p.cobertura].badge}>{COBERTURA_POSICAO[p.cobertura].label}</Badge>
-            <span>{p.ocupantes.map((o) => o.nome).join(", ")}</span>
+            <span>{cidadeCurta(p.cidade)}</span>
+            {p.vaga ? <Badge variant="outline">vaga — sem ocupante</Badge> : <span>· {p.ocupantes.map((o) => o.nome).join(", ")}</span>}
           </DialogDescription>
         </DialogHeader>
 
@@ -399,37 +536,61 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
           {p.sucessores.length === 0 ? (
             <p className="text-sm text-muted-foreground">Ninguém indicado.</p>
           ) : (
-            p.sucessores.map((s) => (
-              <div key={s.id} className={`rounded-md border p-2 ${s.ativo ? "" : "opacity-60"}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-medium">
-                    {s.nome}
-                    {!s.ativo && <span className="ml-1 text-xs text-destructive">(desligado — não conta)</span>}
-                  </span>
-                  {isAdmin ? (
-                    <div className="flex items-center gap-1">
-                      <Select value={s.cobertura} onValueChange={(v) => mudar.mutate({ id: s.id, cobertura: v })}>
-                        <SelectTrigger className="h-7 w-[110px] text-xs"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="total">Total</SelectItem>
-                          <SelectItem value="parcial">Parcial</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Remover indicação"
-                        onClick={() => window.confirm(`Remover ${s.nome} desta posição?`) && remover.mutate(s.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+            p.sucessores.map((s) => {
+              const minhaPendente = !isAdmin && s.aprovacao === "pendente" && s.indicado_por === user?.id;
+              return (
+                <div key={s.id} className={`rounded-md border p-2 ${s.conta ? "" : "opacity-80"}`}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium">
+                        {s.nome}
+                        {!s.ativo && <span className="ml-1 text-xs text-destructive">(desligado — não conta)</span>}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                        <Badge variant="outline" className={`text-[10px] ${APROVACAO[s.aprovacao].classes}`}>
+                          {APROVACAO[s.aprovacao].label}
+                          {s.aprovacao === "aprovada" && s.aprovado_em && ` até ${vence(s.aprovado_em)}`}
+                        </Badge>
+                        <span className="text-[11px] text-muted-foreground">
+                          {s.indicado_por_nome ? `indicado por ${s.indicado_por_nome}` : ""}
+                          {s.aprovado_por_nome && s.aprovacao !== "pendente" ? ` · aprovado por ${s.aprovado_por_nome}` : ""}
+                        </span>
+                      </div>
                     </div>
-                  ) : (
-                    <Badge variant="outline" className={COBERTURA_POSICAO[s.cobertura].badge}>{s.cobertura === "total" ? "Total" : "Parcial"}</Badge>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {isAdmin ? (
+                        <Select value={s.cobertura} onValueChange={(v) => mudar.mutate({ id: s.id, cobertura: v })}>
+                          <SelectTrigger className="h-7 w-[100px] text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="total">Total</SelectItem>
+                            <SelectItem value="parcial">Parcial</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline" className={COBERTURA_POSICAO[s.cobertura].badge}>{s.cobertura === "total" ? "Total" : "Parcial"}</Badge>
+                      )}
+                      {(isAdmin || minhaPendente) && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" title="Remover indicação"
+                          onClick={() => window.confirm(`Remover ${s.nome} desta posição?`) && remover.mutate(s.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {s.observacoes && <p className="text-xs text-muted-foreground mt-1">{s.observacoes}</p>}
+                  {isAdmin && s.aprovacao !== "aprovada" && s.ativo && (
+                    <Button size="sm" variant="outline" className="mt-2" onClick={() => aprovar.mutate(s.id)} disabled={aprovar.isPending}>
+                      {s.aprovacao === "pendente"
+                        ? <><CheckCircle2 className="mr-1 h-3.5 w-3.5" />Aprovar</>
+                        : <><RefreshCw className="mr-1 h-3.5 w-3.5" />Revalidar</>}
+                    </Button>
                   )}
                 </div>
-                {s.observacoes && <p className="text-xs text-muted-foreground mt-1">{s.observacoes}</p>}
-              </div>
-            ))
+              );
+            })
           )}
 
-          {isAdmin && (
+          {podeIndicar && (
             <div className="rounded-md border border-dashed p-2 space-y-2">
               <Combobox
                 options={opcoes}
@@ -453,6 +614,11 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
               </div>
               <Textarea rows={2} placeholder="Observação (opcional)" value={novo.obs}
                 onChange={(e) => setNovo((n) => ({ ...n, obs: e.target.value }))} />
+              {!isAdmin && (
+                <p className="text-[11px] text-muted-foreground">
+                  A indicação conta no indicador depois de aprovada por um administrador, e a aprovação vale {MESES_VALIDADE_APROVACAO} meses.
+                </p>
+              )}
             </div>
           )}
         </section>
@@ -462,9 +628,7 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
             <ExternalLink className="h-3.5 w-3.5" /> Externos (Talents)
           </h3>
           {p.externos.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Ninguém mapeado no Talents para {p.funcao}.
-            </p>
+            <p className="text-sm text-muted-foreground">Ninguém mapeado no Talents para {p.funcao}.</p>
           ) : (
             p.externos.map((e) => (
               <div key={e.mapping_id} className={`flex items-start justify-between gap-2 rounded-md border p-2 ${e.conta ? "" : "opacity-60"}`}>
@@ -474,7 +638,8 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
                     {e.nome ?? "(sem nome)"}<ExternalLink className="h-3 w-3 opacity-60" />
                   </a>
                   <p className="text-xs text-muted-foreground">
-                    {[e.especificacao, e.generico ? "qualquer equipe" : null].filter(Boolean).join(" · ") || "—"}
+                    {[e.especificacao, e.generico ? "qualquer equipe" : null, e.qualquer_cidade ? "qualquer cidade" : null]
+                      .filter(Boolean).join(" · ") || "—"}
                   </p>
                 </div>
                 <Badge variant="outline" className="shrink-0 text-[10px]">{nivelExterno(e)}</Badge>
@@ -482,7 +647,7 @@ function PosicaoDialog({ posicao: p, planos, isAdmin, onClose }: {
             ))
           )}
           <p className="text-[11px] text-muted-foreground">
-            Externos entram mapeando no Talents com esta função (e equipe, ou "qualquer equipe"). Forte e
+            Externos entram mapeando no Talents com esta função (equipe e cidade, ou "qualquer"). Forte e
             alternativa externa cobrem parcialmente.
           </p>
         </section>

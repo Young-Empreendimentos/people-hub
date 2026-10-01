@@ -48,6 +48,7 @@ import Sucessao from "./pages/Sucessao";
 import SucessaoPlano from "./pages/SucessaoPlano";
 import { SucessaoPublicadaLista, SucessaoPublicadoDetalhe } from "./pages/SucessaoPublicado";
 import MapaSucessao from "./pages/MapaSucessao";
+import MapaSucessaoConfig from "./pages/MapaSucessaoConfig";
 
 const queryClient = new QueryClient();
 
@@ -78,6 +79,13 @@ const MapaSucessaoGate = () => {
       O mapa de sucessão é restrito a administradores e coordenadores.
     </div>
   );
+};
+
+// Configuração do mapa: só admin (o banco também barra a escrita).
+const MapaSucessaoConfigGate = () => {
+  const { isAdmin, loading } = useAuth();
+  if (loading) return null;
+  return isAdmin ? <MapaSucessaoConfig /> : <Navigate to="/mapa-sucessao" replace />;
 };
 
 const App = () => (
@@ -130,6 +138,7 @@ const App = () => (
               <Route path="/sucessao" element={<SucessaoGate />} />
               <Route path="/sucessao/:id" element={<SucessaoPlanoGate />} />
               <Route path="/mapa-sucessao" element={<MapaSucessaoGate />} />
+              <Route path="/mapa-sucessao/configuracao" element={<MapaSucessaoConfigGate />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

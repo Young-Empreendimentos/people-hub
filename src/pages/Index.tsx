@@ -6,22 +6,24 @@ import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, rhDb } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useActiveEmployees } from "@/hooks/useActiveEmployees";
 
 export default function Index() {
   const { user, role, canConfig } = useAuth();
   const queryClient = useQueryClient();
+  // Ativos pelo mesmo critério do resto do app (último evento não é desligamento);
+  // o total cadastrado incluía os 117 desligados.
+  const { activeCount, isLoading: carregandoAtivos } = useActiveEmployees();
 
   const { data: counts } = useQuery({
     queryKey: ["rh_dashboard_counts"],
     queryFn: async () => {
-      const [funcRes, equipesRes, cargosRes, avalRes] = await Promise.all([
-        rhDb.from("rh_funcionarios").select("id", { count: "exact", head: true }),
+      const [equipesRes, cargosRes, avalRes] = await Promise.all([
         rhDb.from("rh_equipes").select("id", { count: "exact", head: true }),
         rhDb.from("rh_cargos").select("id", { count: "exact", head: true }),
         rhDb.from("rh_avaliacoes").select("id", { count: "exact", head: true }),
       ]);
       return {
-        funcionarios: funcRes.count ?? 0,
         equipes: equipesRes.count ?? 0,
         cargos: cargosRes.count ?? 0,
         avaliacoes: avalRes.count ?? 0,
@@ -70,7 +72,7 @@ export default function Index() {
   });
 
   const cards = [
-    { title: "Funcionários", icon: Users, value: counts?.funcionarios ?? "—", desc: "Total de colaboradores" },
+    { title: "Funcionários", icon: Users, value: carregandoAtivos ? "—" : activeCount, desc: "Funcionários ativos" },
     { title: "Equipes", icon: Building2, value: counts?.equipes ?? "—", desc: "Equipes cadastradas" },
     { title: "Cargos", icon: Briefcase, value: counts?.cargos ?? "—", desc: "Trilhas de carreira" },
     { title: "Avaliações", icon: ClipboardCheck, value: counts?.avaliacoes ?? "—", desc: "Avaliações registradas" },

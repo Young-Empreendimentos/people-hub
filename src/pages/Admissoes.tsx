@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Combobox } from "@/components/ui/combobox";
+import { CidadeSelect } from "@/components/CidadeSelect";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -52,6 +53,7 @@ export default function Admissoes() {
   const [empresaId, setEmpresaId] = useState("");
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
+  const [cidadeIbge, setCidadeIbge] = useState<number | null>(null);
   const [dataContratoVigente, setDataContratoVigente] = useState("");
   const [tipoContrato, setTipoContrato] = useState("");
   const [cpfError, setCpfError] = useState("");
@@ -105,6 +107,7 @@ export default function Admissoes() {
         if (!nomeCompleto.trim()) throw new Error("Nome é obrigatório.");
         // Também barrado no banco (trigger rh_funcionarios_exige_cargo).
         if (!cargoId) throw new Error("Informe o cargo do funcionário.");
+        if (!cidadeIbge) throw new Error("Informe a cidade de atuação do funcionário.");
         if (cpf && !isValidCPF(cpf)) throw new Error("CPF inválido.");
 
         const employeePayload = {
@@ -117,6 +120,7 @@ export default function Admissoes() {
           empresa_id: empresaId || null,
           equipe_id: equipeId || null,
           cargo_id: cargoId || null,
+          cidade_ibge: cidadeIbge,
           data_contrato_vigente: dataContratoVigente || data || null,
           tipo_contrato: tipoContrato || null,
         };
@@ -183,7 +187,7 @@ export default function Admissoes() {
   const openNew = () => {
     setEditingId(null); setFuncId(""); setTipo("admissao"); setData(""); setObs(""); setFile(null);
     setNomeCompleto(""); setRg(""); setCpf(""); setEndereco(""); setTelefone(""); setAniversario("");
-    setEmpresaId(""); setEquipeId(""); setCargoId(""); setDataContratoVigente("");
+    setEmpresaId(""); setEquipeId(""); setCargoId(""); setCidadeIbge(null); setDataContratoVigente("");
     setTipoContrato(""); setCpfError("");
     setDialogOpen(true);
   };
@@ -319,7 +323,22 @@ export default function Admissoes() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Empresa Contratante</label>
-                  <Combobox options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))} value={empresaId} onValueChange={setEmpresaId} placeholder="Selecione a empresa" />
+                  <Combobox
+                    options={empresas.map((e: any) => ({ value: e.id, label: e.nome }))}
+                    value={empresaId}
+                    onValueChange={(id) => {
+                      setEmpresaId(id);
+                      // Assume a cidade da empresa se ainda não houver (dá para trocar).
+                      const cidadeEmpresa = (empresas as any[]).find((e) => e.id === id)?.cidade_ibge;
+                      if (!cidadeIbge && cidadeEmpresa) setCidadeIbge(cidadeEmpresa);
+                    }}
+                    placeholder="Selecione a empresa"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Cidade de atuação *</label>
+                  <CidadeSelect value={cidadeIbge} onChange={(c) => setCidadeIbge(c)} />
+                  <p className="text-xs text-muted-foreground">Onde vai trabalhar (não onde mora).</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

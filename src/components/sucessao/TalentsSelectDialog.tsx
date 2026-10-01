@@ -139,7 +139,9 @@ export function TalentsSelectDialog({
             candidate_id: o.candidateId,
             funcao_id: funcaoId,
             position_name: funcaoNome ?? null,
-            city: o.cidade,
+            // Sem cidade = vale para qualquer cidade da função (o plano é por função).
+            city: null,
+            cidade_ibge: null,
             nivel: "forte",
             status: "Ativo",
             notes: "Indicado como alternativa externa no plano de sucessão.",

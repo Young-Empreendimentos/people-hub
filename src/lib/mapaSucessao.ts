@@ -1,4 +1,4 @@
-// Mapa de sucessão: indicadores sobre a cobertura de cada POSIÇÃO (função +
+// Mapa de cobertura: indicadores sobre a cobertura de cada POSIÇÃO (função +
 // equipe). A cobertura de cada posição é calculada no banco
 // (rh.rh_mapa_cobertura_calc) — tela e foto diária usam a mesma regra:
 //   total      = há sucessor interno com cobertura total

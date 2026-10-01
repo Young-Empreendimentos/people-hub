@@ -33,9 +33,9 @@ const auditoriasItem = { title: "Auditorias", url: "/auditorias", icon: FileChec
 // pessoa tem algum plano disponibilizado para ela — aí abre em modo leitura.
 const sucessaoItem = { title: "Sucessão", url: "/sucessao", icon: Target };
 
-// Mapa de sucessão (simplificado, por posição): admin e coordenador. Mesmo
+// Mapa de cobertura (sucessão simplificada, por posição): admin e coordenador. Mesmo
 // padrão: aparece para todos, desabilitado para quem não tem acesso.
-const mapaItem = { title: "Mapa de sucessão", url: "/mapa-sucessao", icon: Network };
+const mapaItem = { title: "Mapa de cobertura", url: "/mapa-cobertura", icon: Network };
 
 const configItem = { title: "Configurações", url: "/configuracoes", icon: Settings };
 

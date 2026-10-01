@@ -47,7 +47,7 @@ export default function Funcionarios() {
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
   const [editingCargoOriginal, setEditingCargoOriginal] = useState("");
-  // Cidade de atuação (onde trabalha) — compõe a posição do mapa de sucessão.
+  // Cidade de atuação (onde trabalha) — compõe a posição do mapa de cobertura.
   const [cidadeIbge, setCidadeIbge] = useState<number | null>(null);
   const [editingCidadeOriginal, setEditingCidadeOriginal] = useState<number | null>(null);
   const [dataContratoVigente, setDataContratoVigente] = useState("");
@@ -484,7 +484,7 @@ export default function Funcionarios() {
             <div className="space-y-2">
               <label className="text-sm font-medium">Cidade de atuação *</label>
               <CidadeSelect value={cidadeIbge} onChange={(c) => setCidadeIbge(c)} />
-              <p className="text-xs text-muted-foreground">Onde trabalha (não onde mora). Define a posição no mapa de sucessão.</p>
+              <p className="text-xs text-muted-foreground">Onde trabalha (não onde mora). Define a posição no mapa de cobertura.</p>
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Equipe</label>

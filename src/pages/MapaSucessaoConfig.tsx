@@ -22,7 +22,7 @@ const baseKey = (p: { funcao_id: string; equipe_id: string; cidade_ibge: number 
   `${p.funcao_id}|${p.equipe_id}|${p.cidade_ibge ?? ""}`;
 
 /**
- * Configuração do mapa de sucessão (só admin). Por padrão a posição é função +
+ * Configuração do mapa de cobertura (só admin). Por padrão a posição é função +
  * equipe + cidade de atuação e todas exigem mapeamento. Aqui o admin:
  *   - revisa a cidade de atuação (pré-preenchida com a da empresa);
  *   - separa quem exige mapeamento próprio numa posição compartilhada;
@@ -172,7 +172,7 @@ export default function MapaSucessaoConfig() {
     <div className="space-y-5">
       <div>
         <Button variant="ghost" size="sm" className="-ml-2 h-7" asChild>
-          <Link to="/mapa-sucessao"><ArrowLeft className="mr-1.5 h-3.5 w-3.5" />Mapa de sucessão</Link>
+          <Link to="/mapa-cobertura"><ArrowLeft className="mr-1.5 h-3.5 w-3.5" />Mapa de cobertura</Link>
         </Button>
         <h1 className="text-2xl font-bold tracking-tight">Configurar o mapa</h1>
         <p className="text-sm text-muted-foreground flex items-center gap-1.5">

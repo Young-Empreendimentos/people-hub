@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { indicadores, serieHistorica } from "./mapaSucessao";
 
-describe("indicadores do mapa de sucessão", () => {
+describe("indicadores do mapa de cobertura", () => {
   it("parcial vale meia cobertura no índice", () => {
     const i = indicadores([
       { cobertura: "total", headcount: 1 },

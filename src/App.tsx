@@ -68,7 +68,7 @@ const SucessaoPlanoGate = () => {
   return isAdmin ? <SucessaoPlano /> : <SucessaoPublicadoDetalhe />;
 };
 
-// Mapa de sucessão (simplificado): admin e coordenador. O banco também barra
+// Mapa de cobertura (sucessão simplificada): admin e coordenador. O banco também barra
 // (rh_mapa_cobertura levanta erro para os demais).
 const MapaSucessaoGate = () => {
   const { isAdmin, role, loading } = useAuth();
@@ -76,7 +76,7 @@ const MapaSucessaoGate = () => {
   if (isAdmin || role === "coordenador") return <MapaSucessao />;
   return (
     <div className="py-16 text-center text-sm text-muted-foreground">
-      O mapa de sucessão é restrito a administradores e coordenadores.
+      O mapa de cobertura é restrito a administradores e coordenadores.
     </div>
   );
 };
@@ -85,7 +85,7 @@ const MapaSucessaoGate = () => {
 const MapaSucessaoConfigGate = () => {
   const { isAdmin, loading } = useAuth();
   if (loading) return null;
-  return isAdmin ? <MapaSucessaoConfig /> : <Navigate to="/mapa-sucessao" replace />;
+  return isAdmin ? <MapaSucessaoConfig /> : <Navigate to="/mapa-cobertura" replace />;
 };
 
 const App = () => (
@@ -137,8 +137,11 @@ const App = () => (
               <Route path="/gestao-pessoas/mapeamento-alternativas" element={<Navigate to="/sucessao" replace />} />
               <Route path="/sucessao" element={<SucessaoGate />} />
               <Route path="/sucessao/:id" element={<SucessaoPlanoGate />} />
-              <Route path="/mapa-sucessao" element={<MapaSucessaoGate />} />
-              <Route path="/mapa-sucessao/configuracao" element={<MapaSucessaoConfigGate />} />
+              <Route path="/mapa-cobertura" element={<MapaSucessaoGate />} />
+              <Route path="/mapa-cobertura/configuracao" element={<MapaSucessaoConfigGate />} />
+              {/* Endereços antigos (a página se chamava "Mapa de sucessão"). */}
+              <Route path="/mapa-sucessao" element={<Navigate to="/mapa-cobertura" replace />} />
+              <Route path="/mapa-sucessao/configuracao" element={<Navigate to="/mapa-cobertura/configuracao" replace />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

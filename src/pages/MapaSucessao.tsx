@@ -107,7 +107,7 @@ const APROVACAO: Record<Aprovacao, { label: string; classes: string }> = {
 };
 
 /**
- * Mapa de sucessão: cada posição (função + equipe + cidade, ou individual) do
+ * Mapa de cobertura (sucessão simplificada): cada posição (função + equipe + cidade, ou individual) do
  * quadro atual e a cobertura dela pelo mapeamento simplificado — internos
  * indicados aqui (contam depois de aprovados por admin, por 6 meses) e externos
  * do Talents. Admin e coordenador veem e indicam; só admin aprova e configura.
@@ -222,7 +222,7 @@ export default function MapaSucessao() {
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Network className="h-6 w-6 text-primary" /> Mapa de sucessão
+            <Network className="h-6 w-6 text-primary" /> Mapa de cobertura
           </h1>
           <p className="text-sm text-muted-foreground flex items-center gap-1.5">
             Cada posição do quadro atual e quem poderia cobri-la. <AjudaPosicao />
@@ -248,7 +248,7 @@ export default function MapaSucessao() {
           </Select>
           {isAdmin && (
             <Button variant="outline" asChild>
-              <Link to="/mapa-sucessao/configuracao"><Settings2 className="mr-2 h-4 w-4" />Configurar</Link>
+              <Link to="/mapa-cobertura/configuracao"><Settings2 className="mr-2 h-4 w-4" />Configurar</Link>
             </Button>
           )}
         </div>

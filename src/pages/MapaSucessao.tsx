@@ -20,7 +20,7 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import {
-  CheckCircle2, Clock, ExternalLink, Eye, HelpCircle, Network, RefreshCw, Settings2, Target, Trash2, UserPlus, Users,
+  CheckCircle2, Clock, ExternalLink, Eye, HelpCircle, History, Network, RefreshCw, Settings2, Target, Trash2, UserPlus, Users,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
@@ -91,6 +91,14 @@ const fmtData = (iso: string) => new Date(iso).toLocaleDateString("pt-BR");
 export const primeiroNome = (nome: string) =>
   nome.toLowerCase().split(" ")[0].replace(/^\p{L}/u, (c) => c.toUpperCase());
 const cidadeCurta = (c: string | null) => (c ? c.replace(/\/RS$/, "") : "cidade não definida");
+
+const EVENTO: Record<string, string> = {
+  indicado: "Indicado",
+  aprovado: "Aprovado",
+  revalidado: "Revalidado",
+  cobertura: "Cobertura alterada",
+  removido: "Removido",
+};
 
 const APROVACAO: Record<Aprovacao, { label: string; classes: string }> = {
   aprovada: { label: "aprovada", classes: "border-emerald-400 text-emerald-700 dark:text-emerald-300" },
@@ -378,7 +386,8 @@ export function AjudaPosicao() {
 function PosicaoCard({ p, temPlano, onClick }: { p: Posicao; temPlano: boolean; onClick: () => void }) {
   const internosTotal = p.sucessores.filter((s) => s.conta && s.cobertura === "total").length;
   const internosParcial = p.sucessores.filter((s) => s.conta && s.cobertura === "parcial").length;
-  const aAprovar = p.sucessores.filter((s) => s.ativo && s.aprovacao !== "aprovada").length;
+  const aAprovar = p.sucessores.filter((s) => s.ativo && s.aprovacao === "pendente").length;
+  const vencidas = p.sucessores.filter((s) => s.ativo && s.aprovacao === "vencida").length;
   const externosConta = p.externos.filter((e) => e.conta).length;
   const interessantes = p.externos.length - externosConta;
   return (
@@ -414,8 +423,9 @@ function PosicaoCard({ p, temPlano, onClick }: { p: Posicao; temPlano: boolean; 
         {internosParcial > 0 && <Chip cor="bg-amber-500">{internosParcial} interno{internosParcial > 1 ? "s" : ""} parcial</Chip>}
         {externosConta > 0 && <Chip cor="bg-violet-500">{externosConta} externo{externosConta > 1 ? "s" : ""}</Chip>}
         {aAprovar > 0 && <Chip cor="bg-amber-300">{aAprovar} a aprovar</Chip>}
+        {vencidas > 0 && <Chip cor="bg-red-400">{vencidas} aprovação vencida{vencidas > 1 ? "s" : ""}</Chip>}
         {interessantes > 0 && <Chip cor="bg-slate-400">{interessantes} interessante{interessantes > 1 ? "s" : ""}</Chip>}
-        {p.cobertura === "descoberta" && interessantes === 0 && aAprovar === 0 && (
+        {p.cobertura === "descoberta" && interessantes === 0 && aAprovar === 0 && vencidas === 0 && (
           <span className="text-red-700 dark:text-red-300">ninguém mapeado</span>
         )}
       </div>
@@ -454,7 +464,41 @@ function PosicaoDialog({ posicao: p, planos, onClose }: { posicao: Posicao; plan
     funcionarioId: "", cobertura: "parcial", obs: "",
   });
 
-  const invalidar = () => qc.invalidateQueries({ queryKey: ["rh_mapa_cobertura"] });
+  const invalidar = () => {
+    qc.invalidateQueries({ queryKey: ["rh_mapa_cobertura"] });
+    qc.invalidateQueries({ queryKey: ["rh_mapa_sucessores_hist", p.posicao] });
+  };
+
+  // Histórico da posição: sobrevive à remoção da indicação, para ninguém
+  // "esquecer" um bom candidato cuja aprovação venceu ou que foi tirado.
+  const { data: historico = [] } = useQuery({
+    queryKey: ["rh_mapa_sucessores_hist", p.posicao],
+    queryFn: async () => {
+      let q = rhDb.from("rh_mapa_sucessores_hist" as any).select("*")
+        .eq("funcao_id", p.funcao_id).eq("equipe_id", p.equipe_id);
+      q = p.cidade_ibge == null ? q.is("cidade_ibge", null) : q.eq("cidade_ibge", p.cidade_ibge);
+      q = p.titular_id == null ? q.is("titular_funcionario_id", null) : q.eq("titular_funcionario_id", p.titular_id);
+      const { data, error } = await q.order("em", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  // Quem já foi indicado aqui e não está mais na lista (removido).
+  const anteriores = useMemo(() => {
+    const atuais = new Set(p.sucessores.map((s) => s.funcionario_id));
+    const vistos = new Map<string, any>();
+    for (const h of historico) {
+      if (atuais.has(h.funcionario_id) || vistos.has(h.funcionario_id)) continue;
+      vistos.set(h.funcionario_id, {
+        ...h,
+        aprovacoes: historico.filter((x) => x.funcionario_id === h.funcionario_id && (x.evento === "aprovado" || x.evento === "revalidado")).length,
+      });
+    }
+    return [...vistos.values()];
+  }, [historico, p.sucessores]);
+
+  const jaTeveHistorico = !!novo.funcionarioId && historico.some((h) => h.funcionario_id === novo.funcionarioId);
 
   // Candidatos internos: ativos, fora da própria posição e ainda não indicados.
   const opcoes = useMemo(() => {
@@ -614,6 +658,11 @@ function PosicaoDialog({ posicao: p, planos, onClose }: { posicao: Posicao; plan
               </div>
               <Textarea rows={2} placeholder="Observação (opcional)" value={novo.obs}
                 onChange={(e) => setNovo((n) => ({ ...n, obs: e.target.value }))} />
+              {jaTeveHistorico && (
+                <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                  Esta pessoa já foi indicada para esta posição antes — veja o histórico abaixo.
+                </p>
+              )}
               {!isAdmin && (
                 <p className="text-[11px] text-muted-foreground">
                   A indicação conta no indicador depois de aprovada por um administrador, e a aprovação vale {MESES_VALIDADE_APROVACAO} meses.
@@ -622,6 +671,38 @@ function PosicaoDialog({ posicao: p, planos, onClose }: { posicao: Posicao; plan
             </div>
           )}
         </section>
+
+        {anteriores.length > 0 && (
+          <section className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <History className="h-3.5 w-3.5" /> Indicados anteriormente
+            </h3>
+            {anteriores.map((a) => {
+              const ativo = isActive(a.funcionario_id);
+              return (
+                <div key={a.funcionario_id} className="flex items-start justify-between gap-2 rounded-md border border-dashed p-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {a.funcionario_nome ?? "(sem nome)"}
+                      {!ativo && <span className="ml-1 text-xs text-muted-foreground">(desligado)</span>}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      removido em {fmtData(a.em)}{a.por_nome ? ` por ${a.por_nome}` : ""}
+                      {a.detalhe ? ` · ${a.detalhe}` : ""}
+                      {a.aprovacoes > 0 ? ` · aprovado ${a.aprovacoes}×` : ""}
+                    </p>
+                  </div>
+                  {podeIndicar && ativo && (
+                    <Button size="sm" variant="outline" className="shrink-0"
+                      onClick={() => setNovo({ funcionarioId: a.funcionario_id, cobertura: (a.cobertura as any) || "parcial", obs: "" })}>
+                      Indicar de novo
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        )}
 
         <section className="space-y-2">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
@@ -651,6 +732,26 @@ function PosicaoDialog({ posicao: p, planos, onClose }: { posicao: Posicao; plan
             alternativa externa cobrem parcialmente.
           </p>
         </section>
+
+        {historico.length > 0 && (
+          <details className="rounded-md border px-3 py-2">
+            <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-1.5">
+              <History className="h-3.5 w-3.5" /> Histórico de indicações ({historico.length})
+            </summary>
+            <ol className="mt-2 space-y-1.5">
+              {historico.map((h) => (
+                <li key={h.id} className="text-xs">
+                  <span className="text-muted-foreground tabular-nums">{fmtData(h.em)}</span>{" "}
+                  <span className="font-medium">{EVENTO[h.evento] ?? h.evento}</span>{" "}
+                  — {h.funcionario_nome ?? "(sem nome)"}
+                  {h.cobertura && h.evento !== "cobertura" ? ` (${h.cobertura})` : ""}
+                  {h.por_nome ? <span className="text-muted-foreground"> · por {h.por_nome}</span> : null}
+                  {h.detalhe ? <span className="block text-muted-foreground pl-4">{h.detalhe}</span> : null}
+                </li>
+              ))}
+            </ol>
+          </details>
+        )}
 
         {isAdmin && (
           <section className="space-y-2 border-t pt-3">

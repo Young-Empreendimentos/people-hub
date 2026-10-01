@@ -103,6 +103,8 @@ export default function Admissoes() {
       // If new admission, create employee first
       if (isNewAdmission && !funcId) {
         if (!nomeCompleto.trim()) throw new Error("Nome é obrigatório.");
+        // Também barrado no banco (trigger rh_funcionarios_exige_cargo).
+        if (!cargoId) throw new Error("Informe o cargo do funcionário.");
         if (cpf && !isValidCPF(cpf)) throw new Error("CPF inválido.");
 
         const employeePayload = {
@@ -325,7 +327,7 @@ export default function Admissoes() {
                     <Combobox options={equipes.map((e: any) => ({ value: e.id, label: e.nome }))} value={equipeId} onValueChange={setEquipeId} placeholder="Selecione a equipe" />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Cargo</label>
+                    <label className="text-sm font-medium">Cargo *</label>
                     <Combobox options={cargos.map((c: any) => ({ value: c.id, label: `${c.nome}${c.nivel != null ? ` — Nível ${c.nivel}` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${c.adicionais ? ` · ${c.adicionais}` : ""}` }))} value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo" />
                   </div>
                 </div>

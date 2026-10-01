@@ -45,6 +45,7 @@ export default function Funcionarios() {
   const [empresaId, setEmpresaId] = useState("");
   const [equipeId, setEquipeId] = useState("");
   const [cargoId, setCargoId] = useState("");
+  const [editingCargoOriginal, setEditingCargoOriginal] = useState("");
   const [dataContratoVigente, setDataContratoVigente] = useState("");
   const [gestorId, setGestorId] = useState("");
   const [tipoContrato, setTipoContrato] = useState("");
@@ -149,6 +150,9 @@ export default function Funcionarios() {
 
   const validateForm = () => {
     if (!nomeCompleto.trim()) { toast.error("Nome completo é obrigatório."); return false; }
+    // Cargo é obrigatório no cadastro novo e não pode ser apagado (trigger
+    // rh_funcionarios_exige_cargo). Cadastros antigos sem cargo seguem editáveis.
+    if (!cargoId && (!editingId || editingCargoOriginal)) { toast.error("Informe o cargo do funcionário."); return false; }
     if (cpf && !isValidCPF(cpf)) { setCpfError("CPF inválido"); return false; }
     setCpfError("");
     return true;
@@ -186,7 +190,7 @@ export default function Funcionarios() {
       toast.success("Funcionário atualizado.");
       closeDialog();
     },
-    onError: () => toast.error("Erro ao salvar funcionário."),
+    onError: (e: any) => toast.error(e?.code === "23502" && e?.message ? e.message : "Erro ao salvar funcionário."),
   });
 
   const deleteMutation = useMutation({
@@ -207,7 +211,7 @@ export default function Funcionarios() {
     setRg(f.rg || ""); setCpf(f.cpf || ""); setEndereco(f.endereco || ""); setTelefone(f.telefone || "");
     setAniversario(f.aniversario || "");
     setEmpresaId(f.empresa_id || ""); setEquipeId(f.equipe_id || "");
-    setCargoId(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
+    setCargoId(f.cargo_id || ""); setEditingCargoOriginal(f.cargo_id || ""); setDataContratoVigente(f.data_contrato_vigente || "");
     setGestorId(f.gestor_id || "");
     setTipoContrato(f.tipo_contrato || "");
     setValorKm(f.valor_km != null ? String(f.valor_km) : "");
@@ -465,16 +469,18 @@ export default function Funcionarios() {
               <Combobox options={equipes.map((e) => ({ value: e.id, label: e.nome }))} value={equipeId} onValueChange={setEquipeId} placeholder="Selecione a equipe" />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Cargo</label>
+              <label className="text-sm font-medium">Cargo *</label>
+              {/* No cadastro novo todos escolhem o cargo (é obrigatório); TROCAR o
+                  cargo depois continua restrito a coordenador/admin. */}
               <Combobox
                 options={cargos.map((c: any) => ({
                   value: c.id,
                   label: `${c.rh_trilhas_cargo?.nome ? c.rh_trilhas_cargo.nome + " — " : ""}${c.nome}${c.nivel != null ? ` (Nível ${c.nivel})` : ""} · ${Number(c.remuneracao || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}${c.adicionais ? ` · ${c.adicionais}` : ""}`,
                 }))}
                 value={cargoId} onValueChange={setCargoId} placeholder="Selecione o cargo"
-                disabled={!canEditCargoSalario}
+                disabled={!canEditCargoSalario && !!editingId}
               />
-              {!canEditCargoSalario && <p className="text-xs text-muted-foreground">Apenas coordenadores podem alterar cargos.</p>}
+              {!canEditCargoSalario && !!editingId && <p className="text-xs text-muted-foreground">Apenas coordenadores podem alterar cargos.</p>}
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Gestor Direto</label>

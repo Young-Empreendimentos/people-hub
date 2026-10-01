@@ -47,6 +47,7 @@ import AuditoriasHub from "./pages/AuditoriasHub";
 import Sucessao from "./pages/Sucessao";
 import SucessaoPlano from "./pages/SucessaoPlano";
 import { SucessaoPublicadaLista, SucessaoPublicadoDetalhe } from "./pages/SucessaoPublicado";
+import MapaSucessao from "./pages/MapaSucessao";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,19 @@ const SucessaoPlanoGate = () => {
   const { isAdmin, loading } = useAuth();
   if (loading) return null;
   return isAdmin ? <SucessaoPlano /> : <SucessaoPublicadoDetalhe />;
+};
+
+// Mapa de sucessão (simplificado): admin e coordenador. O banco também barra
+// (rh_mapa_cobertura levanta erro para os demais).
+const MapaSucessaoGate = () => {
+  const { isAdmin, role, loading } = useAuth();
+  if (loading) return null;
+  if (isAdmin || role === "coordenador") return <MapaSucessao />;
+  return (
+    <div className="py-16 text-center text-sm text-muted-foreground">
+      O mapa de sucessão é restrito a administradores e coordenadores.
+    </div>
+  );
 };
 
 const App = () => (
@@ -115,6 +129,7 @@ const App = () => (
               <Route path="/gestao-pessoas/mapeamento-alternativas" element={<Navigate to="/sucessao" replace />} />
               <Route path="/sucessao" element={<SucessaoGate />} />
               <Route path="/sucessao/:id" element={<SucessaoPlanoGate />} />
+              <Route path="/mapa-sucessao" element={<MapaSucessaoGate />} />
               <Route path="/configuracoes" element={<Configuracoes />} />
             </Route>
             <Route path="*" element={<NotFound />} />

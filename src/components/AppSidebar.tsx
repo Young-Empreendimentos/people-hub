@@ -1,5 +1,5 @@
 import {
-  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car, ClipboardList, FileCheck2, Target,
+  ClipboardCheck, Receipt, ListChecks, Settings, Home, LogOut, GraduationCap, ShieldAlert, LayoutGrid, Wallet, Car, ClipboardList, FileCheck2, Target, Network,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -33,13 +33,18 @@ const auditoriasItem = { title: "Auditorias", url: "/auditorias", icon: FileChec
 // pessoa tem algum plano disponibilizado para ela — aí abre em modo leitura.
 const sucessaoItem = { title: "Sucessão", url: "/sucessao", icon: Target };
 
+// Mapa de sucessão (simplificado, por posição): admin e coordenador. Mesmo
+// padrão: aparece para todos, desabilitado para quem não tem acesso.
+const mapaItem = { title: "Mapa de sucessão", url: "/mapa-sucessao", icon: Network };
+
 const configItem = { title: "Configurações", url: "/configuracoes", icon: Settings };
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { canConfig, signOut, user, userName, isAuditor, isAdmin } = useAuth();
+  const { canConfig, signOut, user, userName, isAuditor, isAdmin, role } = useAuth();
+  const podeVerMapa = isAdmin || role === "coordenador";
 
   // Só consultamos para quem não é admin — o admin já entra pelo caminho normal.
   const { data: meusPublicados } = useQuery({
@@ -105,6 +110,21 @@ export function AppSidebar() {
                   <SidebarMenuButton disabled>
                     <sucessaoItem.icon className="mr-2 h-4 w-4 shrink-0" />
                     {!collapsed && <span>{sucessaoItem.title}</span>}
+                  </SidebarMenuButton>
+                )}
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                {podeVerMapa ? (
+                  <SidebarMenuButton asChild isActive={isActive(mapaItem.url)}>
+                    <NavLink to={mapaItem.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                      <mapaItem.icon className="mr-2 h-4 w-4 shrink-0" />
+                      {!collapsed && <span>{mapaItem.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton disabled>
+                    <mapaItem.icon className="mr-2 h-4 w-4 shrink-0" />
+                    {!collapsed && <span>{mapaItem.title}</span>}
                   </SidebarMenuButton>
                 )}
               </SidebarMenuItem>

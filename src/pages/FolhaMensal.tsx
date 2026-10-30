@@ -1020,22 +1020,15 @@ export default function FolhaMensal() {
             <TableHead>Funcionário</TableHead>
             <TableHead>Empresa</TableHead>
             <TableHead className="text-right">Salário Base</TableHead>
-            <TableHead className="text-right">Bruto</TableHead>
             <TableHead className="w-24 text-right">Ações</TableHead>
           </TableRow></TableHeader>
           <TableBody>
-            {isLoading ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-            : filtered.length === 0 ? <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
+            {isLoading ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+            : filtered.length === 0 ? <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum registro.</TableCell></TableRow>
             : filtered.map((f: any) => {
               const func = funcionariosAll.find((x: any) => x.id === f.funcionario_id) as any;
               const cargo = func?.cargo_id ? cargoMap[func.cargo_id] : null;
               const salarioBase = cargo?.remuneracao || 0;
-              const tot = totaisByFolha[f.id] || { desc: 0, reemb: 0, hasPlanoSaude: false };
-              const bruto = salarioBase
-                + Number(f.valor_comissoes || 0)
-                + Number(f.valor_plr || 0)
-                + Number(f.valor_vr || 0)
-                + tot.reemb;
               return (
               <TableRow key={f.id}>
                 <TableCell>{f.mes_referencia?.slice(0, 7)}</TableCell>
@@ -1051,7 +1044,6 @@ export default function FolhaMensal() {
                 </TableCell>
                 <TableCell className="text-muted-foreground text-xs">{getEmpresaNome(f.funcionario_id, f.mes_referencia)}</TableCell>
                 <TableCell className="tabular-nums text-right">{fmt(salarioBase)}</TableCell>
-                <TableCell className="tabular-nums text-right font-medium">{fmt(bruto)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-1">
                     <Button variant="ghost" size="icon" onClick={() => openEdit(f)} disabled={!canEditFolha(f)} title={!canEditFolha(f) ? "Edição liberada apenas até 30 dias após o lançamento" : undefined}><Pencil className="h-4 w-4" /></Button>

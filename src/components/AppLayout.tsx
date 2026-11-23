@@ -1,5 +1,5 @@
 import { Outlet, Navigate, useLocation, Link } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
@@ -12,10 +12,10 @@ export function AppLayout() {
   const { user, role, roleStatus, loading, signOut, isColaborador, isAuditor } = useAuth();
   const location = useLocation();
 
-  // Colaborador não tem sidebar: o link "Sucessão" do cabeçalho reduzido só
-  // aparece quando há plano disponibilizado para a pessoa. O dado em si é
-  // protegido pela função do banco, não por este link.
-  const { data: meusPublicados } = useQuery({
+  // Decide a página de entrada do colaborador: quem tem plano de sucessão
+  // disponibilizado abre nele. Mesma chave de cache da AppSidebar, então é uma
+  // consulta só. O dado em si é protegido pela função do banco.
+  const { data: meusPublicados, isLoading: carregandoPublicados } = useQuery({
     queryKey: ["rh_sucessao_meus_publicados_menu"],
     enabled: !!user && isColaborador && roleStatus === "ativo",
     staleTime: 5 * 60 * 1000,
@@ -116,7 +116,7 @@ export function AppLayout() {
     );
   }
 
-  // Colaborador ativo → layout reduzido, sem sidebar; acessa /meus-kms, os planos
+  // Colaborador ativo → barra lateral reduzida; acessa /meus-kms, os planos
   // de sucessão disponibilizados para ele (/sucessao*, em modo leitura — a rota
   // entrega só o que a função do banco libera) e /auditorias* se for auditor.
   if (isColaborador) {
@@ -126,40 +126,40 @@ export function AppLayout() {
       location.pathname.startsWith("/sucessao/") ||
       (isAuditor && location.pathname.startsWith("/auditorias")) ||
       (isAuditor && location.pathname.startsWith("/atividades-auditoria"));
-    if (!allowed) return <Navigate to="/meus-kms" replace />;
-    return (
-      <div className="min-h-screen flex flex-col">
-        <header className="border-b bg-card">
-          <div className="container mx-auto flex items-center justify-between py-3 px-4">
-            <Link to="/meus-kms" className="flex items-center gap-2">
-              <img src="/logo-icon.png" alt="Young" className="h-8 w-8 rounded" />
-              <div className="leading-tight">
-                <p className="text-sm font-bold">Pilares</p>
-                <p className="text-[10px] text-muted-foreground">Reembolso de KM</p>
-              </div>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Button asChild variant="ghost" size="sm">
-                <Link to="/meus-kms">Meus KMs</Link>
-              </Button>
-              {temPlanoPublicado && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/sucessao">Sucessão</Link>
-                </Button>
-              )}
-              {isAuditor && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/auditorias">Auditorias</Link>
-                </Button>
-              )}
-              <Button variant="ghost" size="sm" onClick={signOut}>
-                <LogOut className="mr-2 h-4 w-4" /> Sair
-              </Button>
+    if (!allowed) {
+      // Entrada pelo login (cai em "/"): quem tem plano disponibilizado abre
+      // direto nele; os demais seguem para Meus KMs, como sempre.
+      if (location.pathname === "/") {
+        if (carregandoPublicados) {
+          return (
+            <div className="min-h-screen flex items-center justify-center">
+              <p className="text-muted-foreground animate-pulse">Carregando...</p>
             </div>
+          );
+        }
+        if (temPlanoPublicado) return <Navigate to="/sucessao" replace />;
+      }
+      return <Navigate to="/meus-kms" replace />;
+    }
+    // Mesma barra lateral do staff, mas a AppSidebar mostra só o que o
+    // colaborador acessa. No celular a barra vira gaveta, então a faixa do topo
+    // traz o botão que a abre — sem ele não haveria menu nem "Sair".
+    return (
+      <SidebarProvider>
+        <div className="min-h-screen flex w-full">
+          <AppSidebar />
+          <div className="flex-1 flex flex-col min-w-0">
+            <header className="md:hidden flex items-center gap-2 border-b bg-card px-3 py-2">
+              <SidebarTrigger />
+              <img src="/logo-icon.png" alt="Young" className="h-6 w-6 rounded" />
+              <p className="text-sm font-bold">Pilares</p>
+            </header>
+            <main className="flex-1 p-4 sm:p-6 overflow-auto">
+              <Outlet />
+            </main>
           </div>
-        </header>
-        <main className="flex-1 container mx-auto p-4 sm:p-6"><Outlet /></main>
-      </div>
+        </div>
+      </SidebarProvider>
     );
   }
 

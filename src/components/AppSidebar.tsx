@@ -43,7 +43,7 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { canConfig, signOut, user, userName, isAuditor, isAdmin, role } = useAuth();
+  const { canConfig, signOut, user, userName, isAuditor, isAdmin, isColaborador, role } = useAuth();
   const podeVerMapa = isAdmin || role === "coordenador";
 
   // Só consultamos para quem não é admin — o admin já entra pelo caminho normal.
@@ -59,6 +59,12 @@ export function AppSidebar() {
   });
   const temPlanoPublicado = (meusPublicados?.length ?? 0) > 0;
   const podeVerSucessao = isAdmin || temPlanoPublicado;
+
+  // Colaborador vê só o que acessa (as rotas são barradas no AppLayout): nada de
+  // itens desabilitados, que para ele seriam a maior parte do menu.
+  const itensPrincipais = isColaborador
+    ? mainItems.filter((i) => i.url === "/meus-kms")
+    : mainItems;
 
   const isActive = (path: string) =>
     path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
@@ -78,7 +84,7 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map((item) => (
+              {itensPrincipais.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end={item.url === "/"} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
@@ -98,6 +104,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               )}
+              {(!isColaborador || podeVerSucessao) && (
               <SidebarMenuItem>
                 {podeVerSucessao ? (
                   <SidebarMenuButton asChild isActive={isActive(sucessaoItem.url)}>
@@ -113,6 +120,8 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 )}
               </SidebarMenuItem>
+              )}
+              {!isColaborador && (
               <SidebarMenuItem>
                 {podeVerMapa ? (
                   <SidebarMenuButton asChild isActive={isActive(mapaItem.url)}>
@@ -128,6 +137,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 )}
               </SidebarMenuItem>
+              )}
               {canConfig && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive(configItem.url)}>

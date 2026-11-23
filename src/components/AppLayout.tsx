@@ -2,6 +2,8 @@ import { Outlet, Navigate, useLocation, Link } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ShieldAlert, LogOut } from "lucide-react";
@@ -9,6 +11,21 @@ import { ShieldAlert, LogOut } from "lucide-react";
 export function AppLayout() {
   const { user, role, roleStatus, loading, signOut, isColaborador, isAuditor } = useAuth();
   const location = useLocation();
+
+  // Colaborador não tem sidebar: o link "Sucessão" do cabeçalho reduzido só
+  // aparece quando há plano disponibilizado para a pessoa. O dado em si é
+  // protegido pela função do banco, não por este link.
+  const { data: meusPublicados } = useQuery({
+    queryKey: ["rh_sucessao_meus_publicados_menu"],
+    enabled: !!user && isColaborador && roleStatus === "ativo",
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("rh_sucessao_meus_planos_publicados" as any);
+      if (error) return [];
+      return (data ?? []) as any[];
+    },
+  });
+  const temPlanoPublicado = (meusPublicados?.length ?? 0) > 0;
 
   if (loading) {
     return (
@@ -99,10 +116,14 @@ export function AppLayout() {
     );
   }
 
-  // Colaborador ativo → layout reduzido, sem sidebar; acessa /meus-kms (e /auditorias* se for auditor)
+  // Colaborador ativo → layout reduzido, sem sidebar; acessa /meus-kms, os planos
+  // de sucessão disponibilizados para ele (/sucessao*, em modo leitura — a rota
+  // entrega só o que a função do banco libera) e /auditorias* se for auditor.
   if (isColaborador) {
     const allowed =
       location.pathname === "/meus-kms" ||
+      location.pathname === "/sucessao" ||
+      location.pathname.startsWith("/sucessao/") ||
       (isAuditor && location.pathname.startsWith("/auditorias")) ||
       (isAuditor && location.pathname.startsWith("/atividades-auditoria"));
     if (!allowed) return <Navigate to="/meus-kms" replace />;
@@ -121,6 +142,11 @@ export function AppLayout() {
               <Button asChild variant="ghost" size="sm">
                 <Link to="/meus-kms">Meus KMs</Link>
               </Button>
+              {temPlanoPublicado && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/sucessao">Sucessão</Link>
+                </Button>
+              )}
               {isAuditor && (
                 <Button asChild variant="ghost" size="sm">
                   <Link to="/auditorias">Auditorias</Link>

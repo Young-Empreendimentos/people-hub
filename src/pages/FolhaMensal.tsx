@@ -139,24 +139,23 @@ export default function FolhaMensal() {
     }
     setImportandoKm(true);
     try {
-      const [y, m] = mesRef.split("-").map(Number);
-      const prev = m === 1 ? { y: y - 1, m: 12 } : { y, m: m - 1 };
-      const ini = `${prev.y}-${String(prev.m).padStart(2, "0")}-20`;
       const fim = `${mesRef}-19`;
+      // Importa todo KM APROVADO e ainda NÃO lançado em folha (controle = folha_reembolso_id).
+      // Sem piso de data: viagem antiga esquecida (de mês já fechado) é puxada aqui na próxima
+      // importação. Por padrão limita até o fim do período (dia 19); "antecipar" inclui o futuro.
       let q = rhDb
         .from("rh_km_lancamentos" as any)
         .select("id, data, km, valor_km_snapshot, valor_total")
         .eq("funcionario_id", funcId)
         .eq("status", "aprovado")
-        .is("folha_reembolso_id", null)
-        .gte("data", ini);
+        .is("folha_reembolso_id", null);
       if (!anteciparKm) q = q.lte("data", fim);
       const { data, error } = await q;
       if (error) throw error;
       const rows = (data || []) as any[];
 
       if (rows.length === 0) {
-        toast.info("Nenhum KM aprovado e não-pago neste período.");
+        toast.info("Nenhum KM aprovado e ainda não lançado em folha para este funcionário.");
         return;
       }
       // Recalcula linhas zeradas usando o valor_km atual do funcionário
@@ -201,7 +200,7 @@ export default function FolhaMensal() {
           valor: total.toFixed(2),
           observacao: anteciparKm
             ? `${rows.length} lançamento(s) aprovado(s) — antecipado (inclui KMs após ${formatBR(fim)})`
-            : `${rows.length} lançamento(s) aprovado(s) — período ${formatBR(ini)} a ${formatBR(fim)}`,
+            : `${rows.length} lançamento(s) aprovado(s) não lançados (até ${formatBR(fim)})`,
           _kmIds: rows.map((r) => r.id),
         },
       ]);

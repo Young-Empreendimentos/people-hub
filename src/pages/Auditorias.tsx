@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { supabase, rhDb } from "@/integrations/supabase/client";
@@ -57,6 +57,24 @@ export default function Auditorias() {
     ? (equipes as any[])
     : (equipes as any[]).filter((e) => minhasEquipes.some((m: any) => m.equipe_id === e.id));
 
+  // Filtros da lista (equipe, título, período por data de referência)
+  const [fEquipe, setFEquipe] = useState("");
+  const [fTitulo, setFTitulo] = useState("");
+  const [fDe, setFDe] = useState("");
+  const [fAte, setFAte] = useState("");
+  const temFiltro = !!(fEquipe || fTitulo.trim() || fDe || fAte);
+  const limparFiltros = () => { setFEquipe(""); setFTitulo(""); setFDe(""); setFAte(""); };
+  const filtradas = useMemo(() => {
+    const t = fTitulo.trim().toLowerCase();
+    return (auditorias as any[]).filter((a) => {
+      if (fEquipe && a.equipe_id !== fEquipe) return false;
+      if (t && !((a.titulo ?? "").toLowerCase().includes(t))) return false;
+      if (fDe && (!a.data_referencia || a.data_referencia < fDe)) return false;
+      if (fAte && (!a.data_referencia || a.data_referencia > fAte)) return false;
+      return true;
+    });
+  }, [auditorias, fEquipe, fTitulo, fDe, fAte]);
+
   const [open, setOpen] = useState(false);
   const [titulo, setTitulo] = useState("");
   const [equipeId, setEquipeId] = useState("");
@@ -98,6 +116,35 @@ export default function Auditorias() {
       </div>
 
       <Card>
+        <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Equipe</label>
+            <Combobox
+              options={[{ value: "", label: "Todas as equipes" }, ...(equipes as any[]).map((e) => ({ value: e.id, label: e.nome }))]}
+              value={fEquipe} onValueChange={setFEquipe}
+              placeholder="Todas as equipes"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Título</label>
+            <Input value={fTitulo} onChange={(e) => setFTitulo(e.target.value)} placeholder="Buscar no título…" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">De (data)</label>
+            <Input type="date" value={fDe} onChange={(e) => setFDe(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs text-muted-foreground">Até (data)</label>
+            <Input type="date" value={fAte} onChange={(e) => setFAte(e.target.value)} />
+          </div>
+          <div className="sm:col-span-2 lg:col-span-4 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">{filtradas.length} de {auditorias.length} auditoria(s)</span>
+            {temFiltro && <Button variant="ghost" size="sm" onClick={limparFiltros}>Limpar filtros</Button>}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="pt-4">
           {isLoading ? <p className="text-muted-foreground">Carregando…</p> : (
             <Table>
@@ -112,7 +159,7 @@ export default function Auditorias() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {auditorias.map((a) => {
+                {filtradas.map((a) => {
                   const s = statusLabel[a.status] ?? { label: a.status, variant: "outline" };
                   return (
                     <TableRow key={a.id}>
@@ -129,8 +176,8 @@ export default function Auditorias() {
                     </TableRow>
                   );
                 })}
-                {auditorias.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">Nenhuma auditoria.</TableCell></TableRow>
+                {filtradas.length === 0 && (
+                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">{temFiltro ? "Nenhuma auditoria com esses filtros." : "Nenhuma auditoria."}</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
